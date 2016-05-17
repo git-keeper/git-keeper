@@ -1,0 +1,8 @@
+site_name: git-keeper Documentation
+repo_url: https://github.com/git-keeper/git-keeper
+pages:
+- Home: index.md
+- Client Setup: client_setup.md
+- Server Setup: server_setup.md
+- Developers: developers.md
+theme: readthedocs
