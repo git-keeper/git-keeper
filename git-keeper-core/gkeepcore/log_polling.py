@@ -13,10 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
 from threading import Thread
 from queue import Queue, Empty
 from time import time, sleep
+
+from gkeepcore.log_file import LogFileReader, LogFileException
 
 
 class LogPollingThread(Thread):
@@ -66,59 +67,52 @@ class LogPollingThread(Thread):
 
         # Previous most recent byte count, used to detect changes and to know
         # where to seek to for the next read
-        self._file_byte_counts = {}
+        self._log_byte_counts = {}
 
-    def _start_watching_log_file(self, file_path):
+    def _start_watching_log_file(self, log_file: LogFileReader):
         # Start watching the file at file_path. Do not call directly, pass
         # file paths in through the queue
 
         try:
-            byte_count = os.path.getsize(file_path)
-            self._file_byte_counts[file_path] = byte_count
-        except OSError:
+            byte_count = log_file.get_byte_count()
+            self._log_byte_counts[log_file] = byte_count
+        except LogFileException:
             # FIXME - log this
             pass
 
-    def _stop_watching_log_file(self, file_path):
+    def _stop_watching_log_file(self, log_file: LogFileReader):
         # Simply remove the file from the dictionary
-        del self._file_byte_counts
+        del self._log_byte_counts[log_file]
 
-    def _get_new_log_data(self, file_path, seek_position):
-        # Return any data that was added to the log since the last poll
-
-        # FIXME - log failures
-        with open(file_path) as f:
-            f.seek(seek_position)
-            return f.read()
-
-    def _get_new_lines(self, file_path) -> list:
+    def _get_new_lines(self, log_file: LogFileReader) -> list:
         # Get the new lines from the log file since the last poll.
         #
-        # :param file_path: path to the log file
+        # :param log_file: LogFileReader object
         # :return: a list of strings, one per line
 
         lines = []
 
         try:
-            current_byte_count = os.path.getsize(file_path)
-            old_byte_count = self._file_byte_counts[file_path]
+            current_byte_count = log_file.get_byte_count()
+            old_byte_count = self._log_byte_counts[log_file]
 
             # if the file shrunk, something went wrong
             if current_byte_count < old_byte_count:
                 # FIXME - log this
-                self._stop_watching_log_file(file_path)
+                self._stop_watching_log_file(log_file)
             elif current_byte_count > old_byte_count:
                 # get any new data past the old byte count
-                new_data = self._get_new_log_data(file_path, old_byte_count)
+                new_data = log_file.get_data(old_byte_count)
 
-                self._file_byte_counts[file_path] = current_byte_count
+                self._log_byte_counts[log_file] = current_byte_count
 
                 # strip the data since split does not remove the trailing
                 # newline
                 lines = new_data.strip().split('\n')
-        except OSError:
+        except LogFileException as e:
             # FIXME - log this
-            self._stop_watching_log_file(file_path)
+            print(e)
+            self._stop_watching_log_file(log_file)
         finally:
             # we always need to return a list
             return lines
@@ -140,18 +134,24 @@ class LogPollingThread(Thread):
         self._last_poll_time = time()
 
         # get keys as a list to avoid an iteration error if we remove a file
-        file_paths = list(self._file_byte_counts.keys())
+        log_files = list(self._log_byte_counts.keys())
 
         # for each file that we're watching, add any new lines to the queue
-        for file_path in file_paths:
-            for line in self._get_new_lines(file_path):
-                self._new_log_line_queue.put((file_path, line))
+        for log_file in log_files:
+            for line in self._get_new_lines(log_file):
+                self._new_log_line_queue.put((log_file.get_file_path(),
+                                              line))
 
         # consume all new log files until the queue is empty
         try:
             while True:
-                new_file_path = self._add_log_queue.get(block=False)
-                self._start_watching_log_file(new_file_path)
+                new_log_file = self._add_log_queue.get(block=False)
+                if isinstance(new_log_file, LogFileReader):
+                    self._start_watching_log_file(new_log_file)
+                else:
+                    # FIXME - log this
+                    pass
+
         except Empty:
             pass
 

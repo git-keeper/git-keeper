@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import shlex
 from pwd import getpwnam
 from subprocess import check_output, check_call, CalledProcessError, STDOUT
 from paramiko.client import SSHClient
@@ -233,3 +234,22 @@ def copy_directory_contents(source, dest):
     dest_quoted = '"{0}"'.format(dest)
     cmd = 'cp -r {0} {1}'.format(source_wildcard, dest_quoted)
     run_command(cmd)
+
+
+def append_to_file(file_path, text, ssh=None):
+    quoted_text = shlex.quote(text)
+    quoted_path = shlex.quote(file_path)
+    cmd = 'echo {0} >> {1}'.format(quoted_text, quoted_path)
+    run_command(cmd, ssh)
+
+
+def get_byte_count(file_path, ssh=None):
+    quoted_path = shlex.quote(file_path)
+    cmd = "ls -n1 {0} | awk '{{print $5}}'".format(quoted_path)
+    try:
+        count = int(run_command(cmd, ssh=ssh))
+    except ValueError:
+        raise CommandError('Error getting byte count from {0}'
+                           .format(file_path))
+
+    return count
