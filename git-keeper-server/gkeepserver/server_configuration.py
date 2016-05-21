@@ -13,6 +13,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Parses and provides access to the server configuration.
+
+The configuration file should be in the INI format:
+https://docs.python.org/3/library/configparser.html#supported-ini-file-structure
+
+There should be only one instance of the ServerConfiguration class. You can
+get it by calling the get_config() method provided by this module.
+"""
+
 import configparser
 import os
 
@@ -39,6 +48,7 @@ class ServerConfiguration:
         email_password - password for the SMTP server
 
     """
+    
     def __init__(self):
         """Parse the configuration file and initialize the attributes"""
 
@@ -59,8 +69,9 @@ class ServerConfiguration:
 
         try:
             self._parser.read(self._config_path)
-        except configparser.MissingSectionHeaderError:
-            error = 'Error reading {0}'.format(self._config_path)
+        except configparser.ParsingError as e:
+            error = 'Error reading {0}: {1}'.format(self._config_path,
+                                                    e.message)
             raise ServerConfigurationError(error)
 
     def _ensure_section_is_present(self, section):
