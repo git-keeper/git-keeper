@@ -3,3 +3,5 @@ __pycache__/
 .eggs/
 build/
 *egg-info/
+*.egg
+dist/
