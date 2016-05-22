@@ -15,19 +15,36 @@
 
 """Parses and provides access to the server configuration.
 
-The configuration file should be in the INI format:
+The configuration file must be stored at ~/.config/git-keeper/server.cfg
+
+The configuration file must be in the INI format:
 https://docs.python.org/3/library/configparser.html#supported-ini-file-structure
 
-There should be only one instance of the ServerConfiguration class. You can
-get it by calling the get_config() method provided by this module.
+This module stores a ServerConfiguration instance in the module-level variable
+named config. Call parse() on this instance as early as possible, probably in
+main() or whatever your entry point function is. Attempting to call
+parse() a second time will raise an exception.
+
+Any other modules that import the config will have access to the same instance
+without having to call parse().
+
+Example usage:
+
+    import sys
+    from gkeepserver.server_configuration import config
+
+    def main():
+        try:
+            config.parse()
+        except ServerConfigurationError as e:
+            sys.exit(e)
+
+        # Now access attributes using config.email_username, etc.
+
 """
 
 import configparser
 import os
-
-
-# Store one module-level ServerConfiguration instance
-config_instance = None
 
 
 class ServerConfigurationError(Exception):
@@ -50,10 +67,23 @@ class ServerConfiguration:
     """
     
     def __init__(self):
-        """Parse the configuration file and initialize the attributes"""
+        """Creates the object and setup the config path. parse() must be called
+         before any configuration attributes are accessed.
+        """
 
-        self._config_path = \
-            os.path.expanduser('~/.config/git-keeper/server.cfg')
+        home_dir = os.path.expanduser('~')
+        relative_path = '.config/git-keeper/server.cfg'
+        self._config_path = os.path.join(home_dir, relative_path)
+
+        self._parsed = False
+
+    def parse(self):
+        """Parses the configuration file and initialize the attributes.
+
+        May only be called once."""
+
+        if self._parsed:
+            raise ServerConfigurationError('parse() may only be called once')
 
         if not os.path.isfile(self._config_path):
             error = '{0} does not exist'.format(self._config_path)
@@ -62,8 +92,10 @@ class ServerConfiguration:
         self._parse_config_file()
         self._initialize_email_attributes()
 
+        self._parsed = True
+
     def _parse_config_file(self):
-        """Use a ConfigParser object to parse the configuration file"""
+        """Uses a ConfigParser object to parse the configuration file"""
 
         self._parser = configparser.ConfigParser()
 
@@ -83,7 +115,7 @@ class ServerConfiguration:
             raise ServerConfigurationError(error)
 
     def _initialize_email_attributes(self):
-        """Initialize all the email-related attributes"""
+        """Initializes all the email-related attributes"""
 
         self._ensure_section_is_present('email')
 
@@ -100,16 +132,6 @@ class ServerConfiguration:
             raise ServerConfigurationError(e.message)
 
 
-def get_config() -> ServerConfiguration:
-    """Returns the ServerConfiguration instance, intializing it if need be.
-
-    :return: An object containing the server configuration options parsed from
-     server.cfg
-    """
-    global config_instance
-
-    if config_instance is None:
-        config_instance = ServerConfiguration()
-
-    return config_instance
-
+# Module-level configuration instance. Someone must call parse() on this
+# before it is used
+config = ServerConfiguration()
