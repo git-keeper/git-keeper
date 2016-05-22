@@ -15,22 +15,33 @@
 
 """Parses and provides access to the client configuration.
 
-The configuration file should be in the INI format:
+The configuration file must be stored at ~/.config/git-keeper/client.cfg
+
+The configuration file must be in the INI format:
 https://docs.python.org/3/library/configparser.html#supported-ini-file-structure
 
-There should be only one instance of the ClientConfiguration class. You can
-get it by calling the get_config() method provided by this module.
+This module stores a ClientConfiguration instance in the module-level variable
+named config. Call parse() on this instance before use. Attempting to call
+parse() a second time will raise an exception.
+
+Example usage:
+
+    from gkeepclient.client_configuration import config
+
+    config.parse()
+
+    # Now access attributes using config.host, etc.
+
+    # Any module that imports the config in this fashion will access the same
+    # instance.
+
 """
 
 import configparser
 import os
 
 
-# Store one module-level ClientConfiguration instance
-config_instance = None
-
-
-class ConfigurationError(Exception):
+class ClientConfigurationError(Exception):
     pass
 
 
@@ -47,19 +58,35 @@ class ClientConfiguration:
     """
 
     def __init__(self):
-        """Parse the configuration file and initialize the attributes"""
-        self._config_path = \
-            os.path.expanduser('~/.config/git-keeper/client.cfg')
+        """Creates the object and setup the config path. parse() must be called
+        before any configuration attributes are accessed.
+        """
+
+        home_dir = os.path.expanduser('~')
+        relative_path = '.config/git-keeper/client.cfg'
+        self._config_path = os.path.join(home_dir, relative_path)
+
+        self._parsed = False
+
+    def parse(self):
+        """Parses the configuration file and initialize the attributes.
+
+        May only be called once."""
+
+        if self._parsed:
+            raise ClientConfigurationError('parse() may only be called once')
 
         if not os.path.isfile(self._config_path):
             error = '{0} does not exist'.format(self._config_path)
-            raise ConfigurationError(error)
+            raise ClientConfigurationError(error)
 
         self._parse_config_file()
         self._initialize_server_attributes()
 
+        self._parsed = True
+
     def _parse_config_file(self):
-        """Use a ConfigParser object to parse the configuration file"""
+        """Uses a ConfigParser object to parse the configuration file"""
 
         self._parser = configparser.ConfigParser()
 
@@ -68,7 +95,7 @@ class ClientConfiguration:
         except configparser.ParsingError as e:
             error = 'Error reading {0}: {1}'.format(self._config_path,
                                                     e.message)
-            raise ConfigurationError(error)
+            raise ClientConfigurationError(error)
 
     def _ensure_section_is_present(self, section):
         """Raises an exception if section is not in the config file"""
@@ -76,10 +103,10 @@ class ClientConfiguration:
         if section not in self._parser.sections():
             error = '{0} is not present in {1}'.format(section,
                                                        self._config_path)
-            raise ConfigurationError(error)
+            raise ClientConfigurationError(error)
 
     def _initialize_server_attributes(self):
-        """Initialize all the server-related attributes"""
+        """Initializes all the server-related attributes"""
 
         self._ensure_section_is_present('server')
 
@@ -95,20 +122,9 @@ class ClientConfiguration:
                 self.ssh_port = '22'
 
         except configparser.NoOptionError as e:
-            raise ConfigurationError(e.message)
+            raise ClientConfigurationError(e.message)
 
 
-def get_config() -> ClientConfiguration:
-    """Returns the ClientConfiguration instance, intializing it if need be.
-
-    :return: An object containing the client configuration options parsed from
-     client.cfg
-    """
-
-    global config_instance
-
-    if config_instance is None:
-        config_instance = ClientConfiguration()
-
-    return config_instance
-
+# Module-level configuration instance. Someone must call parse() on this
+# before it is used
+config = ClientConfiguration()
