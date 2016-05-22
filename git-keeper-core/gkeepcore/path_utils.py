@@ -126,6 +126,13 @@ def parse_faculty_assignment_path(path) -> (str, str):
 
 
 def get_log_path_from_username(username: str) -> str:
+    """Creates the path to the log file for the given student or faculty
+    username.
+
+    :param username: the user who owns the log
+    :return: the path to the log
+    """
+    
     filename = 'git-keeper-{0}.log'.format(username)
     home_dir = home_dir_from_username(username)
 
