@@ -21,19 +21,25 @@ The configuration file must be in the INI format:
 https://docs.python.org/3/library/configparser.html#supported-ini-file-structure
 
 This module stores a ServerConfiguration instance in the module-level variable
-named config. Call parse() on this instance before use. Attempting to call
+named config. Call parse() on this instance as early as possible, probably in
+main() or whatever your entry point function is. Attempting to call
 parse() a second time will raise an exception.
+
+Any other modules that import the config will have access to the same instance
+without having to call parse().
 
 Example usage:
 
+    import sys
     from gkeepserver.server_configuration import config
 
-    config.parse()
+    def main():
+        try:
+            config.parse()
+        except ServerConfigurationError as e:
+            sys.exit(e)
 
-    # Now access attributes using config.email_username, etc.
-
-    # Any module that imports the config in this fashion will access the same
-    # instance.
+        # Now access attributes using config.email_username, etc.
 
 """
 
