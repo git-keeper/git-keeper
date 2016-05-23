@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
 """Parses and provides access to the client configuration.
 
 The configuration file must be stored at ~/.config/git-keeper/client.cfg
@@ -123,9 +124,15 @@ class ClientConfiguration:
 
             # Optional fields
             if self._parser.has_option('server', 'ssh_port'):
-                self.ssh_port = self._parser.get('server', 'ssh_port')
+                port_string = self._parser.get('server', 'ssh_port')
+                try:
+                    self.ssh_port = int(port_string)
+                except ValueError:
+                    error = ('ssh_port is not an integer: {0}'
+                             .format(port_string))
+                    raise ClientConfigurationError(error)
             else:
-                self.ssh_port = '22'
+                self.ssh_port = 22
 
         except configparser.NoOptionError as e:
             raise ClientConfigurationError(e.message)
