@@ -63,6 +63,7 @@ RUN chown student:keeper /home/student
 RUN chmod 770 /home/student
 
 ADD ./ssh_server /etc/ssh
+RUN chmod 600 /etc/ssh/*_key
 
 # Since we are adding the /etc/ssh folder, we already did this in those local files
 # Disallow ssh connections unless they are RSA/DSA
