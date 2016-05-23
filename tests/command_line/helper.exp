@@ -1,0 +1,20 @@
+#!/usr/bin/expect
+
+# This is called from the connect script, and is not intended to be called directly.
+
+if {[llength $argv] != 2} {
+    send_user "Usage: connect <hostname> <port>\n"
+    exit 1
+}
+
+set host [lindex $argv 0]
+set port [lindex $argv 1]
+
+# The port changes each time you connect, which can cause your known_hosts file to
+# grow rapidly if you re-run/re-connect frequently.  To avoid this we turn off
+# checking (so it doesn't prompt you about a new host) and send the known_host
+# write to /dev/null.
+spawn ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null keeper@$host -p $port
+expect "password"
+send "g1tk33p3r\r"
+interact
