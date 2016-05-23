@@ -51,8 +51,6 @@ from paramiko import SSHClient, SSHException
 from shlex import quote
 
 from gkeepclient.client_configuration import config
-from gkeepclient.remote_log_file import RemoteLogFileReader, \
-    RemoteLogFileWriter
 from gkeepcore.path_utils import build_user_log_path
 
 
@@ -262,6 +260,35 @@ class ServerInterface:
         except SSHException as e:
             raise ServerInterfaceError(e)
 
+    def get_file_byte_count(self, file_path: str) -> int:
+        """Get the number of bytes in a file on the server.
+
+        It is the responsibility of the caller to ensure that the file exists.
+
+        :param file_path: path to the file
+        :return: number of bytes in the file
+        """
+
+        try:
+            count = self._sftp_client.stat(file_path).st_size
+        except SSHException as e:
+            raise ServerInterfaceError(e)
+
+        return count
+
+    def append_to_file(self, file_path, string):
+        """Append a string to a file on the server, adding a trailing newline.
+
+        :param file_path: the path to the file
+        :param string: the string to append
+        """
+
+        try:
+            with self._sftp_client.open(file_path, 'a') as f:
+                print(string, file=f)
+        except SSHException as e:
+            raise ServerInterfaceError(e)
+
     def read_file(self, file_path: str, seek_position=0) -> str:
         """Reads a text file from the server, optionally starting at a byte
         offset.
@@ -308,30 +335,6 @@ class ServerInterface:
         log_path = build_user_log_path(home_dir, username)
 
         return log_path
-
-    def get_log_reader(self, username) -> RemoteLogFileReader:
-        """Creates a RemoteLogFileReader for reading or monitoring a user's
-        event log file on the server.
-
-        :param username: username of the user
-        :return: a RemoteLogFileReader object for reading the file
-        """
-
-        log_path = self.get_user_log_path(username)
-
-        return RemoteLogFileReader(log_path, self._ssh_client)
-
-    def get_log_writer(self, username) -> RemoteLogFileWriter:
-        """Creates a RemoteLogFileWriter for logging to a user's event log file
-        on the server.
-
-        :param username: username of the user
-        :return: a RemoteLogFileWriter object for writing to the file
-        """
-
-        log_path = self.get_user_log_path(username)
-
-        return RemoteLogFileWriter(log_path, self._ssh_client)
 
 
 # Module-level interface instance. Someone must call connect() on this before
