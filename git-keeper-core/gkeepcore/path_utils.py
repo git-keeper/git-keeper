@@ -19,8 +19,6 @@
 
 import os
 
-from subprocess_commands import home_dir_from_username
-
 
 def path_to_list(path: str) -> list:
     """Constructs a list containing each element of a path.
@@ -45,6 +43,19 @@ def path_to_list(path: str) -> list:
         elements.insert(0, basename)
 
     return elements
+
+
+def home_dir_from_username(username):
+    """Get a user's home directory on the local machine.
+
+    :param username: the user to get the home directory of
+    :return: the user's home directory
+
+    """
+
+    tilde_home_dir = '~{0}'.format(username)
+
+    return os.path.expanduser(tilde_home_dir)
 
 
 def build_user_log_path(home_dir: str, username: str):

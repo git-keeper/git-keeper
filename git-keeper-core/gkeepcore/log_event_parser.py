@@ -20,7 +20,7 @@ handle them.
 
 
 import re
-from queue import Queue
+from queue import Queue, Empty
 from threading import Thread
 
 from gkeepcore.event_handler import EventHandler, HandlerException
@@ -70,26 +70,42 @@ class LogEventParserThread(Thread):
         self._new_log_line_queue = new_log_line_queue
         self._event_handler_queue = event_handler_queue
 
+        self._shutdown_flag = False
+
+    def shutdown(self):
+        self._shutdown_flag = True
+
     def run(self):
         """Continually get new log lines from the input queue, parse them,
         and place the appropriate EventHandler object in the output queue.
 
         Do not call this method directly. Call start() instead.
         """
-        while True:
-            log_path, log_line = self._new_log_line_queue.get()
 
-            try:
-                handler = self._parse_event(log_path, log_line)
-                self._event_handler_queue.put(handler)
-            except LogEventParserException:
-                # FIXME - log this
-                pass
-            except HandlerException:
-                # FIXME - log this
-                pass
+        while not self._shutdown_flag:
+            self._parse_all_new_lines()
 
-    def _parse_event(self, log_path, log_line) -> EventHandler:
+    def _parse_all_new_lines(self):
+        try:
+            while True:
+                log_path, log_line = self._new_log_line_queue.get(block=True,
+                                                                  timeout=0.1)
+                self._parse_new_line(log_path, log_line)
+        except Empty:
+            pass
+
+    def _parse_new_line(self, log_path, log_line):
+        try:
+            handler = self._parse_line(log_path, log_line)
+            self._event_handler_queue.put(handler)
+        except LogEventParserException:
+            # FIXME - log this
+            pass
+        except HandlerException:
+            # FIXME - log this
+            pass
+
+    def _parse_line(self, log_path, log_line) -> EventHandler:
         # Parse the event. This is done in two stages:
         #
         # - Timestamp, event type, and payload are extracted from the log line

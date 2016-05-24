@@ -30,31 +30,30 @@ class LocalLogFileReader(LogFileReader):
     """Allows reading from watched local log files. Intended for use
     with a LogPollingThread.
     """
-    def __init__(self, file_path):
+    def __init__(self, file_path, seek_position=None):
         """
         :param file_path: path to the log file
+        :param seek_position: offset to start reading from
         """
-        self._file_path = file_path
 
-    def get_file_path(self):
-        """Getter for the log file path
+        LogFileReader.__init__(self, file_path, seek_position)
 
-        :return: the path to the log file
-        """
-        return self._file_path
-
-    def get_data(self, seek_position=0):
+    def get_new_text(self) -> str:
         """Retrieve data from the log file from seek_position to the end
 
-        :param seek_position: position to seek to before reading
-        :return: string containing text from the file
+        :return: string containing new text from the file
         """
+
         try:
-            with open(self._file_path) as f:
-                f.seek(seek_position)
-                return f.read()
+            with open(self._file_path, 'rb') as f:
+                f.seek(self._seek_position)
+                data_bytes = f.read()
         except OSError as e:
             raise LogFileException from e
+
+        self._seek_position += len(data_bytes)
+
+        return data_bytes.decode('utf-8')
 
     def get_byte_count(self):
         """Retrieve the number of bytes in the log file

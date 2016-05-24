@@ -45,6 +45,7 @@ Example usage:
 
 import configparser
 import os
+from getpass import getuser
 
 
 class ServerConfigurationError(Exception):
@@ -66,14 +67,19 @@ class ServerConfiguration:
 
     """
     
-    def __init__(self):
+    def __init__(self, config_path=None):
         """Creates the object and setup the config path. parse() must be called
          before any configuration attributes are accessed.
         """
 
-        home_dir = os.path.expanduser('~')
-        relative_path = '.config/git-keeper/server.cfg'
-        self._config_path = os.path.join(home_dir, relative_path)
+        self._home_dir = os.path.expanduser('~')
+        self._username = getuser()
+
+        if config_path is None:
+            config_filename = 'server.cfg'
+            self._config_path = os.path.join(self._home_dir, config_filename)
+        else:
+            self._config_path = config_path
 
         self._parsed = False
 
@@ -89,10 +95,19 @@ class ServerConfiguration:
             error = '{0} does not exist'.format(self._config_path)
             raise ServerConfigurationError(error)
 
+        self._initialize_default_attributes()
+
         self._parse_config_file()
         self._initialize_email_attributes()
 
         self._parsed = True
+
+    def _initialize_default_attributes(self):
+        self.log_dir_path = os.path.join(self._home_dir, 'logs')
+
+        log_snapshot_filename = 'log-snapshot.json'
+        self.log_snapshot_file_path = os.path.join(self.log_dir_path,
+                                                   log_snapshot_filename)
 
     def _parse_config_file(self):
         """Uses a ConfigParser object to parse the configuration file"""

@@ -289,13 +289,13 @@ class ServerInterface:
         except SSHException as e:
             raise ServerInterfaceError(e)
 
-    def read_file(self, file_path: str, seek_position=0) -> str:
-        """Reads a text file from the server, optionally starting at a byte
-        offset.
+    def read_file_bytes(self, file_path: str, seek_position=0) -> bytes:
+        """Read a file from the server, optionally starting at a byte
+        offset, and return the data as bytes.
 
         :param file_path: path to the file
         :param seek_position: byte offset at which to start reading
-        :return: data from the file as a string
+        :return: data from the file as bytes
         """
 
         try:
@@ -305,8 +305,20 @@ class ServerInterface:
         except SSHException as e:
             raise ServerInterfaceError(e)
 
-        # data is bytes, we want a string
-        return data.decode('utf-8')
+        return data
+
+    def read_file_text(self, file_path: str, seek_position=0) -> str:
+        """Read a file from the server, optionally starting at a byte
+        offset, and return the data as a string.
+
+        :param file_path: path to the file
+        :param seek_position: byte offset at which to start reading
+        :return: data from the file as a string
+        """
+
+        data_bytes = self.read_file_bytes(file_path, seek_position)
+
+        return data_bytes.decode('utf-8')
 
     def get_user_home_dir(self, username: str) -> str:
         """Finds the user's home directory path on the server.

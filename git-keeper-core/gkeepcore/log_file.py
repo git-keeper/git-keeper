@@ -27,16 +27,32 @@ class LogFileException(Exception):
 
 class LogFileReader(metaclass=abc.ABCMeta):
     """Base class for use with a LogPollingThread"""
-    @abc.abstractmethod
+    def __init__(self, file_path, seek_position):
+        self._file_path = file_path
+
+        if seek_position is None:
+            self._seek_position = self.get_byte_count()
+        else:
+            self._seek_position = seek_position
+
     def get_file_path(self):
         """Retrieve the path of the log file"""
+        return self._file_path
+
+    def get_seek_position(self):
+        """Get the next read offset into the file"""
+        return self._seek_position
+
+    def has_new_text(self):
+        """Determine if the file has grown since it was last read"""
+        return self.get_byte_count() > self._seek_position
 
     @abc.abstractmethod
     def get_byte_count(self):
         """Retrieve the current number of bytes in the file"""
 
     @abc.abstractmethod
-    def get_data(self, seek_position=0):
+    def get_new_text(self):
         """Retrieve the data from the file, starting at seek_position"""
 
 

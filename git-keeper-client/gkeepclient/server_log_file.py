@@ -31,33 +31,29 @@ class ServerLogFileReader(LogFileReader):
     """Allows reading from watched log files on the server. Intended for use
     with a LogPollingThread.
     """
-    def __init__(self, file_path):
+    def __init__(self, file_path, seek_position=None):
         """
         :param file_path: path to the log file
+        :param seek_position: offset to start reading from
         """
-        self._file_path = file_path
 
-    def get_data(self, seek_position=0) -> str:
-        """Retrieve data from the log file from seek_position to the end
+        LogFileReader.__init__(self, file_path, seek_position)
 
-        :param seek_position: position to seek to before reading
-        :return: string containing text from the file
+    def get_new_text(self) -> str:
+        """Retrieve new text from the log file and update the seek position.
+
+        :return: string containing new text from the file
         """
 
         try:
-            data = server_interface.read_file(self._file_path, seek_position)
+            data_bytes = server_interface.read_file_bytes(self._file_path,
+                                                          self._seek_position)
         except ServerInterfaceError as e:
             raise LogFileException(e)
 
-        return data
+        self._seek_position += len(data_bytes)
 
-    def get_file_path(self) -> str:
-        """Getter for the log file path
-
-        :return: the path to the log file
-        """
-
-        return self._file_path
+        return data_bytes.decode('utf-8')
 
     def get_byte_count(self) -> int:
         """Retrieve the number of bytes in the log file
