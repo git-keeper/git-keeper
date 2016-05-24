@@ -54,7 +54,7 @@ class LogEventParserThread(Thread):
     """
 
     def __init__(self, new_log_line_queue: Queue, event_handler_queue: Queue,
-                 event_handlers_by_type: dict):
+                 event_handlers_by_type: dict, logger):
         """
         :param new_log_line_queue: input queue. (<log file path>, <log line>)
          tuples arrive in this queue
@@ -69,6 +69,8 @@ class LogEventParserThread(Thread):
         self._event_handlers_by_type = event_handlers_by_type
         self._new_log_line_queue = new_log_line_queue
         self._event_handler_queue = event_handler_queue
+
+        self._logger = logger
 
         self._shutdown_flag = False
 
@@ -98,12 +100,8 @@ class LogEventParserThread(Thread):
         try:
             handler = self._parse_line(log_path, log_line)
             self._event_handler_queue.put(handler)
-        except LogEventParserException:
-            # FIXME - log this
-            pass
-        except HandlerException:
-            # FIXME - log this
-            pass
+        except (LogEventParserException, HandlerException) as e:
+            self._logger.log_warning(str(e))
 
     def _parse_line(self, log_path, log_line) -> EventHandler:
         # Parse the event. This is done in two stages:
@@ -123,7 +121,7 @@ class LogEventParserThread(Thread):
         match = re.match('(\d+) (\w+) (.*)', log_line)
 
         if match is None:
-            error = 'Log line does not look like an event'
+            error = 'Log line does not look like an event: {0}'.format(log_line)
             raise LogEventParserException(error)
 
         timestamp, event_type, payload = match.groups()

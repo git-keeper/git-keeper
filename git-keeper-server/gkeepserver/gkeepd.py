@@ -42,14 +42,17 @@ def main():
 
     event_parser = LogEventParserThread(new_log_line_queue,
                                         event_handler_queue,
-                                        event_handlers_by_type)
+                                        event_handlers_by_type, gkeepd_logger)
 
     poller = LogPollingThread(add_log_queue, new_log_line_queue,
-                              LocalLogFileReader, config.log_snapshot_file_path)
+                              LocalLogFileReader,
+                              config.log_snapshot_file_path, gkeepd_logger)
 
     email_sender.start()
     event_parser.start()
     poller.start()
+
+    add_log_queue.put('/home/nws/git-keeper-nws.log')
 
     try:
         while True:
@@ -58,14 +61,18 @@ def main():
     except KeyboardInterrupt:
         pass
 
+    print('Shutting down. Waiting for threads to finish ... ', end='')
+    sys.stdout.flush()
+
     poller.shutdown()
-    poller.join()
-
     event_parser.shutdown()
-    event_parser.join()
-
     email_sender.shutdown()
+
+    poller.join()
+    event_parser.join()
     email_sender.join()
+
+    print('done')
 
 
 if __name__ == '__main__':

@@ -20,6 +20,7 @@ from queue import Queue, Empty
 from time import time, sleep
 
 from gkeepcore.log_file import LogFileReader, LogFileException
+from gkeepcore.system_logger import SystemLogger
 
 
 class LogPollingThreadError(Exception):
@@ -53,7 +54,8 @@ class LogPollingThread(Thread):
     """
 
     def __init__(self, add_log_queue: Queue, new_log_line_queue: Queue,
-                 reader_class, snapshot_file_path, polling_interval=1):
+                 reader_class, snapshot_file_path, logger: SystemLogger,
+                 polling_interval=1):
         """Constructor
 
         :param add_log_queue: used to pass new log files to watch to the poller
@@ -72,6 +74,8 @@ class LogPollingThread(Thread):
 
         self._polling_interval = polling_interval
         self._last_poll_time = 0
+
+        self._logger = logger
 
         # maps log file paths to log readers
         self._log_file_readers = {}
@@ -126,8 +130,8 @@ class LogPollingThread(Thread):
             reader = self._reader_class(file_path)
             self._log_file_readers[file_path] = reader
             self._write_snapshot()
-        except LogFileException:
-            # FIXME - log this
+        except LogFileException as e:
+            self._logger.log_warning(str(e))
             pass
 
     def _stop_watching_log_file(self, log_file: LogFileReader):
@@ -152,8 +156,7 @@ class LogPollingThread(Thread):
                 # will not remove the trailing newline
                 lines = new_text.strip().split('\n')
         except LogFileException as e:
-            # FIXME - log this
-            print(e)
+            self._logger.log_warning(str(e))
             self._stop_watching_log_file(log_file)
         finally:
             # we always need to return a list
@@ -192,9 +195,8 @@ class LogPollingThread(Thread):
                 if isinstance(new_file_path, str):
                     self._start_watching_log_file(new_file_path)
                 else:
-                    # FIXME - log this
-                    pass
-
+                    self._logger.log_warning('Log poller: {0} is not a string'
+                                             .format(new_file_path))
         except Empty:
             pass
 

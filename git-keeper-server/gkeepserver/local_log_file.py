@@ -49,7 +49,7 @@ class LocalLogFileReader(LogFileReader):
                 f.seek(self._seek_position)
                 data_bytes = f.read()
         except OSError as e:
-            raise LogFileException from e
+            raise LogFileException(e)
 
         self._seek_position += len(data_bytes)
 
@@ -63,7 +63,7 @@ class LocalLogFileReader(LogFileReader):
         try:
             byte_count = os.path.getsize(self._file_path)
         except OSError as e:
-            raise LogFileException from e
+            raise LogFileException(e)
 
         return byte_count
 
@@ -82,4 +82,4 @@ class LocalLogFileWriter(LogFileWriter):
         try:
             append_to_file(self._file_path, string)
         except CommandError as e:
-            raise LogFileException from e
+            raise LogFileException(e)
