@@ -47,6 +47,17 @@ def path_to_list(path: str) -> list:
     return elements
 
 
+def build_user_log_path(home_dir: str, username: str):
+    """Builds a log file path of this form:
+
+    ~<username>/git-keeper-<username>.log
+    """
+
+    filename = 'git-keeper-{0}.log'.format(username)
+
+    return os.path.join(home_dir, filename)
+
+
 def parse_user_log_path(path: str) -> str:
     """Extracts the username from a faculty or student log file.
 
