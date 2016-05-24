@@ -29,10 +29,12 @@ class EventHandler(metaclass=abc.ABCMeta):
     It is the responsibility of classes which inherit from EventHandler to
     implement _parse() and handle().
 
+    Subclasses should also implement __repr__ for debugging.
+
     _parse() should simply extract any needed information from the log data and
-    store the iformation in private attributes. If there are any syntax errors
+    store the information in private attributes. If there are any syntax errors
     in the log information it must raise a HandlerException. It should verify
-    syntax but it should *not* verify that the information is valid.
+    syntax but it should *not* check semantics.
 
     handle() should verify that the information is valid and then do what is
     necessary to handle the event.
@@ -42,14 +44,16 @@ class EventHandler(metaclass=abc.ABCMeta):
 
     The event type is not a parameter for the constructor, because each event
     type has its own EventHandler subclass.
+
     """
 
-    def __init__(self, log_path: str, timestamp: int, payload: str):
-        """Store the information from the log and call _parse()
+    def __init__(self, log_path: str, timestamp: float, payload: str):
+        """
+        Store the information from the log and call _parse()
 
         :param log_path: path to the log file that the information came from
         :param timestamp: the time the event was logged, in seconds from the
-                          epoch
+                          epoch as a float
         :param payload: the rest of the text from the logged event
         """
         self._log_path = log_path
@@ -60,8 +64,8 @@ class EventHandler(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _parse(self):
-        """Parse the log path and log payload"""
+        """Parse the log path and payload."""
 
     @abc.abstractmethod
     def handle(self):
-        """Handle the event in an appropriate way"""
+        """Handle the event in an appropriate way."""

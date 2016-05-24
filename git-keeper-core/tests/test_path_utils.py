@@ -17,7 +17,7 @@
 """Tests for gkeepcore.path_utils functions."""
 
 
-from gkeepcore.path_utils import path_to_list, parse_user_log_path
+from gkeepcore.path_utils import path_to_list, user_from_log_path
 
 
 def test_path_to_list():
@@ -33,12 +33,12 @@ def test_path_to_list():
 def test_extract_username_from_log_path():
     # valid student log path
     path = '/home/student/git-keeper-student.log'
-    assert 'student' == parse_user_log_path(path)
+    assert 'student' == user_from_log_path(path)
 
     # not a valid user log path, should return None
     path = '/home/student/git-keeper.log'
-    assert parse_user_log_path(path) is None
+    assert user_from_log_path(path) is None
 
     # valid faculty relative path
     path = 'faculty/git-keeper-faculty.log'
-    assert 'faculty' == parse_user_log_path(path)
+    assert 'faculty' == user_from_log_path(path)
