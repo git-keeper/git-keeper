@@ -46,6 +46,7 @@ Example usage:
 
 import configparser
 import os
+from getpass import getuser
 
 
 class ClientConfigurationError(Exception):
@@ -69,19 +70,26 @@ class ClientConfiguration:
         before any configuration attributes are accessed.
         """
 
-        home_dir = os.path.expanduser('~')
-        relative_path = '.config/git-keeper/client.cfg'
-        self._config_path = os.path.join(home_dir, relative_path)
+        self.home_dir = os.path.expanduser('~')
+        self.username = getuser()
+
+        self._config_path = None
 
         self._parsed = False
 
-    def parse(self):
+    def parse(self, config_path=None):
         """Parses the configuration file and initialize the attributes.
 
         May only be called once."""
 
         if self._parsed:
             raise ClientConfigurationError('parse() may only be called once')
+
+        if config_path is None:
+            relative_path = '.config/git-keeper/client.cfg'
+            self._config_path = os.path.join(self.home_dir, relative_path)
+        else:
+            self._config_path = config_path
 
         if not os.path.isfile(self._config_path):
             error = '{0} does not exist'.format(self._config_path)

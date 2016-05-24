@@ -67,7 +67,7 @@ class ServerConfiguration:
 
     """
     
-    def __init__(self, config_path=None):
+    def __init__(self):
         """Creates the object and setup the config path. parse() must be called
          before any configuration attributes are accessed.
         """
@@ -75,21 +75,23 @@ class ServerConfiguration:
         self.home_dir = os.path.expanduser('~')
         self.username = getuser()
 
-        if config_path is None:
-            config_filename = 'server.cfg'
-            self._config_path = os.path.join(self.home_dir, config_filename)
-        else:
-            self._config_path = config_path
+        self._config_path = None
 
         self._parsed = False
 
-    def parse(self):
+    def parse(self, config_path=None):
         """Parses the configuration file and initialize the attributes.
 
         May only be called once."""
 
         if self._parsed:
             raise ServerConfigurationError('parse() may only be called once')
+
+        if config_path is None:
+            config_filename = 'server.cfg'
+            self._config_path = os.path.join(self.home_dir, config_filename)
+        else:
+            self._config_path = config_path
 
         if not os.path.isfile(self._config_path):
             error = '{0} does not exist'.format(self._config_path)
