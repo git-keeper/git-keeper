@@ -19,6 +19,8 @@
 
 import os
 
+from subprocess_commands import home_dir_from_username
+
 
 def path_to_list(path: str) -> list:
     """Constructs a list containing each element of a path.
@@ -121,3 +123,19 @@ def parse_faculty_assignment_path(path) -> (str, str):
     class_name, assignment_name = path_list[-2:]
 
     return class_name, assignment_name
+
+
+def get_log_path_from_username(username: str) -> str:
+    """Creates the path to the log file for the given student or faculty
+    username.
+
+    :param username: the user who owns the log
+    :return: the path to the log
+    """
+    
+    filename = 'git-keeper-{0}.log'.format(username)
+    home_dir = home_dir_from_username(username)
+
+    log_path = os.path.join(home_dir, filename)
+
+    return log_path

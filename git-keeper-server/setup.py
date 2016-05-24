@@ -27,6 +27,9 @@ setup(
     entry_points={
         'console_scripts': ['gkeepd=gkeepserver.gkeepd:main'],
     },
+    package_data={
+        'gkeepserver': ['data/*']
+    },
     install_requires=['git-keeper-core', 'paramiko', 'pyinotify'],
     setup_requires=['pytest-runner'],
     tests_require=['pytest']
