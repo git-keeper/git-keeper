@@ -18,6 +18,7 @@
 
 
 import abc
+import re
 from time import time
 
 
@@ -64,7 +65,15 @@ class LogFileWriter(metaclass=abc.ABCMeta):
         :param event_type: a string describing the event type
         :param text: the description of the event
         """
-        line = '{0} {1} {2}'.format(int(time()), event_type, text)
+
+        time_string = str(round(time(), 4))
+
+        # pad the time string with zeros if there are less than 4 digits after
+        # the decimal point
+        while re.search('\d\d\d\d$', time_string) is None:
+            time_string += '0'
+
+        line = '{0} {1} {2}'.format(time_string, event_type, text)
         self._append(line)
 
     @abc.abstractmethod

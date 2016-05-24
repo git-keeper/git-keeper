@@ -17,21 +17,24 @@ import os
 import sys
 from queue import Queue
 
-from gkeepserver.server_configuration import config
+from gkeepserver.server_configuration import config, ServerConfigurationError
 from gkeepserver.email_sender_thread import email_sender
 from gkeepcore.log_event_parser import LogEventParserThread
 from gkeepcore.log_polling import LogPollingThread
 from gkeepserver.local_log_file import LocalLogFileReader
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
-from gkeepcore.shell_commands import chmod, mkdir
+from gkeepserver.gkeepd_logger import gkeepd_logger
 
 
 def main():
-    config.parse()
+    try:
+        config.parse()
+    except ServerConfigurationError as e:
+        sys.exit(e)
 
-    if not os.path.isdir(config.log_dir_path):
-        mkdir(config.log_dir_path)
-        chmod(config.log_dir_path, 700)
+    gkeepd_logger.initialize(config.log_file_path)
+
+    gkeepd_logger.log_info('logger intialized')
 
     add_log_queue = Queue()
     new_log_line_queue = Queue()

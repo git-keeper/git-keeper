@@ -1,0 +1,45 @@
+# Copyright 2016 Nathan Sommer and Ben Coleman
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+import os
+
+from gkeepserver.local_log_file import LocalLogFileWriter
+
+
+class GkeepdLogger:
+    def __init__(self):
+        self._log_file_path = None
+        self._writer = None
+
+    def initialize(self, log_file_path: str):
+        self._log_file_path = log_file_path
+        self._writer = LocalLogFileWriter(log_file_path)
+
+    def _cleanup_and_log(self, type: str, text: str):
+        text = text.replace('\n', ' ')
+        self._writer.log(type, text)
+
+    def log_info(self, text: str):
+        self._cleanup_and_log('INFO', text)
+
+    def log_warning(self, text: str):
+        self._cleanup_and_log('WARNING', text)
+
+    def log_error(self, text: str):
+        self._cleanup_and_log('ERROR', text)
+
+
+gkeepd_logger = GkeepdLogger()

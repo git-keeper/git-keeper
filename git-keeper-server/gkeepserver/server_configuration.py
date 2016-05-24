@@ -72,12 +72,12 @@ class ServerConfiguration:
          before any configuration attributes are accessed.
         """
 
-        self._home_dir = os.path.expanduser('~')
-        self._username = getuser()
+        self.home_dir = os.path.expanduser('~')
+        self.username = getuser()
 
         if config_path is None:
             config_filename = 'server.cfg'
-            self._config_path = os.path.join(self._home_dir, config_filename)
+            self._config_path = os.path.join(self.home_dir, config_filename)
         else:
             self._config_path = config_path
 
@@ -103,10 +103,10 @@ class ServerConfiguration:
         self._parsed = True
 
     def _initialize_default_attributes(self):
-        self.log_dir_path = os.path.join(self._home_dir, 'logs')
+        self.log_file_path = os.path.join(self.home_dir, 'gkeepd.log')
 
         log_snapshot_filename = 'log-snapshot.json'
-        self.log_snapshot_file_path = os.path.join(self.log_dir_path,
+        self.log_snapshot_file_path = os.path.join(self.home_dir,
                                                    log_snapshot_filename)
 
     def _parse_config_file(self):
