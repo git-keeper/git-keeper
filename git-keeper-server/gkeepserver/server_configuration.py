@@ -13,9 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Parses and provides access to the server configuration.
 
-The configuration file must be stored at ~/.config/git-keeper/server.cfg
+"""
+This module allows the parsing of and provides access to the the server
+configuration file.
+
+The default configuration file localtion is ~/server.cfg. This can be
+customized by passing a path to parser().
 
 The configuration file must be in the INI format:
 https://docs.python.org/3/library/configparser.html#supported-ini-file-structure
@@ -41,6 +45,22 @@ Example usage:
 
         # Now access attributes using config.email_username, etc.
 
+
+Attributes:
+
+    username - user that is running gkeepd
+    home_dir - path to gkeepd user's home directory
+
+    log_file_path - path to system log
+    log_snapshot_file_path - path to file containing current log file sizes
+
+    from_name - the name that emails are from
+    from_address - the address that emails are from
+    smtp_server - SMTP server host
+    smtp_port - SMTP server port
+    email_username - username for the SMTP server
+    email_password - password for the SMTP server
+
 """
 
 import configparser
@@ -49,27 +69,31 @@ from getpass import getuser
 
 
 class ServerConfigurationError(Exception):
+    """
+    Raised if anything goes wrong parsing the configuration file, which should
+    always be treated as a fatal error.
+    """
     pass
 
 
 class ServerConfiguration:
-    """Parses server.cfg and stores the configuration values as attributes.
+    """
+    Allows parsing client.cfg and stores the configuration values as
+    attributes.
 
-    Public attributes:
+    It is not advisable to make instances of this class directly. Instead,
+    use the module-level instance that is created when the module is imported.
 
-    Email sending attributes:
-        from_name - the name that emails are from
-        from_address - the address that emails are from
-        smtp_server - server used for sending mail
-        smtp_port - port used for sending mail
-        email_username - username for the SMTP server
-        email_password - password for the SMTP server
+    See the module docstring for usage.
 
     """
     
     def __init__(self):
-        """Creates the object and setup the config path. parse() must be called
-         before any configuration attributes are accessed.
+        """
+        Create the object and set home_dir and username.
+
+        parse() must be called before any configuration attributes are
+        accessed.
         """
 
         self.home_dir = os.path.expanduser('~')
@@ -80,9 +104,15 @@ class ServerConfiguration:
         self._parsed = False
 
     def parse(self, config_path=None):
-        """Parses the configuration file and initialize the attributes.
+        """
+        Parse the configuration file and initialize the attributes.
 
-        May only be called once."""
+        May only be called once.
+
+        Raises ServerConfigurationError
+
+        :param config_path: optional path to the config file
+        """
 
         if self._parsed:
             raise ServerConfigurationError('parse() may only be called once')
@@ -105,14 +135,17 @@ class ServerConfiguration:
         self._parsed = True
 
     def _initialize_default_attributes(self):
+        # Initialize attributes that have default values
+
         self.log_file_path = os.path.join(self.home_dir, 'gkeepd.log')
 
-        log_snapshot_filename = 'log-snapshot.json'
+        log_snapshot_filename = 'snapshot.json'
         self.log_snapshot_file_path = os.path.join(self.home_dir,
                                                    log_snapshot_filename)
 
     def _parse_config_file(self):
-        """Uses a ConfigParser object to parse the configuration file"""
+        # Use a ConfigParser object to parse the configuration file and store
+        # the state
 
         self._parser = configparser.ConfigParser()
 
@@ -124,7 +157,7 @@ class ServerConfiguration:
             raise ServerConfigurationError(error)
 
     def _ensure_section_is_present(self, section):
-        """Raises an exception if section is not in the config file"""
+        # Raise an exception if section is not in the config file
 
         if section not in self._parser.sections():
             error = ('section {0} is not present in {1}'
@@ -132,7 +165,7 @@ class ServerConfiguration:
             raise ServerConfigurationError(error)
 
     def _initialize_email_attributes(self):
-        """Initializes all the email-related attributes"""
+        # Initialize all the email-related attributes
 
         self._ensure_section_is_present('email')
 

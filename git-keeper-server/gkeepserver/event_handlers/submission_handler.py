@@ -40,6 +40,19 @@ class SubmissionHandler(EventHandler):
         print(' Repo path: ', self._submission_repo_path)
         print()
 
+    def __repr__(self) -> str:
+        """
+        Create a string representation of the object for printing and
+        logging
+
+        :return: a string representation of the event to be handled
+        """
+        repr = ('Submission event from {0} for assignment {1}/{2}/{3}'
+                .format(self._student_username, self._faculty_username,
+                        self._class_name, self._assignment_name))
+
+        return repr
+
     def _parse(self):
         """Extracts the student username, faculty username, class name,
          assignment name, and student submission repository from the log event.

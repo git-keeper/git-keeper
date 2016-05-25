@@ -118,7 +118,7 @@ class LogEventParserThread(Thread):
         # :return: an EventHandler object which will handle the event
 
         # use a regular expression to match timestamp, event type, and payload
-        match = re.match('(\d+) (\w+) (.*)', log_line)
+        match = re.match('(\d+.\d+) (\w+) (.*)', log_line)
 
         if match is None:
             error = 'Log line does not look like an event: {0}'.format(log_line)
@@ -134,6 +134,6 @@ class LogEventParserThread(Thread):
         # get the handler class from the dictionary
         handler_class = self._event_handlers_by_type[event_type]
         # construct the handler from whatever class was selected
-        handler = handler_class(log_path, int(timestamp), payload)
+        handler = handler_class(log_path, float(timestamp), payload)
 
         return handler

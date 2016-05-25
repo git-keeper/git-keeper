@@ -14,16 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import os
-
 from gkeepcore.system_logger import SystemLogger
-from gkeepserver.local_log_file import LocalLogFileWriter
+from .local_log_file_functions import log_append_function
 
 
-class GkeepdLogger(SystemLogger):
-    def initialize(self, log_file_path: str):
-        self._log_file_path = log_file_path
-        self._writer = LocalLogFileWriter(log_file_path)
-
-
-gkeepd_logger = GkeepdLogger()
+gkeepd_logger = SystemLogger(log_append_function)

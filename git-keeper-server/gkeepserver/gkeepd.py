@@ -13,30 +13,48 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
+"""
+Main entry point for gkeepd, the git-keeper server process.
+
+"""
+
+
 import sys
 from queue import Queue
 
 from gkeepserver.server_configuration import config, ServerConfigurationError
 from gkeepserver.email_sender_thread import email_sender
+from gkeepserver.local_log_file_functions import (byte_count_function,
+                                                  read_bytes_function)
+from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
+from gkeepcore.system_logger import LogLevel
+from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepcore.log_event_parser import LogEventParserThread
 from gkeepcore.log_polling import LogPollingThread
-from gkeepserver.local_log_file import LocalLogFileReader
-from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
-from gkeepserver.gkeepd_logger import gkeepd_logger
+
+
+LOG_LEVEL = LogLevel.DEBUG
 
 
 def main():
+    """
+    Entry point of the gkeepd process.
+
+    gkeepd takes no arguments.
+
+    """
+
+    # do not run if there are errors in the configuration file
     try:
         config.parse()
     except ServerConfigurationError as e:
         sys.exit(e)
 
-    gkeepd_logger.initialize(config.log_file_path)
+    gkeepd_logger.initialize(config.log_file_path, log_level=LOG_LEVEL)
 
-    gkeepd_logger.log_info('logger intialized')
+    gkeepd_logger.log_info('Starting gkeepd')
 
-    add_log_queue = Queue()
+    # queues for thread communication
     new_log_line_queue = Queue()
     event_handler_queue = Queue()
 
@@ -44,25 +62,31 @@ def main():
                                         event_handler_queue,
                                         event_handlers_by_type, gkeepd_logger)
 
-    poller = LogPollingThread(add_log_queue, new_log_line_queue,
-                              LocalLogFileReader,
+    poller = LogPollingThread(new_log_line_queue, byte_count_function,
+                              read_bytes_function,
                               config.log_snapshot_file_path, gkeepd_logger)
 
+    # start all threads
     email_sender.start()
     event_parser.start()
     poller.start()
 
-    add_log_queue.put('/home/nws/git-keeper-nws.log')
+    gkeepd_logger.log_info('Threads have been initialized')
+
+    gkeepd_logger.log_info('Server is running')
 
     try:
         while True:
             handler = event_handler_queue.get()
+            gkeepd_logger.log_debug('New task: ' + str(handler))
             handler.handle()
     except KeyboardInterrupt:
         pass
 
     print('Shutting down. Waiting for threads to finish ... ', end='')
     sys.stdout.flush()
+
+    gkeepd_logger.log_info('Shutting down threads')
 
     poller.shutdown()
     event_parser.shutdown()
@@ -73,6 +97,8 @@ def main():
     email_sender.join()
 
     print('done')
+
+    gkeepd_logger.log_info('Shutting down gkeepd')
 
 
 if __name__ == '__main__':
