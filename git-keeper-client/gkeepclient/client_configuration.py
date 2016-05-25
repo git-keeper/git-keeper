@@ -14,9 +14,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""Parses and provides access to the client configuration.
+"""
+This module allows the parsing of and provides access to the client
+configuration file.
 
-The configuration file must be stored at ~/.config/git-keeper/client.cfg
+The default configuration file location is ~/.config/git-keeper/client.cfg.
+This can be customized by passing a path to parse().
 
 The configuration file must be in the INI format:
 https://docs.python.org/3/library/configparser.html#supported-ini-file-structure
@@ -42,6 +45,16 @@ Example usage:
 
         # Now access attributes using config.host, etc.
 
+
+Attributes:
+
+    local_username - the user that is running gkeep
+    local_home_dir - the local user's home directory on the client machine
+
+    server_host - hostname of the server
+    server_username - the faculty member's username on the server
+    server_ssh_port - the port to use for SSH connections (defaults to 22)
+
 """
 
 import configparser
@@ -50,44 +63,57 @@ from getpass import getuser
 
 
 class ClientConfigurationError(Exception):
+    """
+    Raised if anything goes wrong parsing the configuration file, which should
+    always be treated as a fatal error.
+    """
     pass
 
 
 class ClientConfiguration:
-    """Parses client.cfg and stores the configuration values as attributes.
+    """
+    Allows parsing client.cfg and stores the configuration values as
+    attributes.
 
-    Public attributes:
+    It is not advisable to make instances of this class directly. Instead,
+    use the module-level instance that is created when the module is imported.
 
-    Server-related attributes:
-        host - hostname of the server
-        username - the faculty member's username on the server
-        ssh_port - the port to use for SSH connections (defaults to 22)
+    See the module docstring for usage.
 
     """
 
     def __init__(self):
-        """Creates the object and setup the config path. parse() must be called
-        before any configuration attributes are accessed.
+        """
+        Create the object and set local_home_dir and local_username.
+
+        parse() must be called before any other configuration attributes are
+        accessed.
         """
 
-        self.home_dir = os.path.expanduser('~')
-        self.username = getuser()
+        self.local_home_dir = os.path.expanduser('~')
+        self.local_username = getuser()
 
         self._config_path = None
 
         self._parsed = False
 
     def parse(self, config_path=None):
-        """Parses the configuration file and initialize the attributes.
+        """
+        Parse the configuration file and initialize the attributes.
 
-        May only be called once."""
+        May only be called once.
+
+        Raises ClientConfigurationError
+
+        :param config_path: optional path to the config file
+        """
 
         if self._parsed:
             raise ClientConfigurationError('parse() may only be called once')
 
         if config_path is None:
             relative_path = '.config/git-keeper/client.cfg'
-            self._config_path = os.path.join(self.home_dir, relative_path)
+            self._config_path = os.path.join(self.local_home_dir, relative_path)
         else:
             self._config_path = config_path
 
@@ -101,7 +127,8 @@ class ClientConfiguration:
         self._parsed = True
 
     def _parse_config_file(self):
-        """Uses a ConfigParser object to parse the configuration file"""
+        # Use a ConfigParser object to parse the configuration file and store
+        # the state
 
         self._parser = configparser.ConfigParser()
 
@@ -113,7 +140,7 @@ class ClientConfiguration:
             raise ClientConfigurationError(error)
 
     def _ensure_section_is_present(self, section):
-        """Raises an exception if section is not in the config file"""
+        # Raise an exception if section is not in the config file
 
         if section not in self._parser.sections():
             error = '{0} is not present in {1}'.format(section,
@@ -121,26 +148,26 @@ class ClientConfiguration:
             raise ClientConfigurationError(error)
 
     def _initialize_server_attributes(self):
-        """Initializes all the server-related attributes"""
+        # Initialize all the server-related attributes
 
         self._ensure_section_is_present('server')
 
         try:
             # Required fields
-            self.host = self._parser.get('server', 'host')
-            self.username = self._parser.get('server', 'username')
+            self.server_host = self._parser.get('server', 'host')
+            self.server_username = self._parser.get('server', 'username')
 
             # Optional fields
             if self._parser.has_option('server', 'ssh_port'):
                 port_string = self._parser.get('server', 'ssh_port')
                 try:
-                    self.ssh_port = int(port_string)
+                    self.server_ssh_port = int(port_string)
                 except ValueError:
                     error = ('ssh_port is not an integer: {0}'
                              .format(port_string))
                     raise ClientConfigurationError(error)
             else:
-                self.ssh_port = 22
+                self.server_ssh_port = 22
 
         except configparser.NoOptionError as e:
             raise ClientConfigurationError(e.message)

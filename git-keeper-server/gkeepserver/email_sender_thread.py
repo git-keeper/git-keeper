@@ -156,5 +156,5 @@ class EmailSenderThread(Thread):
             print('EMAILER: Failed to send email to', email.to_address)
 
 
-# module-level instance for global access
+# module-level instance for global email sending
 email_sender = EmailSenderThread()

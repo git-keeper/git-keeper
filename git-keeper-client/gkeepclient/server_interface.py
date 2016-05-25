@@ -92,7 +92,7 @@ class ServerInterface:
             self._ssh_client.load_system_host_keys()
             self._ssh_client.connect(hostname=config.host,
                                      username=config.username,
-                                     port=config.ssh_port)
+                                     port=config.server_ssh_port)
             self._sftp_client = self._ssh_client.open_sftp()
         except SSHException as e:
             raise ServerInterfaceError(e)
