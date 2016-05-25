@@ -52,7 +52,7 @@ from paramiko import SSHClient, SSHException
 from shlex import quote
 
 from gkeepclient.client_configuration import config
-from gkeepcore.path_utils import build_user_log_path
+from gkeepcore.path_utils import user_log_path
 
 
 class ServerInterfaceError(Exception):
@@ -345,7 +345,7 @@ class ServerInterface:
 
         home_dir = self.get_user_home_dir(username)
 
-        log_path = build_user_log_path(home_dir, username)
+        log_path = user_log_path(home_dir, username)
 
         return log_path
 

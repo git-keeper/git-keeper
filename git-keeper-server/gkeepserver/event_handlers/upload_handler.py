@@ -21,7 +21,7 @@ Event type: UPLOAD
 
 
 from gkeepcore.event_handler import EventHandler, HandlerException
-from gkeepcore.path_utils import parse_user_log_path, \
+from gkeepcore.path_utils import user_from_log_path, \
     parse_faculty_assignment_path
 
 
@@ -66,7 +66,7 @@ class UploadHandler(EventHandler):
             _faculty_username
         """
 
-        self._faculty_username = parse_user_log_path(self._log_path)
+        self._faculty_username = user_from_log_path(self._log_path)
 
         if self._faculty_username is None:
             raise HandlerException('Malformed log path: {0}'

@@ -42,21 +42,3 @@ def run_command(command, sudo=False, stderr=STDOUT):
 
     return output.decode('utf-8')
 
-
-def chmod(path, mode, recursive=False, sudo=False):
-    if type(mode) == int:
-        mode = str(mode)
-
-    if recursive:
-        cmd = ['chmod', '-R', mode, path]
-    else:
-        cmd = ['chmod', mode, path]
-
-    run_command(cmd, sudo=sudo)
-
-
-def mkdir(path, sudo=False):
-    cmd = ['mkdir', '-p', path]
-    run_command(cmd, sudo=sudo)
-
-

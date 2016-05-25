@@ -20,6 +20,7 @@ Main entry point for gkeepd, the git-keeper server process.
 
 
 import sys
+import csv
 from queue import Queue
 
 from gkeepserver.server_configuration import config, ServerConfigurationError
@@ -30,10 +31,24 @@ from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
 from gkeepcore.system_logger import LogLevel
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepcore.log_event_parser import LogEventParserThread
-from gkeepcore.log_polling import LogPollingThread
+from gkeepcore.log_polling import log_poller
+from gkeepcore.faculty import Faculty
+from gkeepserver.check_system import check_system
 
 
 LOG_LEVEL = LogLevel.DEBUG
+
+
+# def check_faculty():
+#     try:
+#         with open(config.faculty_csv_path) as f:
+#             reader = csv.reader(f)
+#
+#             for last_name, first_name, email_address in f:
+#                 username, domain = email_address.split('@')
+
+
+
 
 
 def main():
@@ -62,16 +77,18 @@ def main():
                                         event_handler_queue,
                                         event_handlers_by_type, gkeepd_logger)
 
-    poller = LogPollingThread(new_log_line_queue, byte_count_function,
-                              read_bytes_function,
-                              config.log_snapshot_file_path, gkeepd_logger)
+    log_poller.initialize(new_log_line_queue, byte_count_function,
+                          read_bytes_function,
+                          config.log_snapshot_file_path, gkeepd_logger)
 
     # start all threads
     email_sender.start()
     event_parser.start()
-    poller.start()
+    log_poller.start()
 
     gkeepd_logger.log_info('Threads have been initialized')
+
+    check_system()
 
     gkeepd_logger.log_info('Server is running')
 
@@ -88,11 +105,11 @@ def main():
 
     gkeepd_logger.log_info('Shutting down threads')
 
-    poller.shutdown()
+    log_poller.shutdown()
     event_parser.shutdown()
     email_sender.shutdown()
 
-    poller.join()
+    log_poller.join()
     event_parser.join()
     email_sender.join()
 

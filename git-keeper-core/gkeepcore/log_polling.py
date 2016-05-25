@@ -32,6 +32,9 @@ class LogPollingThread(Thread):
     Watches log files for modifications.
 
     Interface:
+        * initialize(new_log_line_queue, byte_count_function,
+                     read_bytes_function, snapshot_file_path, logger) - must
+                     be called before starting the thread
         * start() - start the thread
         * watch_log_file(file_path) - start watching a file
         * shutdown() - shut down the thread
@@ -40,7 +43,7 @@ class LogPollingThread(Thread):
 
         new_log_line_queue = Queue()
 
-        poller = LogPollingThread(new_log_line_queue)
+        log_poller.initialize(new_log_line_queue, byte_count_function,
         poller.start()
 
         poller.watch_log_file('/path/to/log/file')
@@ -51,11 +54,34 @@ class LogPollingThread(Thread):
 
     """
 
-    def __init__(self, new_log_line_queue: Queue, byte_count_function,
-                 read_bytes_function, snapshot_file_path: str,
-                 logger: SystemLogger, polling_interval=1):
+    def __init__(self):
         """
-        Constructor
+        Constructor.
+
+        Create the object and initialize all attributes to None.
+        Poller will be set up when initialize() is called.
+
+        """
+
+        Thread.__init__(self)
+
+        self._add_log_queue = None
+        self._new_log_line_queue = None
+        self._byte_count_function = None
+        self._read_bytes_function = None
+        self._snapshot_file_path = None
+        self._polling_interval = None
+        self._last_poll_time = None
+        self._logger = None
+        self._log_file_readers = None
+        self._shutdown_flag = None
+
+
+    def initialize(self, new_log_line_queue: Queue, byte_count_function,
+                   read_bytes_function, snapshot_file_path: str,
+                   logger: SystemLogger, polling_interval=1):
+        """
+        Initialize the attributes.
 
         byte_count_function must have the following signature:
             byte_count_function(file_path: str) -> int
@@ -74,7 +100,6 @@ class LogPollingThread(Thread):
         :param polling_interval: amount of time between polling files
 
         """
-        Thread.__init__(self)
 
         self._add_log_queue = Queue()
         self._new_log_line_queue = new_log_line_queue
@@ -230,3 +255,6 @@ class LogPollingThread(Thread):
 
         if sleep_time > 0:
             sleep(sleep_time)
+
+
+log_poller = LogPollingThread()

@@ -45,7 +45,7 @@ def path_to_list(path: str) -> list:
     return elements
 
 
-def home_dir_from_username(username):
+def user_home_dir(username):
     """Get a user's home directory on the local machine.
 
     :param username: the user to get the home directory of
@@ -58,18 +58,18 @@ def home_dir_from_username(username):
     return os.path.expanduser(tilde_home_dir)
 
 
-def build_user_log_path(home_dir: str, username: str):
+def user_log_path(home_dir: str, username: str):
     """Builds a log file path of this form:
 
     ~<username>/git-keeper-<username>.log
     """
 
-    filename = 'git-keeper-{0}.log'.format(username)
+    filename = '{0}.log'.format(username)
 
     return os.path.join(home_dir, filename)
 
 
-def parse_user_log_path(path: str) -> str:
+def user_from_log_path(path: str) -> str:
     """Extracts the username from a faculty or student log file.
 
     :param path: path of the log file
@@ -87,7 +87,7 @@ def parse_user_log_path(path: str) -> str:
     # the information we want is in the last 2 elements of the list
     username, log_filename = path_list[-2:]
 
-    expected_filename = 'git-keeper-' + username + '.log'
+    expected_filename = username + '.log'
 
     if log_filename != expected_filename:
         return None
@@ -96,20 +96,21 @@ def parse_user_log_path(path: str) -> str:
 
 
 def parse_submission_repo_path(path) -> (str, str, str):
-    """Extracts the faculty username, the class name, and the assignment name
-    from a student's submission repository.
+    """
+    Extracts student username, faculty username, class name, and assignment
+    name from a submission repository.
 
     :param path: path to the submission repository
-    :return: a tuple containing the faculty username, the class name, and the
-             assignment name, or None if the path is malformed
+    :return: a tuple containing the student username, faculty username, class
+     name, and assignment name, or None if the path is malformed
     """
 
     # we're parsing a path which ends with this:
-    # <faculty>/<class>/<assignment>.git
+    # <student>/<faculty>/<class>/<assignment>.git
 
     path_list = path_to_list(path)
 
-    if len(path_list) < 3:
+    if len(path_list) < 4:
         return None
 
     # the information we want is in the last 3 elements of the list
@@ -155,8 +156,8 @@ def get_log_path_from_username(username: str) -> str:
     :return: the path to the log
     """
     
-    filename = 'git-keeper-{0}.log'.format(username)
-    home_dir = home_dir_from_username(username)
+    filename = '{0}.log'.format(username)
+    home_dir = user_home_dir(username)
 
     log_path = os.path.join(home_dir, filename)
 

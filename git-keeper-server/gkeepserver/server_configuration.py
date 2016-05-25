@@ -54,6 +54,8 @@ Attributes:
     log_file_path - path to system log
     log_snapshot_file_path - path to file containing current log file sizes
 
+    faculty_csv_path - path to file containing faculty members
+
     from_name - the name that emails are from
     from_address - the address that emails are from
     smtp_server - SMTP server host
@@ -137,11 +139,19 @@ class ServerConfiguration:
     def _initialize_default_attributes(self):
         # Initialize attributes that have default values
 
+        # filenames
         self.log_file_path = os.path.join(self.home_dir, 'gkeepd.log')
 
         log_snapshot_filename = 'snapshot.json'
         self.log_snapshot_file_path = os.path.join(self.home_dir,
                                                    log_snapshot_filename)
+
+        self.faculty_csv_path = os.path.join(self.home_dir, 'faculty.csv')
+
+        # users and groups
+        self.keeper_user = 'keeper'
+        self.keeper_group = 'keeper'
+        self.faculty_group = 'faculty'
 
     def _parse_config_file(self):
         # Use a ConfigParser object to parse the configuration file and store

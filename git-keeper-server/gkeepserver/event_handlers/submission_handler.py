@@ -21,7 +21,7 @@ Event type: SUBMISSION
 
 
 from gkeepcore.event_handler import EventHandler, HandlerException
-from gkeepcore.path_utils import parse_user_log_path, \
+from gkeepcore.path_utils import user_from_log_path, \
     parse_submission_repo_path
 
 
@@ -82,7 +82,7 @@ class SubmissionHandler(EventHandler):
             _student_username
         """
 
-        self._student_username = parse_user_log_path(self._log_path)
+        self._student_username = user_from_log_path(self._log_path)
 
         if self._student_username is None:
             raise HandlerException('Malformed log path: {0}'
