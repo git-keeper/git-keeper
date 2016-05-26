@@ -80,12 +80,13 @@ def log_append_function(file_path: str, item_type: str, text: str):
 
     quoted_path = quote(file_path)
 
-#    cmd = ('echo "$(python3 -c \'import time; print(time.time())\' | '
-#           'cut -c 1-15) {0} {1}" >> {2}'.format(item_type, text, quoted_path))
+    # Uses GNU date to get a precise time from the command line.
+    # Won't work on OS X.
     cmd = ('echo "$(date +%s.%N | '
            'cut -c 1-15) {0} {1}" >> {2}'.format(item_type, text, quoted_path))
 
     try:
         run_command(cmd)
     except CommandError as e:
+        # bad news if we can't append to a log
         print('LOGGING ERROR: {0}'.format(e))
