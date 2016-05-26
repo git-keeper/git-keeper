@@ -125,6 +125,9 @@ class LogPollingThread(Thread):
         if not os.path.isfile(self._snapshot_file_path or ''):
             self._logger.log_debug('Snapshot file does not exist')
             return
+        elif self._byte_count_function(self._snapshot_file_path) == 0:
+            self._logger.log_debug('Snapshot file is empty')
+            return
 
         try:
             with open(self._snapshot_file_path, 'r') as f:

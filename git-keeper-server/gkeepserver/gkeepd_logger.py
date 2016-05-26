@@ -14,8 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from gkeepcore.system_logger import SystemLogger
-from .local_log_file_functions import log_append_function
+#from gkeepcore.system_logger import SystemLogger
+#from .local_log_file_functions import log_append_function
 
 
-gkeepd_logger = SystemLogger(log_append_function)
+#gkeepd_logger = SystemLogger(log_append_function)

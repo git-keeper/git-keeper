@@ -80,7 +80,9 @@ def log_append_function(file_path: str, item_type: str, text: str):
 
     quoted_path = quote(file_path)
 
-    cmd = ('echo "$(python3 -c \'import time; print(time.time())\' | '
+#    cmd = ('echo "$(python3 -c \'import time; print(time.time())\' | '
+#           'cut -c 1-15) {0} {1}" >> {2}'.format(item_type, text, quoted_path))
+    cmd = ('echo "$(date +%s.%N | '
            'cut -c 1-15) {0} {1}" >> {2}'.format(item_type, text, quoted_path))
 
     try:

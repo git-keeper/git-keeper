@@ -15,13 +15,14 @@
 
 
 import csv
+import os
 
 from gkeepserver.server_configuration import config
 from gkeepcore.faculty import Faculty, FacultyError
 from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
-                                       sudo_add_group, mode, chmod,
-                                       sudo_add_user, sudo_set_password)
-from gkeepserver.gkeepd_logger import gkeepd_logger
+                                       sudo_add_group, mode, chmod, mkdir,
+                                       sudo_add_user, sudo_set_password, touch)
+from gkeepcore.system_logger import system_logger as gkeepd_logger
 from gkeepserver.generate_password import generate_password
 from gkeepserver.server_email import Email
 from gkeepserver.email_sender_thread import email_sender
@@ -49,14 +50,31 @@ def check_keeper_permissions():
         except CommandError as e:
             raise CheckSystemError(e)
 
-    keeper_home_dir_mode = '750'
+    if not os.path.isdir(config.faculty_log_dir_path):
+        gkeepd_logger.log_info('{0} does not exist, creating it now'
+                               .format(config.faculty_log_dir_path))
 
-    if not mode(config.home_dir) == keeper_home_dir_mode:
-        gkeepd_logger.log_warning('Mode of {0} must be {1}, changing it now'
-                                  .format(config.home_dir,
-                                          keeper_home_dir_mode))
+        mkdir(config.faculty_log_dir_path)
 
-        chmod(config.home_dir, keeper_home_dir_mode)
+    if not os.path.isfile(config.log_snapshot_file_path):
+        gkeepd_logger.log_info('{0} does not exist, creating it now'
+                               .format(config.log_snapshot_file_path))
+        touch(config.log_snapshot_file_path)
+
+    required_modes = {
+        config.home_dir: '750',
+        config.log_file_path: '600',
+        config.log_snapshot_file_path: '600',
+        config.faculty_log_dir_path: '750',
+        config.faculty_csv_path: '600',
+    }
+
+    for path, required_mode in required_modes.items():
+        if not mode(path) == required_mode:
+            gkeepd_logger.log_warning('Mode of {0} must be {1}, '
+                                      'changing it now'
+                                      .format(path, required_mode))
+            chmod(path, required_mode)
 
 
 def add_faculty(faculty: Faculty):

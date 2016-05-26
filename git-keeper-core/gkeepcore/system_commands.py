@@ -53,7 +53,7 @@ def sudo_add_group(group):
 
 
 def sudo_add_user(username, groups):
-    cmd = ['useradd', '-m', '-U']
+    cmd = ['useradd', '-m', '-U', '-s', '/bin/bash']
     if len(groups) > 0:
         cmd += ['-G', ','.join(groups)]
     cmd += [username]
@@ -108,4 +108,8 @@ def mkdir(path, sudo=False):
     cmd = ['mkdir', '-p', path]
     run_command(cmd, sudo=sudo)
 
+
+def touch(path, sudo=False):
+    cmd = ['touch', path]
+    run_command(cmd, sudo=sudo)
 

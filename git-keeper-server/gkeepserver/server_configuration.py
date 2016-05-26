@@ -55,6 +55,7 @@ Attributes:
     log_snapshot_file_path - path to file containing current log file sizes
 
     faculty_csv_path - path to file containing faculty members
+    faculty_log_dir_path - path to directory containing faculty event logs
 
     from_name - the name that emails are from
     from_address - the address that emails are from
@@ -147,6 +148,7 @@ class ServerConfiguration:
                                                    log_snapshot_filename)
 
         self.faculty_csv_path = os.path.join(self.home_dir, 'faculty.csv')
+        self.faculty_log_dir_path = os.path.join(self.home_dir, 'faculty_logs')
 
         # users and groups
         self.keeper_user = 'keeper'

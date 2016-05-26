@@ -21,7 +21,8 @@ Main entry point for gkeepd, the git-keeper server process.
 
 import sys
 import csv
-from queue import Queue
+from queue import Queue, Empty
+from signal import signal, SIGINT, SIGTERM
 
 from gkeepserver.server_configuration import config, ServerConfigurationError
 from gkeepserver.email_sender_thread import email_sender
@@ -29,7 +30,8 @@ from gkeepserver.local_log_file_functions import (byte_count_function,
                                                   read_bytes_function)
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
 from gkeepcore.system_logger import LogLevel
-from gkeepserver.gkeepd_logger import gkeepd_logger
+from gkeepserver.local_log_file_functions import log_append_function
+from gkeepcore.system_logger import system_logger as gkeepd_logger
 from gkeepcore.log_event_parser import LogEventParserThread
 from gkeepcore.log_polling import log_poller
 from gkeepcore.faculty import Faculty
@@ -38,17 +40,12 @@ from gkeepserver.check_system import check_system
 
 LOG_LEVEL = LogLevel.DEBUG
 
-
-# def check_faculty():
-#     try:
-#         with open(config.faculty_csv_path) as f:
-#             reader = csv.reader(f)
-#
-#             for last_name, first_name, email_address in f:
-#                 username, domain = email_address.split('@')
+shutdown_flag = False
 
 
-
+def signal_handler(signum, frame):
+    global shutdown_flag
+    shutdown_flag = True
 
 
 def main():
@@ -59,13 +56,19 @@ def main():
 
     """
 
+    global shutdown_flag
+    signal(SIGINT, signal_handler)
+    signal(SIGTERM, signal_handler)
+
     # do not run if there are errors in the configuration file
     try:
         config.parse()
     except ServerConfigurationError as e:
         sys.exit(e)
 
-    gkeepd_logger.initialize(config.log_file_path, log_level=LOG_LEVEL)
+    gkeepd_logger.initialize(config.log_file_path, log_append_function,
+                             log_level=LOG_LEVEL)
+    gkeepd_logger.start()
 
     gkeepd_logger.log_info('Starting gkeepd')
 
@@ -93,10 +96,13 @@ def main():
     gkeepd_logger.log_info('Server is running')
 
     try:
-        while True:
-            handler = event_handler_queue.get()
-            gkeepd_logger.log_debug('New task: ' + str(handler))
-            handler.handle()
+        while not shutdown_flag:
+            try:
+                handler = event_handler_queue.get(block=True, timeout=0.1)
+                gkeepd_logger.log_debug('New task: ' + str(handler))
+                handler.handle()
+            except Empty:
+                pass
     except KeyboardInterrupt:
         pass
 
@@ -112,6 +118,9 @@ def main():
     log_poller.join()
     event_parser.join()
     email_sender.join()
+
+    gkeepd_logger.shutdown()
+    gkeepd_logger.join()
 
     print('done')
 
