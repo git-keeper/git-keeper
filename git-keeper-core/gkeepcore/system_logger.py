@@ -31,7 +31,7 @@ class LogLevel(IntEnum):
 
 class SystemLogger(Thread):
     def __init__(self):
-        Thread.__init__(self)
+        Thread.__init__(self, daemon=True)
 
         self._log_file_path = None
         self._log_append_function = None

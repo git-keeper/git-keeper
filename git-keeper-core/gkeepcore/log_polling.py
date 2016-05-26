@@ -13,6 +13,46 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+Provides a class and a global access point for a log polling object.
+
+The module stores a LogPollingThread instance in the module-level variable
+named log_poller. Call initialize() on this object as early as possible to set
+it up, and then call start() to start the thread.
+
+Files to be watched can be added to the polling object. New events from the
+log are passed on to a parser and then an appropriate handler.
+
+It is possible to add files to be watched before calling initialize(), but no
+actions can be taken until the thread is initialized and started.
+
+A snapshot of the sizes of the log files is stored after every log modification.
+This allows the poller to start where it left off if the process is restarted.
+
+Example usage::
+
+    from gkeepcore.log_polling import log_poller
+    # import whatever byte_count_function and read_bytes_function you need
+
+    def main():
+        # set up other stuff
+
+        log_poller.initialize(new_log_line_queue, byte_count_function,
+                              read_bytes_function,
+                              config.log_snapshot_file_path, system_logger)
+
+        log_poller.start()
+
+        log_poller.watch_log_file('/path/to/log')
+
+        while keep_going:
+            log_file_path, log_line = new_log_line_queue.get()
+            # do something with the line
+
+        log_poller.shutdown()
+
+"""
+
 import os
 import json
 from threading import Thread
@@ -31,41 +71,29 @@ class LogPollingThread(Thread):
     """
     Watches log files for modifications.
 
-    Interface:
-        * initialize(new_log_line_queue, byte_count_function,
-                     read_bytes_function, snapshot_file_path, logger) - must
-                     be called before starting the thread
-        * start() - start the thread
-        * watch_log_file(file_path) - start watching a file
-        * shutdown() - shut down the thread
+    New lines from log files are put in a queue to be processed by another
+    thread.
 
-    Example usage::
-
-        new_log_line_queue = Queue()
-
-        log_poller.initialize(new_log_line_queue, byte_count_function,
-        poller.start()
-
-        poller.watch_log_file('/path/to/log/file')
-
-        while True:
-            log_file_path, log_line = new_log_line_queue.get()
-            # do something with the line
+    See the module-level documentation for usage.
 
     """
-
     def __init__(self):
         """
         Constructor.
 
-        Create the object and initialize all attributes to None.
-        Poller will be set up when initialize() is called.
+        Create the _add_log_queue so that files to be watched can be added
+        before the thread is started. Initialize all other attributes to None.
+
+        Poller will be fully set up and ready to start after initialize() is
+        called.
 
         """
 
         Thread.__init__(self)
 
-        self._add_log_queue = None
+        # initialize this so we can add files to watch before the thread starts
+        self._add_log_queue = Queue()
+
         self._new_log_line_queue = None
         self._byte_count_function = None
         self._read_bytes_function = None
@@ -75,7 +103,6 @@ class LogPollingThread(Thread):
         self._logger = None
         self._log_file_readers = None
         self._shutdown_flag = None
-
 
     def initialize(self, new_log_line_queue: Queue, byte_count_function,
                    read_bytes_function, snapshot_file_path: str,
@@ -87,7 +114,11 @@ class LogPollingThread(Thread):
             byte_count_function(file_path: str) -> int
 
         read_bytes_function must have the following signature:
-            read_bytes_function(file_path, seek_position) -> bytes
+            read_bytes_function(file_path: str, seek_position: int) -> bytes
+
+        These functions are used to create LogFileReader objects. This allows
+        reading from local or remote files, depending on what functions are
+        passed in.
 
         :param new_log_line_queue: the poller places (file_path, line) pairs
          into this queue
@@ -97,11 +128,10 @@ class LogPollingThread(Thread):
          from a seek position to the end
         :param snapshot_file_path: path to the snapshot file
         :param logger: the system logger, used to log runtime information
-        :param polling_interval: amount of time between polling files
+        :param polling_interval: number of seconds between polling files
 
         """
 
-        self._add_log_queue = Queue()
         self._new_log_line_queue = new_log_line_queue
 
         self._byte_count_function = byte_count_function
@@ -121,7 +151,44 @@ class LogPollingThread(Thread):
 
         self._shutdown_flag = False
 
+    def watch_log_file(self, file_path: str):
+        """
+        Add a log file to be watched.
+
+        This method can be called from any other thread.
+
+        :param file_path: path to the log file
+
+        """
+
+        self._add_log_queue.put(file_path)
+
+    def shutdown(self):
+        """
+        Shut down the poller.
+
+        This method is thread safe.
+
+        The poller thread will not shut down until the current polling cycle
+        is complete.
+
+        """
+
+        self._shutdown_flag = True
+
+    def run(self):
+        # Poll forever.
+        #
+        # This should not be called directly, the thread should be started by
+        # calling start()
+
+        while not self._shutdown_flag:
+            self._poll()
+
     def _load_snapshot(self):
+        # Called from initialize() and should not be called again.
+        # Loads byte counts from the snapshot file.
+
         if not os.path.isfile(self._snapshot_file_path or ''):
             self._logger.log_debug('Snapshot file does not exist')
             return
@@ -129,11 +196,14 @@ class LogPollingThread(Thread):
             self._logger.log_debug('Snapshot file is empty')
             return
 
+        self._logger.log_debug('Loading snapshot')
+
+        # snapshots are stored as JSON, and can be directly loaded into a
+        # dictionary
         try:
             with open(self._snapshot_file_path, 'r') as f:
                 json_data = f.read()
                 log_byte_counts = json.loads(json_data)
-                self._logger.log_debug('Loaded ' + self._snapshot_file_path)
         except OSError as e:
             raise LogPollingThreadError('Error reading {0}: {1}'
                                         .format(self._snapshot_file_path, e))
@@ -143,10 +213,17 @@ class LogPollingThread(Thread):
                      .format(self._snapshot_file_path))
             raise LogPollingThreadError(error)
 
+        self._logger.log_debug('Loaded ' + self._snapshot_file_path)
+
+        # start watching all the files from the snapshot file
         for log_file_path, byte_count in log_byte_counts.items():
+            self._logger.log_debug('Watching ' + log_file_path)
             self._create_and_add_reader(log_file_path)
 
     def _write_snapshot(self):
+        # Writes the current file byte counts to the snapshot file.
+        # Called after updates.
+
         if self._snapshot_file_path is None:
             return
 
@@ -164,9 +241,6 @@ class LogPollingThread(Thread):
             raise LogPollingThreadError('Error writing to {0}: {1}'
                                         .format(self._snapshot_file_path, e))
 
-    def watch_log_file(self, file_path: str):
-        self._add_log_queue.put(file_path)
-
     def _start_watching_log_file(self, file_path: str):
         # Start watching the file at file_path. This should only be called
         # internally. Other threads should call watch_log_file()
@@ -176,24 +250,27 @@ class LogPollingThread(Thread):
             self._write_snapshot()
         except LogFileException as e:
             self._logger.log_warning(str(e))
-            pass
 
     def _create_and_add_reader(self, file_path: str, seek_position=None):
+        # Create a LogFileReader object for reading new data from the file
+        # and add it to the dictionary of readers.
+
         reader = LogFileReader(file_path, self._byte_count_function,
                                self._read_bytes_function,
                                seek_position=seek_position)
         self._log_file_readers[file_path] = reader
 
     def _stop_watching_log_file(self, log_file: LogFileReader):
-        # Simply remove the file from the dictionary
+        # Simply remove the file reader from the dictionary
+
         del self._log_file_readers[log_file.get_file_path()]
         self._write_snapshot()
 
     def _get_new_lines(self, log_file: LogFileReader) -> list:
-        # Get the new lines from the log file since the last poll.
+        # Get the new lines from a single log file since the last poll.
         #
         # :param log_file: LogFileReader object
-        # :return: a list of strings, one per line
+        # :return: a list of strings, one per line, in chronological order
 
         lines = []
 
@@ -209,23 +286,11 @@ class LogPollingThread(Thread):
                 lines = new_text.strip().split('\n')
         except LogFileException as e:
             self._logger.log_warning(str(e))
+            # if something goes wrong we should not keep watching this file
             self._stop_watching_log_file(log_file)
         finally:
             # we always need to return a list
             return lines
-
-    def shutdown(self):
-        self._shutdown_flag = True
-
-    def run(self):
-        """Poll forever.
-
-         This should not be called directly, the thread should be started by
-         calling start()
-         """
-
-        while not self._shutdown_flag:
-            self._poll()
 
     def _poll(self):
         # Poll once for changes in files, and check the queue for new files
@@ -260,4 +325,5 @@ class LogPollingThread(Thread):
             sleep(sleep_time)
 
 
+# module-level instance for global access
 log_poller = LogPollingThread()

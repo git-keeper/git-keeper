@@ -35,10 +35,8 @@ from gkeepcore.system_logger import system_logger as gkeepd_logger
 from gkeepcore.log_event_parser import LogEventParserThread
 from gkeepcore.log_polling import log_poller
 from gkeepcore.faculty import Faculty
-from gkeepserver.check_system import check_system
+from gkeepserver.check_system import check_system, CheckSystemError
 
-
-LOG_LEVEL = LogLevel.DEBUG
 
 shutdown_flag = False
 
@@ -67,10 +65,19 @@ def main():
         sys.exit(e)
 
     gkeepd_logger.initialize(config.log_file_path, log_append_function,
-                             log_level=LOG_LEVEL)
+                             log_level=config.log_level)
     gkeepd_logger.start()
 
-    gkeepd_logger.log_info('Starting gkeepd')
+    gkeepd_logger.log_info('--- Starting gkeepd ---')
+
+    try:
+        check_system()
+    except CheckSystemError as e:
+        gkeepd_logger.log_error(e)
+        gkeepd_logger.log_info('Shutting down')
+        gkeepd_logger.shutdown()
+        gkeepd_logger.join()
+        sys.exit(1)
 
     # queues for thread communication
     new_log_line_queue = Queue()
@@ -88,10 +95,6 @@ def main():
     email_sender.start()
     event_parser.start()
     log_poller.start()
-
-    gkeepd_logger.log_info('Threads have been initialized')
-
-    check_system()
 
     gkeepd_logger.log_info('Server is running')
 
@@ -111,20 +114,22 @@ def main():
 
     gkeepd_logger.log_info('Shutting down threads')
 
+    # shut down the pipeline in this order so that no new log events are lost
     log_poller.shutdown()
-    event_parser.shutdown()
-    email_sender.shutdown()
-
     log_poller.join()
+
+    event_parser.shutdown()
     event_parser.join()
+
+    email_sender.shutdown()
     email_sender.join()
+
+    gkeepd_logger.log_info('Shutting down gkeepd')
 
     gkeepd_logger.shutdown()
     gkeepd_logger.join()
 
     print('done')
-
-    gkeepd_logger.log_info('Shutting down gkeepd')
 
 
 if __name__ == '__main__':

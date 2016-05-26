@@ -53,6 +53,7 @@ Attributes:
 
     log_file_path - path to system log
     log_snapshot_file_path - path to file containing current log file sizes
+    log_level - how detailed the log messages should be
 
     faculty_csv_path - path to file containing faculty members
     faculty_log_dir_path - path to directory containing faculty event logs
@@ -69,6 +70,8 @@ Attributes:
 import configparser
 import os
 from getpass import getuser
+
+from gkeepcore.system_logger import LogLevel
 
 
 class ServerConfigurationError(Exception):
@@ -140,13 +143,15 @@ class ServerConfiguration:
     def _initialize_default_attributes(self):
         # Initialize attributes that have default values
 
-        # filenames
+        # logging
         self.log_file_path = os.path.join(self.home_dir, 'gkeepd.log')
 
         log_snapshot_filename = 'snapshot.json'
         self.log_snapshot_file_path = os.path.join(self.home_dir,
                                                    log_snapshot_filename)
+        self.log_level = LogLevel.DEBUG
 
+        # faculty info locations
         self.faculty_csv_path = os.path.join(self.home_dir, 'faculty.csv')
         self.faculty_log_dir_path = os.path.join(self.home_dir, 'faculty_logs')
 

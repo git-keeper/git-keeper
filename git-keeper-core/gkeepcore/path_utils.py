@@ -21,7 +21,8 @@ import os
 
 
 def path_to_list(path: str) -> list:
-    """Constructs a list containing each element of a path.
+    """
+    Construct a list containing each element of a path.
 
     Example:
 
@@ -46,7 +47,8 @@ def path_to_list(path: str) -> list:
 
 
 def user_home_dir(username):
-    """Get a user's home directory on the local machine.
+    """
+    Get a user's home directory on the local machine.
 
     :param username: the user to get the home directory of
     :return: the user's home directory
@@ -59,9 +61,10 @@ def user_home_dir(username):
 
 
 def user_log_path(home_dir: str, username: str):
-    """Builds a log file path of this form:
+    """
+    Build a log file path of this form:
 
-    ~<username>/git-keeper-<username>.log
+    ~<username>/<username>.log
     """
 
     filename = '{0}.log'.format(username)
@@ -70,14 +73,15 @@ def user_log_path(home_dir: str, username: str):
 
 
 def user_from_log_path(path: str) -> str:
-    """Extracts the username from a faculty or student log file.
+    """
+    Extracts the username from a faculty or student log file.
 
     :param path: path of the log file
     :return: the username or None if the path is malformed
     """
 
     # we're parsing a path that ends with this:
-    # <username>/git-keeper-<username>.log
+    # <username>/<username>.log
 
     path_list = path_to_list(path)
 
@@ -95,9 +99,9 @@ def user_from_log_path(path: str) -> str:
     return username
 
 
-def parse_submission_repo_path(path) -> (str, str, str):
+def parse_submission_repo_path(path) -> (str, str, str, str):
     """
-    Extracts student username, faculty username, class name, and assignment
+    Extract student username, faculty username, class name, and assignment
     name from a submission repository.
 
     :param path: path to the submission repository
@@ -127,7 +131,8 @@ def parse_submission_repo_path(path) -> (str, str, str):
 
 
 def parse_faculty_assignment_path(path) -> (str, str):
-    """Extracts the class name and assignment name from a path to a faculty
+    """
+    Extract the class name and assignment name from a path to a faculty
     assignment directory
     :param path: path to the assignment directory
     :return: a tuple containing the class name and the assignment name, or
@@ -149,8 +154,11 @@ def parse_faculty_assignment_path(path) -> (str, str):
 
 
 def get_log_path_from_username(username: str) -> str:
-    """Creates the path to the log file for the given student or faculty
+    """
+    Creates the path to the log file for the given student or faculty
     username.
+
+    Use only if you are looking for the log path on the local machine.
 
     :param username: the user who owns the log
     :return: the path to the log

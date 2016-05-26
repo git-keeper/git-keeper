@@ -17,22 +17,21 @@
 import csv
 import os
 
+from gkeepcore.path_utils import user_home_dir
+from gkeepserver.create_user import create_user
 from gkeepserver.server_configuration import config
 from gkeepcore.faculty import Faculty, FacultyError
 from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
                                        sudo_add_group, mode, chmod, mkdir,
-                                       sudo_add_user, sudo_set_password, touch)
+                                       touch, sudo_chown)
 from gkeepcore.system_logger import system_logger as gkeepd_logger
-from gkeepserver.generate_password import generate_password
-from gkeepserver.server_email import Email
-from gkeepserver.email_sender_thread import email_sender
 
 
 class CheckSystemError(Exception):
     pass
 
 
-def check_keeper_permissions():
+def check_keeper_paths_and_permissions():
     if not user_exists(config.keeper_user):
         raise CheckSystemError('User {0} does not exist'
                                .format(config.keeper_user))
@@ -77,30 +76,42 @@ def check_keeper_permissions():
             chmod(path, required_mode)
 
 
-def add_faculty(faculty: Faculty):
-    gkeepd_logger.log_info('Creating user {0}'.format(faculty.username))
+def create_keeper_faculty_event_log(faculty: Faculty):
+    log_filename = '{0}.log'.format(faculty.username)
+    log_path = os.path.join(config.home_dir, 'faculty_logs', log_filename)
 
-    groups = [config.faculty_group, config.keeper_group]
+    log_notice = '# THIS FILE WAS AUTO-GENERATED, DO NOT EDIT!\n'
 
-    sudo_add_user(faculty.username, groups)
+    with open(log_path, 'w+') as f:
+        f.write(log_notice)
 
-    password = generate_password()
-
-    sudo_set_password(faculty.username, password)
-
-    subject = 'New git-keeper account'
-    body = ('Hello {0}\n\nAn account has been created for you on the '
-            'git-keeper server. Here are your credentials:\n\n'
-            'Username: {1}\n'
-            'Password: {2}\n\n'
-            'Enjoy!'.format(faculty.first_name, faculty.username, password))
-
-    email_sender.enqueue(Email(faculty.email_address, subject, body))
+    chmod(log_path, '640')
 
 
-def check_system():
-    check_keeper_permissions()
+def setup_faculty(faculty: Faculty):
+    gkeepd_logger.log_info('New faculty: {0}'.format(faculty))
 
+    groups = [config.keeper_group, config.faculty_group]
+
+    create_user(faculty.username, faculty.first_name, faculty.last_name,
+                email_address=faculty.email_address,
+                additional_groups=groups)
+
+    gkeepd_logger.log_debug('User created')
+
+    home_dir = user_home_dir(faculty.username)
+    git_keeper_dir_path = os.path.join(home_dir, 'git-keeper')
+
+    mkdir(git_keeper_dir_path, sudo=True)
+    chmod(git_keeper_dir_path, '755', sudo=True)
+    sudo_chown(git_keeper_dir_path, faculty.username, config.keeper_group)
+
+    gkeepd_logger.log_debug('git-keeper directory created')
+
+    create_keeper_faculty_event_log(faculty)
+
+
+def check_faculty():
     faculty_list = []
 
     gkeepd_logger.log_debug('Reading faculty CSV file')
@@ -109,11 +120,16 @@ def check_system():
         reader = csv.reader(f)
 
         for row in reader:
-            faculty_list.append(Faculty.from_csv_row(row))
-
-    new_faculty_list = []
+            try:
+                faculty_list.append(Faculty.from_csv_row(row))
+            except FacultyError:
+                raise CheckSystemError
 
     for faculty in faculty_list:
         if not user_exists(faculty.username):
-            gkeepd_logger.log_info('New faculty: {0}'.format(faculty))
-            add_faculty(faculty)
+            setup_faculty(faculty)
+
+
+def check_system():
+    check_keeper_paths_and_permissions()
+    check_faculty()

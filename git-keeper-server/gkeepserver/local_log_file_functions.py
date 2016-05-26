@@ -44,7 +44,7 @@ def byte_count_function(file_path: str) -> int:
     return byte_count
 
 
-def read_bytes_function(file_path: str, seek_position: int) -> int:
+def read_bytes_function(file_path: str, seek_position: int) -> bytes:
     """
     Retrieve data as bytes from the a file from seek_position to the end
 
