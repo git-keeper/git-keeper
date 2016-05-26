@@ -21,7 +21,7 @@ Event type: SUBMISSION
 
 
 from gkeepcore.event_handler import EventHandler, HandlerException
-from gkeepcore.path_utils import parse_user_log_path, \
+from gkeepcore.path_utils import user_from_log_path, \
     parse_submission_repo_path
 
 
@@ -39,6 +39,19 @@ class SubmissionHandler(EventHandler):
         print(' Assignment:', self._assignment_name)
         print(' Repo path: ', self._submission_repo_path)
         print()
+
+    def __repr__(self) -> str:
+        """
+        Create a string representation of the object for printing and
+        logging
+
+        :return: a string representation of the event to be handled
+        """
+        repr = ('Submission event from {0} for assignment {1}/{2}/{3}'
+                .format(self._student_username, self._faculty_username,
+                        self._class_name, self._assignment_name))
+
+        return repr
 
     def _parse(self):
         """Extracts the student username, faculty username, class name,
@@ -69,7 +82,7 @@ class SubmissionHandler(EventHandler):
             _student_username
         """
 
-        self._student_username = parse_user_log_path(self._log_path)
+        self._student_username = user_from_log_path(self._log_path)
 
         if self._student_username is None:
             raise HandlerException('Malformed log path: {0}'

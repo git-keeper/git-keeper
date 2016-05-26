@@ -14,34 +14,45 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-import abc
+from enum import IntEnum
+
+from gkeepcore.log_file import LogFileWriter
 
 
-class SystemLogger(metaclass=abc.ABCMeta):
-    def __init__(self):
+class LogLevel(IntEnum):
+    NONE = -1
+    ERROR = 0
+    WARNING = 1
+    INFO = 2
+    DEBUG = 3
+
+
+class SystemLogger:
+    def __init__(self, log_append_function):
         self._log_file_path = None
         self._writer = None
+        self._log_level = None
 
-    @abc.abstractmethod
-    def initialize(self, log_file_path: str):
-        """
-        Store the log file path and initialize the writer.
+        self._log_append_function = log_append_function
 
-        The writer must have a method with the following signature:
-                log(log_item_type, text)
+    def initialize(self, log_file_path: str, log_level=LogLevel.DEBUG):
+        self._log_file_path = log_file_path
+        self._writer = LogFileWriter(log_file_path, self._log_append_function)
+        self._log_level = log_level
 
-        The abstract class LogFileWriter was designed for this.
-        """
+    def _cleanup_and_log(self, log_level, text: str):
+        if self._log_level >= log_level:
+            text = text.replace('\n', ' ')
+            self._writer.log(log_level.name, text)
 
-    def _cleanup_and_log(self, log_item_type: str, text: str):
-        text = text.replace('\n', ' ')
-        self._writer.log(log_item_type, text)
+    def log_debug(self, text: str):
+        self._cleanup_and_log(LogLevel.DEBUG, text)
 
     def log_info(self, text: str):
-        self._cleanup_and_log('INFO', text)
+        self._cleanup_and_log(LogLevel.INFO, text)
 
     def log_warning(self, text: str):
-        self._cleanup_and_log('WARNING', text)
+        self._cleanup_and_log(LogLevel.WARNING, text)
 
     def log_error(self, text: str):
-        self._cleanup_and_log('ERROR', text)
+        self._cleanup_and_log(LogLevel.ERROR, text)

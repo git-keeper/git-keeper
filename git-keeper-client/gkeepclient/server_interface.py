@@ -14,7 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""Provides a globally accessible interface for interacting with a git-keeper
+"""
+Provides a globally accessible interface for interacting with a git-keeper
 server through a paramiko SSH connection.
 
 This module stores a SeverInterface instance in the module-level instance
@@ -29,7 +30,7 @@ without having to call connect().
 Before calling connect, be sure that you have called parse() on the global
 ClientConfiguration object.
 
-Example usage:
+Example usage::
 
     import sys
     from gkeepclient.client_configuration import config
@@ -51,7 +52,7 @@ from paramiko import SSHClient, SSHException
 from shlex import quote
 
 from gkeepclient.client_configuration import config
-from gkeepcore.path_utils import build_user_log_path
+from gkeepcore.path_utils import user_log_path
 
 
 class ServerInterfaceError(Exception):
@@ -90,8 +91,9 @@ class ServerInterface:
         try:
             self._ssh_client = SSHClient()
             self._ssh_client.load_system_host_keys()
-            self._ssh_client.connect(hostname=config.host,
-                                     username=config.username,
+
+            self._ssh_client.connect(hostname=config.server_host,
+                                     username=config.server_username,
                                      port=config.server_ssh_port)
             self._sftp_client = self._ssh_client.open_sftp()
         except SSHException as e:
@@ -344,7 +346,7 @@ class ServerInterface:
 
         home_dir = self.get_user_home_dir(username)
 
-        log_path = build_user_log_path(home_dir, username)
+        log_path = user_log_path(home_dir, username)
 
         return log_path
 

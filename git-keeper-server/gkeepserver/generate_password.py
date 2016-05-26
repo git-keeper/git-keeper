@@ -13,9 +13,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import random
+import string
 
-from gkeepcore.system_logger import SystemLogger
-from .local_log_file_functions import log_append_function
 
+def generate_password(length=8):
+    characters = string.ascii_letters + string.digits
 
-gkeepd_logger = SystemLogger(log_append_function)
+    character_list = [random.SystemRandom().choice(characters)
+                      for _ in range(length)]
+
+    password = ''.join(character_list)
+
+    return password

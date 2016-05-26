@@ -14,51 +14,61 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""Provides 2 abstract base classes: LogFileReader and LogFileWriter"""
+"""
+Provides 2 classes for log files: LogFileReader and LogFileWriter
 
-
-import abc
-import re
-from time import time
+"""
 
 
 class LogFileException(Exception):
     pass
 
 
-class LogFileReader(metaclass=abc.ABCMeta):
+class LogFileReader:
     """Base class for use with a LogPollingThread"""
-    def __init__(self, file_path, seek_position):
+    def __init__(self, file_path: str, byte_count_function, read_bytes_function,
+                 seek_position=None):
         self._file_path = file_path
+
+        self._byte_count_function = byte_count_function
+        self._read_bytes_function = read_bytes_function
 
         if seek_position is None:
             self._seek_position = self.get_byte_count()
         else:
             self._seek_position = seek_position
 
-    def get_file_path(self):
+    def get_file_path(self) -> str:
         """Retrieve the path of the log file"""
         return self._file_path
 
-    def get_seek_position(self):
+    def get_seek_position(self) -> int:
         """Get the next read offset into the file"""
         return self._seek_position
 
-    def has_new_text(self):
+    def has_new_text(self) -> bool:
         """Determine if the file has grown since it was last read"""
         return self.get_byte_count() > self._seek_position
 
-    @abc.abstractmethod
-    def get_byte_count(self):
-        """Retrieve the current number of bytes in the file"""
+    def get_byte_count(self) -> int:
+        return self._byte_count_function(self._file_path)
 
-    @abc.abstractmethod
-    def get_new_text(self):
+    def get_new_text(self) -> str:
         """Retrieve the data from the file, starting at seek_position"""
 
+        data_bytes = self._read_bytes_function(self._file_path,
+                                               self._seek_position)
 
-class LogFileWriter(metaclass=abc.ABCMeta):
-    """Base class for loggers"""
+        self._seek_position += len(data_bytes)
+
+        return data_bytes.decode('utf-8')
+
+
+class LogFileWriter:
+    def __init__(self, file_path: str, log_append_function):
+        self._file_path = file_path
+        self._log_append_function = log_append_function
+
     def log(self, event_type, text):
         """Log an event
 
@@ -66,16 +76,4 @@ class LogFileWriter(metaclass=abc.ABCMeta):
         :param text: the description of the event
         """
 
-        time_string = str(round(time(), 4))
-
-        # pad the time string with zeros if there are less than 4 digits after
-        # the decimal point
-        while re.search('\d\d\d\d$', time_string) is None:
-            time_string += '0'
-
-        line = '{0} {1} {2}'.format(time_string, event_type, text)
-        self._append(line)
-
-    @abc.abstractmethod
-    def _append(self, string):
-        """Append the given string to the file"""
+        self._log_append_function(self._file_path, event_type, text)
