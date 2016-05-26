@@ -22,8 +22,33 @@ Provides functions for system calls and command line filesystem operations.
 import os
 from pwd import getpwuid, getpwnam
 from grp import getgrgid, getgrnam
+from getpass import getuser
 
 from gkeepcore.shell_command import run_command, CommandError
+
+
+def this_user():
+    """
+    Get the username of the user that is running this process.
+
+    :return: the username
+    """
+
+    return getuser()
+
+
+def this_group():
+    """
+    Get the name of the default group of the user that is running this process.
+
+    :return: the group name
+    """
+
+    username = getuser()
+    gid = getpwnam(username).pw_gid
+    group_name = getgrgid(gid).gr_name
+
+    return group_name
 
 
 def chmod(path, permissions_mode, recursive=False, sudo=False):

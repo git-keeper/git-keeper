@@ -20,7 +20,6 @@ Main entry point for gkeepd, the git-keeper server process.
 
 
 import sys
-import csv
 from queue import Queue, Empty
 from signal import signal, SIGINT, SIGTERM
 
@@ -29,19 +28,28 @@ from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.local_log_file_functions import (byte_count_function,
                                                   read_bytes_function)
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
-from gkeepcore.system_logger import LogLevel
 from gkeepserver.local_log_file_functions import log_append_function
 from gkeepcore.system_logger import system_logger as gkeepd_logger
 from gkeepcore.log_event_parser import LogEventParserThread
 from gkeepcore.log_polling import log_poller
-from gkeepcore.faculty import Faculty
 from gkeepserver.check_system import check_system, CheckSystemError
 
 
+# switched to True by the signal handler on SIGINT or SIGTERM
 shutdown_flag = False
 
 
 def signal_handler(signum, frame):
+    """
+    Handle SIGINT and SIGTERM signals.
+
+    The main loop keeps looping while shutdown_flag is False. This will switch
+    it to True so the server shuts down.
+
+    :param signum: unused
+    :param frame: unused
+    """
+
     global shutdown_flag
     shutdown_flag = True
 
@@ -54,6 +62,7 @@ def main():
 
     """
 
+    # setup signal handling
     global shutdown_flag
     signal(SIGINT, signal_handler)
     signal(SIGTERM, signal_handler)
@@ -64,12 +73,15 @@ def main():
     except ServerConfigurationError as e:
         sys.exit(e)
 
+    # initialize and start system logger
     gkeepd_logger.initialize(config.log_file_path, log_append_function,
                              log_level=config.log_level)
     gkeepd_logger.start()
 
     gkeepd_logger.log_info('--- Starting gkeepd ---')
 
+    # check for fatal errors in the system state, and correct correctable issues
+    # including new faculty members
     try:
         check_system()
     except CheckSystemError as e:
@@ -83,33 +95,41 @@ def main():
     new_log_line_queue = Queue()
     event_handler_queue = Queue()
 
+    # the event parser creates event handlers for the main loop to call upon
     event_parser = LogEventParserThread(new_log_line_queue,
                                         event_handler_queue,
                                         event_handlers_by_type, gkeepd_logger)
 
+    # the log poller detects new events and passes them to the event parser
     log_poller.initialize(new_log_line_queue, byte_count_function,
                           read_bytes_function,
                           config.log_snapshot_file_path, gkeepd_logger)
 
-    # start all threads
+    # start the rest of the threads
     email_sender.start()
     event_parser.start()
     log_poller.start()
 
     gkeepd_logger.log_info('Server is running')
 
-    try:
-        while not shutdown_flag:
-            try:
-                handler = event_handler_queue.get(block=True, timeout=0.1)
-                gkeepd_logger.log_debug('New task: ' + str(handler))
-                handler.handle()
-            except Empty:
-                pass
-    except KeyboardInterrupt:
-        pass
+    # main loop
+    while not shutdown_flag:
+        try:
+            # do not fully block since we need to check shutdown_flag
+            # regularly
+            handler = event_handler_queue.get(block=True, timeout=0.1)
+
+            gkeepd_logger.log_debug('New task: ' + str(handler))
+
+            # all of the main thread's actions are carried out by handlers
+            handler.handle()
+
+        # get() raises Empty after blocking for timeout seconds
+        except Empty:
+            pass
 
     print('Shutting down. Waiting for threads to finish ... ', end='')
+    # flush so it prints immediately despite no newline
     sys.stdout.flush()
 
     gkeepd_logger.log_info('Shutting down threads')
