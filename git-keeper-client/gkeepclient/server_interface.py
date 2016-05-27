@@ -14,7 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""Provides a globally accessible interface for interacting with a git-keeper
+"""
+Provides a globally accessible interface for interacting with a git-keeper
 server through a paramiko SSH connection.
 
 This module stores a SeverInterface instance in the module-level instance
@@ -29,7 +30,7 @@ without having to call connect().
 Before calling connect, be sure that you have called parse() on the global
 ClientConfiguration object.
 
-Example usage:
+Example usage::
 
     import sys
     from gkeepclient.client_configuration import config
@@ -51,7 +52,7 @@ from paramiko import SSHClient, SSHException
 from shlex import quote
 
 from gkeepclient.client_configuration import config
-from gkeepcore.path_utils import build_user_log_path
+from gkeepcore.path_utils import user_log_path
 
 
 class ServerInterfaceError(Exception):
@@ -90,9 +91,9 @@ class ServerInterface:
         try:
             self._ssh_client = SSHClient()
             self._ssh_client.load_system_host_keys()
-            self._ssh_client.connect(hostname=config.host,
-                                     username=config.username,
-                                     port=config.ssh_port)
+            self._ssh_client.connect(hostname=config.server_host,
+                                     username=config.server_username,
+                                     port=config.server_ssh_port)
             self._sftp_client = self._ssh_client.open_sftp()
         except SSHException as e:
             raise ServerInterfaceError(e)
@@ -289,13 +290,13 @@ class ServerInterface:
         except SSHException as e:
             raise ServerInterfaceError(e)
 
-    def read_file(self, file_path: str, seek_position=0) -> str:
-        """Reads a text file from the server, optionally starting at a byte
-        offset.
+    def read_file_bytes(self, file_path: str, seek_position=0) -> bytes:
+        """Read a file from the server, optionally starting at a byte
+        offset, and return the data as bytes.
 
         :param file_path: path to the file
         :param seek_position: byte offset at which to start reading
-        :return: data from the file as a string
+        :return: data from the file as bytes
         """
 
         try:
@@ -305,8 +306,20 @@ class ServerInterface:
         except SSHException as e:
             raise ServerInterfaceError(e)
 
-        # data is bytes, we want a string
-        return data.decode('utf-8')
+        return data
+
+    def read_file_text(self, file_path: str, seek_position=0) -> str:
+        """Read a file from the server, optionally starting at a byte
+        offset, and return the data as a string.
+
+        :param file_path: path to the file
+        :param seek_position: byte offset at which to start reading
+        :return: data from the file as a string
+        """
+
+        data_bytes = self.read_file_bytes(file_path, seek_position)
+
+        return data_bytes.decode('utf-8')
 
     def get_user_home_dir(self, username: str) -> str:
         """Finds the user's home directory path on the server.
@@ -332,7 +345,7 @@ class ServerInterface:
 
         home_dir = self.get_user_home_dir(username)
 
-        log_path = build_user_log_path(home_dir, username)
+        log_path = user_log_path(home_dir, username)
 
         return log_path
 
