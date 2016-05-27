@@ -34,7 +34,8 @@ from gkeepserver.server_configuration import config
 from gkeepcore.faculty import Faculty, FacultyError
 from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
                                        sudo_add_group, mode, chmod, mkdir,
-                                       touch, sudo_chown, this_user, this_group)
+                                       touch, sudo_chown, this_user,
+                                       this_group)
 from gkeepcore.system_logger import system_logger as gkeepd_logger
 
 
@@ -48,7 +49,8 @@ def check_system():
     Check the state of the system and ensure that everything is in place so the
     server can run correctly.
 
-    This is the only function from this module that should be called externally.
+    This is the only function from this module that should be called
+    externally.
 
     Raises a CheckSystemError exception for fatal errors.
 

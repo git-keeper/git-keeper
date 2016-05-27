@@ -26,8 +26,9 @@ log are passed on to a parser and then an appropriate handler.
 It is possible to add files to be watched before calling initialize(), but no
 actions can be taken until the thread is initialized and started.
 
-A snapshot of the sizes of the log files is stored after every log modification.
-This allows the poller to start where it left off if the process is restarted.
+A snapshot of the sizes of the log files is stored after every log
+modification. This allows the poller to start where it left off if the process
+is restarted.
 
 Example usage::
 
@@ -60,7 +61,7 @@ from queue import Queue, Empty
 from time import time, sleep
 
 from gkeepcore.log_file import LogFileReader, LogFileException
-from gkeepcore.system_logger import SystemLogger
+from gkeepcore.system_logger import SystemLoggerThread
 
 
 class LogPollingThreadError(Exception):
@@ -106,7 +107,7 @@ class LogPollingThread(Thread):
 
     def initialize(self, new_log_line_queue: Queue, byte_count_function,
                    read_bytes_function, snapshot_file_path: str,
-                   logger: SystemLogger, polling_interval=1):
+                   logger: SystemLoggerThread, polling_interval=1):
         """
         Initialize the attributes.
 
@@ -177,7 +178,7 @@ class LogPollingThread(Thread):
         self._shutdown_flag = True
 
     def run(self):
-        # Poll forever.
+        # Poll until _shutdown_flag is True.
         #
         # This should not be called directly, the thread should be started by
         # calling start()

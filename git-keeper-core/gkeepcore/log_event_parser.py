@@ -66,7 +66,7 @@ class LogEventParserThread(Thread):
          placed in this queue after parsing
         :param event_handlers_by_type: dictionary mapping event type strings
          to EventHandler subclasses
-        :param logger: a SystemLogger for reporting information
+        :param logger: a SystemLoggerThread for reporting information
 
         """
 

@@ -59,7 +59,9 @@ class EmailSenderThread(Thread):
     Call the inherited start() method to start the thread.
 
     Shutdown the thread by calling shutdown(). The sender will keep sending
-    emails until the queue is empty, and then shut down.
+    emails until the queue is empty, and then shut down. Call join() after
+    shutdown() in the main thread to allow all the enqueued emails to be sent
+    before proceeding.
 
     Add emails to the thread by calling enqueue(email). Emails must be
     gkeepserver.email.Email objects.

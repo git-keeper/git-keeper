@@ -16,6 +16,13 @@
 """
 Main entry point for gkeepd, the git-keeper server process.
 
+Spawns a number of threads:
+
+gkeepd_logger - SystemLoggerThread for logging runtime information
+email_sender - EmailSenderThread for sending rate-limited emails
+log_poller - LogPollingThread for watching student and faculty logs for events
+event_parser - LogEventParserThread for creating event handlers from log events
+
 """
 
 
@@ -80,8 +87,8 @@ def main():
 
     gkeepd_logger.log_info('--- Starting gkeepd ---')
 
-    # check for fatal errors in the system state, and correct correctable issues
-    # including new faculty members
+    # check for fatal errors in the system state, and correct correctable
+    # issues including new faculty members
     try:
         check_system()
     except CheckSystemError as e:
