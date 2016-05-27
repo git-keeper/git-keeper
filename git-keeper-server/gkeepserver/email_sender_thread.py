@@ -46,7 +46,7 @@ from threading import Thread
 from queue import Queue, Empty
 from time import time, sleep
 
-from gkeepserver.email import Email, EmailException
+from gkeepserver.server_email import Email, EmailException
 
 
 class EmailSenderThread(Thread):
@@ -59,7 +59,9 @@ class EmailSenderThread(Thread):
     Call the inherited start() method to start the thread.
 
     Shutdown the thread by calling shutdown(). The sender will keep sending
-    emails until the queue is empty, and then shut down.
+    emails until the queue is empty, and then shut down. Call join() after
+    shutdown() in the main thread to allow all the enqueued emails to be sent
+    before proceeding.
 
     Add emails to the thread by calling enqueue(email). Emails must be
     gkeepserver.email.Email objects.
@@ -122,7 +124,7 @@ class EmailSenderThread(Thread):
         while not self._shutdown_flag:
             try:
                 while True:
-                    email = self._email_queue.get(block=True, timeout=0.5)
+                    email = self._email_queue.get(block=True, timeout=0.1)
 
                     if isinstance(email, Email):
                         self._send_email_with_rate_limiting(email)
@@ -154,3 +156,7 @@ class EmailSenderThread(Thread):
         except EmailException as e:
             # FIXME - log this instead
             print('EMAILER: Failed to send email to', email.to_address)
+
+
+# module-level instance for global email sending
+email_sender = EmailSenderThread()
