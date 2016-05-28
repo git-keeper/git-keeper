@@ -15,34 +15,62 @@
 
 
 """
-Provides a class for running tests on a student submission in a separate
+Provides a class for running tests on student submissions in a separate
 thread.
+
+New submissions are pulled from the global new_submission_queue.
 """
 
 
 from threading import Thread
+from queue import Empty
 
-from gkeepserver.submission import Submission
+from gkeepserver.new_submission_queue import new_submission_queue
 
 
 class SubmissionTestThread(Thread):
     """
-    A Thread for running tests on a student submission.
-    """
-    def __init__(self, submission: Submission):
-        """
-        Store the submission and start the thread.
+    A Thread for running tests on student submissions.
 
-        :param submission: the student submission
-        """
+    Gets new submissions from the global new_submission_queue.
+    """
+    def __init__(self):
+        """Create the object and start the thread."""
 
         Thread.__init__(self)
-        self._submission = submission
+
+        # set to True when shutdown() is called
+        self._shutdown_flag = False
+
         self.start()
 
-    def run(self):
-        # Run the tests.
-        #
-        # This should not be called directly.
+    def shutdown(self):
+        """
+        Shut down the thread.
 
-        self._submission.run_tests()
+        Sets the shutdown flag to True. The run() loop will then exit after all
+        submissions in the queue have been tested.
+
+        This method blocks until the thread dies.
+        """
+
+        self._shutdown_flag = True
+        self.join()
+
+    def run(self):
+        # Continually check for new submissions from new_submission_queue
+        # and test them.
+        #
+        # Do not call this method directly.
+
+        while not self._shutdown_flag:
+            try:
+                # consume all submissions in the queue before shutdown
+                while True:
+                    submission = new_submission_queue.get(block=True,
+                                                          timeout=0.1)
+                    submission.run_tests()
+            # get() raises Empty when there is nothing in the queue after
+            # timeout seconds
+            except Empty:
+                pass

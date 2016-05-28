@@ -62,7 +62,7 @@ class Submission:
         logger.log_debug('Running tests on {0}'.format(self.student_repo_path))
 
         # just sleep for testing
-        sleep(random())
+        sleep(random() * 5)
 
         logger.log_debug('Done running tests on {0}'
                          .format(self.student_repo_path))
