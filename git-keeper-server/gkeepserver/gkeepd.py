@@ -22,7 +22,7 @@ logger - SystemLoggerThread for logging runtime information
 email_sender - EmailSenderThread for sending rate-limited emails
 log_poller - LogPollingThread for watching student and faculty logs for events
 event_parser - LogEventParserThread for creating event handlers from log events
-test_thread_manager - TestThreadManagerThread for running tests on submissions
+submission_test_threads - list of SubmissionTestThread objects which run tests
 
 """
 
@@ -39,7 +39,7 @@ from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
 from gkeepserver.local_log_file_functions import log_append_function
 from gkeepcore.system_logger import system_logger as logger
 from gkeepcore.log_event_parser import LogEventParserThread
-from gkeepserver.test_thread_manager import test_thread_manager
+from gkeepserver.submission_test_thread import SubmissionTestThread
 from gkeepcore.log_polling import log_poller
 from gkeepserver.check_system import check_system, CheckSystemError
 
@@ -115,7 +115,12 @@ def main():
 
     # start the rest of the threads
     email_sender.start()
-    test_thread_manager.start()
+
+    submission_test_threads = []
+    for count in range(config.test_thread_count):
+        # thread is automatically started by the constructor
+        submission_test_threads.append(SubmissionTestThread())
+
     event_parser.start()
     log_poller.start()
 
@@ -146,7 +151,10 @@ def main():
     # shut down the pipeline in this order so that no new log events are lost
     log_poller.shutdown()
     event_parser.shutdown()
-    test_thread_manager.shutdown()
+
+    for thread in submission_test_threads:
+        thread.shutdown()
+
     email_sender.shutdown()
 
     logger.log_info('Shutting down gkeepd')
