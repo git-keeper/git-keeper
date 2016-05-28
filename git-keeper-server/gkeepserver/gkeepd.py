@@ -18,7 +18,7 @@ Main entry point for gkeepd, the git-keeper server process.
 
 Spawns a number of threads:
 
-gkeepd_logger - SystemLoggerThread for logging runtime information
+logger - SystemLoggerThread for logging runtime information
 email_sender - EmailSenderThread for sending rate-limited emails
 log_poller - LogPollingThread for watching student and faculty logs for events
 event_parser - LogEventParserThread for creating event handlers from log events
@@ -31,16 +31,14 @@ import sys
 from queue import Queue, Empty
 from signal import signal, SIGINT, SIGTERM
 
-from gkeepcore.student import Student
 from gkeepserver.server_configuration import config, ServerConfigurationError
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.local_log_file_functions import (byte_count_function,
                                                   read_bytes_function)
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
 from gkeepserver.local_log_file_functions import log_append_function
-from gkeepcore.system_logger import system_logger as gkeepd_logger
+from gkeepcore.system_logger import system_logger as logger
 from gkeepcore.log_event_parser import LogEventParserThread
-from gkeepserver.submission import Submission
 from gkeepserver.test_thread_manager import test_thread_manager
 from gkeepcore.log_polling import log_poller
 from gkeepserver.check_system import check_system, CheckSystemError
@@ -85,21 +83,20 @@ def main():
         sys.exit(e)
 
     # initialize and start system logger
-    gkeepd_logger.initialize(config.log_file_path, log_append_function,
-                             log_level=config.log_level)
-    gkeepd_logger.start()
+    logger.initialize(config.log_file_path, log_append_function,
+                      log_level=config.log_level)
+    logger.start()
 
-    gkeepd_logger.log_info('--- Starting gkeepd ---')
+    logger.log_info('--- Starting gkeepd ---')
 
     # check for fatal errors in the system state, and correct correctable
     # issues including new faculty members
     try:
         check_system()
     except CheckSystemError as e:
-        gkeepd_logger.log_error(e)
-        gkeepd_logger.log_info('Shutting down')
-        gkeepd_logger.shutdown()
-        gkeepd_logger.join()
+        logger.log_error(e)
+        logger.log_info('Shutting down')
+        logger.shutdown()
         sys.exit(1)
 
     # queues for thread communication
@@ -109,12 +106,12 @@ def main():
     # the event parser creates event handlers for the main loop to call upon
     event_parser = LogEventParserThread(new_log_line_queue,
                                         event_handler_queue,
-                                        event_handlers_by_type, gkeepd_logger)
+                                        event_handlers_by_type, logger)
 
     # the log poller detects new events and passes them to the event parser
     log_poller.initialize(new_log_line_queue, byte_count_function,
                           read_bytes_function,
-                          config.log_snapshot_file_path, gkeepd_logger)
+                          config.log_snapshot_file_path, logger)
 
     # start the rest of the threads
     email_sender.start()
@@ -122,7 +119,7 @@ def main():
     event_parser.start()
     log_poller.start()
 
-    gkeepd_logger.log_info('Server is running')
+    logger.log_info('Server is running')
 
     # main loop
     while not shutdown_flag:
@@ -131,7 +128,7 @@ def main():
             # regularly
             handler = event_handler_queue.get(block=True, timeout=0.1)
 
-            gkeepd_logger.log_debug('New task: ' + str(handler))
+            logger.log_debug('New task: ' + str(handler))
 
             # all of the main thread's actions are carried out by handlers
             handler.handle()
@@ -144,24 +141,17 @@ def main():
     # flush so it prints immediately despite no newline
     sys.stdout.flush()
 
-    gkeepd_logger.log_info('Shutting down threads')
+    logger.log_info('Shutting down threads')
 
     # shut down the pipeline in this order so that no new log events are lost
     log_poller.shutdown()
-    log_poller.join()
-
     event_parser.shutdown()
-    event_parser.join()
-
     test_thread_manager.shutdown()
-
     email_sender.shutdown()
-    email_sender.join()
 
-    gkeepd_logger.log_info('Shutting down gkeepd')
+    logger.log_info('Shutting down gkeepd')
 
-    gkeepd_logger.shutdown()
-    gkeepd_logger.join()
+    logger.shutdown()
 
     print('done')
 

@@ -82,14 +82,16 @@ class LogEventParserThread(Thread):
 
     def shutdown(self):
         """
-        Shut down the thread after parsing all queued log lines.
+        Shut down the thread.
 
-        Call join() on the thread after calling shutdown() to make sure the
-        thread has shut down before moving on.
+        The run loop will not exit until all queued log lines are parsed.
+
+        This thread blocks until the thread has died.
 
         """
 
         self._shutdown_flag = True
+        self.join()
 
     def run(self):
         # Continually parse new log lines from the input queue and place the

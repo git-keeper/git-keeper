@@ -168,14 +168,15 @@ class LogPollingThread(Thread):
         """
         Shut down the poller.
 
-        This method is thread safe.
-
-        The poller thread will not shut down until the current polling cycle
+        The run loop will not shut down until the current polling cycle
         is complete.
+
+        This method will block until the thread dies.
 
         """
 
         self._shutdown_flag = True
+        self.join()
 
     def run(self):
         # Poll until _shutdown_flag is True.
