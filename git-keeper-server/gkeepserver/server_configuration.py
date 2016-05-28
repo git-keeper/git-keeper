@@ -58,6 +58,8 @@ Attributes:
     faculty_csv_path - path to file containing faculty members
     faculty_log_dir_path - path to directory containing faculty event logs
 
+    max_test_thread_count - maximum number of threads for testing student code
+
     from_name - the name that emails are from
     from_address - the address that emails are from
     smtp_server - SMTP server host
@@ -154,6 +156,9 @@ class ServerConfiguration:
         # faculty info locations
         self.faculty_csv_path = os.path.join(self.home_dir, 'faculty.csv')
         self.faculty_log_dir_path = os.path.join(self.home_dir, 'faculty_logs')
+
+        # testing student code
+        self.max_test_thread_count = 4
 
         # users and groups
         self.keeper_user = 'keeper'

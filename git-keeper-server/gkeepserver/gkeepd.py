@@ -22,6 +22,7 @@ gkeepd_logger - SystemLoggerThread for logging runtime information
 email_sender - EmailSenderThread for sending rate-limited emails
 log_poller - LogPollingThread for watching student and faculty logs for events
 event_parser - LogEventParserThread for creating event handlers from log events
+test_thread_manager - TestThreadManagerThread for running tests on submissions
 
 """
 
@@ -30,6 +31,7 @@ import sys
 from queue import Queue, Empty
 from signal import signal, SIGINT, SIGTERM
 
+from gkeepcore.student import Student
 from gkeepserver.server_configuration import config, ServerConfigurationError
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.local_log_file_functions import (byte_count_function,
@@ -38,6 +40,8 @@ from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
 from gkeepserver.local_log_file_functions import log_append_function
 from gkeepcore.system_logger import system_logger as gkeepd_logger
 from gkeepcore.log_event_parser import LogEventParserThread
+from gkeepserver.submission import Submission
+from gkeepserver.test_thread_manager import test_thread_manager
 from gkeepcore.log_polling import log_poller
 from gkeepserver.check_system import check_system, CheckSystemError
 
@@ -114,6 +118,7 @@ def main():
 
     # start the rest of the threads
     email_sender.start()
+    test_thread_manager.start()
     event_parser.start()
     log_poller.start()
 
@@ -147,6 +152,8 @@ def main():
 
     event_parser.shutdown()
     event_parser.join()
+
+    test_thread_manager.shutdown()
 
     email_sender.shutdown()
     email_sender.join()
