@@ -142,13 +142,13 @@ class SystemLoggerThread(Thread):
         """
         Shut down the logger.
 
-        This method is thread safe.
+        The run loop will not exit until all messages in the queue are logged.
 
-        The logger thread will not shut down until all messages in the queue
-        are logged.
+        This method will block until the thread dies.
         """
 
         self._shutdown_flag = True
+        self.join()
 
     def run(self):
         # Log until _shutdown_flag is True.

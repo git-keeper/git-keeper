@@ -100,14 +100,15 @@ class EmailSenderThread(Thread):
 
     def shutdown(self):
         """
-        Shutdown the thread once the queue is empty.
+        Shutdown the thread.
 
-        It may take some time for all the emails in the queue to be sent. join()
-        on this thread after calling shutdown() to make sure it has actually
-        shut down.
+        The run loop will not exit until all queued messages have been sent.
+
+        This method blocks until the thread has died.
         """
 
         self._shutdown_flag = True
+        self.join()
 
     def run(self):
         """
