@@ -73,7 +73,7 @@ import configparser
 import os
 from getpass import getuser
 
-from gkeepcore.system_logger import LogLevel
+from gkeepserver.gkeepd_logger import LogLevel
 
 
 class ServerConfigurationError(Exception):

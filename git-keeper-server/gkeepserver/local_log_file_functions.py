@@ -64,21 +64,7 @@ def read_bytes_function(file_path: str, seek_position: int) -> bytes:
 
 
 def log_append_function(file_path: str, item_type: str, text: str):
-    # keep the log line to 4KB or less to maintain write atomicity
-    max_length = 4096
 
-    time_length = 15
-    type_length = len(item_type.encode())
-    text_length = len(text.encode())
-    spacing_length = 2
-
-    total_length = time_length + type_length + text_length + spacing_length
-
-    if total_length > max_length:
-        diff = total_length - max_length
-        text = text[:len(text) - diff - 3] + '...'
-
-    quoted_path = quote(file_path)
 
     # Uses GNU date to get a precise time from the command line.
     # Won't work on OS X.

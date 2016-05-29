@@ -19,12 +19,11 @@ Provides a thread for parsing new log events and creating handlers to
 handle them.
 """
 
-
 import re
 from queue import Queue, Empty
 from threading import Thread
 
-from gkeepcore.event_handler import EventHandler, HandlerException
+from gkeepserver.event_handler import EventHandler, HandlerException
 
 
 class LogEventParserException(Exception):
@@ -66,7 +65,7 @@ class LogEventParserThread(Thread):
          placed in this queue after parsing
         :param event_handlers_by_type: dictionary mapping event type strings
          to EventHandler subclasses
-        :param logger: a SystemLoggerThread for reporting information
+        :param logger: a GkeepdLoggerThread for reporting information
 
         """
 

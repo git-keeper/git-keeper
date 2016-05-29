@@ -74,7 +74,7 @@ def user_log_path(home_dir: str, username: str):
 
 def user_from_log_path(path: str) -> str:
     """
-    Extracts the username from a faculty or student log file.
+    Extract the username from a faculty or student log file.
 
     :param path: path of the log file
     :return: the username or None if the path is malformed
@@ -133,7 +133,8 @@ def parse_submission_repo_path(path) -> (str, str, str, str):
 def parse_faculty_assignment_path(path) -> (str, str):
     """
     Extract the class name and assignment name from a path to a faculty
-    assignment directory
+    assignment directory.
+
     :param path: path to the assignment directory
     :return: a tuple containing the class name and the assignment name, or
              None if the path is malformed
@@ -153,9 +154,20 @@ def parse_faculty_assignment_path(path) -> (str, str):
     return class_name, assignment_name
 
 
-def get_log_path_from_username(username: str) -> str:
+def faculty_class_directory(class_name: str, home_dir: str):
     """
-    Creates the path to the log file for the given student or faculty
+    Build the path to a faculty member's class directory on the server.
+
+    :param class_name: name of the class
+    :param home_dir: home directory of the faculty member.
+    """
+
+    return os.path.join(home_dir, 'git-keeper', class_name)
+
+
+def log_path_from_username(username: str) -> str:
+    """
+    Create the path to the log file for the given student or faculty
     username.
 
     Use only if you are looking for the log path on the local machine.

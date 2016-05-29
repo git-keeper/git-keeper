@@ -23,7 +23,7 @@ pattern.
 import abc
 
 
-class CSVException(Exception):
+class CSVError(Exception):
     pass
 
 

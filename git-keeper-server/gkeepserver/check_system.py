@@ -24,19 +24,18 @@ calling check_system()
 
 """
 
-
 import csv
 import os
 
-from gkeepcore.path_utils import user_home_dir
-from gkeepserver.create_user import create_user, UserType
-from gkeepserver.server_configuration import config
 from gkeepcore.faculty import Faculty, FacultyError
+from gkeepcore.path_utils import user_home_dir
 from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
                                        sudo_add_group, mode, chmod, mkdir,
                                        touch, sudo_chown, this_user,
                                        this_group)
-from gkeepcore.system_logger import system_logger as gkeepd_logger
+from gkeepserver.create_user import create_user, UserType
+from gkeepserver.server_configuration import config
+from gkeepserver.gkeepd_logger import gkeepd_logger as gkeepd_logger
 
 
 class CheckSystemError(Exception):

@@ -19,7 +19,17 @@
 
 import csv
 
-from gkeepcore.csv_files import CSVReader, CSVWriter, CSVException
+from gkeepcore.csv_files import CSVReader, CSVWriter, CSVError
+
+
+def csv_rows(file_path: str) -> list:
+    try:
+        with open(file_path) as f:
+            rows = list(csv.reader(f))
+    except csv.Error:
+        raise CSVError('Error reading from {0}'.format(file_path))
+
+    return rows
 
 
 class LocalCSVReader(CSVReader):
@@ -28,14 +38,16 @@ class LocalCSVReader(CSVReader):
         """
         :param file_path: path to the CSV file to read
         """
+
         try:
             with open(file_path) as f:
                 self._rows = list(csv.reader(f))
         except OSError:
-            raise CSVException('Error reading from {0}'.format(file_path))
+            raise CSVError('Error reading from {0}'.format(file_path))
 
     def get_rows(self) -> list:
-        """Retrieve the rows from the CSV file
+        """
+        Retrieve the rows from the CSV file
 
         :return: list of lists representing all rows from the file
         """
@@ -51,7 +63,8 @@ class LocalCSVWriter(CSVWriter):
         self._file_path = file_path
 
     def write_rows(self, rows):
-        """Write rows to the file
+        """
+        Write rows to the file
 
         :param rows: list of lists (or tuples) to write
         """
@@ -62,5 +75,5 @@ class LocalCSVWriter(CSVWriter):
                 for row in rows:
                     writer.writerow(row)
         except OSError as e:
-            raise CSVException('Error writing to {0}'
-                               .format(self._file_path))
+            raise CSVError('Error writing to {0}'
+                           .format(self._file_path))

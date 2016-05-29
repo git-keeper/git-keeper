@@ -19,17 +19,16 @@
 Event type: UPLOAD
 """
 
-
-from gkeepcore.event_handler import EventHandler, HandlerException
 from gkeepcore.path_utils import user_from_log_path, \
     parse_faculty_assignment_path
+from gkeepserver.event_handler import EventHandler, HandlerException
 
 
 class UploadHandler(EventHandler):
     """Handles a new assignment uploaded by a faculty member."""
 
     def handle(self):
-        """Takes action after a faculty member uploads a new assignment."""
+        """Take action after a faculty member uploads a new assignment."""
 
         # FIXME - ensure everything exists, create bare repos, email prof
         print('Handling upload:')
@@ -39,7 +38,8 @@ class UploadHandler(EventHandler):
         print(' Path:      ', self._assignment_path)
 
     def _parse(self):
-        """Extracts the faculty username, class name, assignment name, and
+        """
+        Extract the faculty username, class name, assignment name, and
         assignment path from the log event.
 
         Attributes available after parsing:
@@ -57,7 +57,8 @@ class UploadHandler(EventHandler):
         self._parse_assignment_path()
 
     def _parse_log_path(self):
-        """Extracts the faculty username from the log file path.
+        """
+        Extract the faculty username from the log file path.
 
         Raises:
              HandlerException
@@ -73,8 +74,8 @@ class UploadHandler(EventHandler):
                                    .format(self._log_path))
 
     def _parse_assignment_path(self):
-        """Extracts the class name and assignment name from the assignment
-        path.
+        """
+        Extract the class name and assignment name from the assignment path.
 
         Raises:
             HandlerException

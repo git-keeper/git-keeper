@@ -17,9 +17,9 @@
 """
 Provides a logger with global access for logging system information.
 
-This module stores a SystemLoggerThread instance in the module level variable named
-system_logger. Call initialize() on this instance as early as possible after
-initializing the configuration.
+This module stores a GkeepdLoggerThread instance in the module level variable
+named gkeepd_logger. Call initialize() on this instance as early as possible
+after initializing the configuration.
 
 After the logger has been initialized, start the logging thread by calling
 start().
@@ -44,13 +44,13 @@ There is a method for logging a message at each level:
     log_debug()
 
 """
-
-
+import os
 from enum import IntEnum
 from threading import Thread
 from queue import Queue, Empty
 
-from gkeepcore.log_file import LogFileWriter
+from gkeepcore.log_file import log_append_command
+from gkeepcore.shell_command import run_command, CommandError
 
 
 class LogLevel(IntEnum):
@@ -67,9 +67,9 @@ class LogLevel(IntEnum):
     DEBUG = 3
 
 
-class SystemLoggerThread(Thread):
+class GkeepdLoggerThread(Thread):
     """
-    Provides a Thread which logs system messages to a log file.
+    Provides a Thread which logs gkeepd system messages to a log file.
 
     Typically this will be accessed with the provided module-level global
     instance rather than making an instance directly.
@@ -100,43 +100,34 @@ class SystemLoggerThread(Thread):
         Thread.__init__(self, daemon=True)
 
         self._log_file_path = None
-        self._log_append_function = None
-        self._writer = None
         self._log_level = None
         self._new_line_queue = None
         self._shutdown_flag = None
 
-    def initialize(self, log_file_path: str, log_append_function,
-                   log_level=LogLevel.DEBUG):
+    def initialize(self, log_file_path: str, log_level=LogLevel.DEBUG):
         """
         Initialize the attributes.
-
-        log_append_function() is used in creating a LogFileWriter and it must
-        have the following signature:
-
-            log_append_function(file_path: str, item_type: str, text: str)
-
-        This allows writing to local or remote files, depending on the function
-        passed in.
-
-        log_append_function() should ensure that the log line is at most 4KB
-        to ensure atomic writes.
 
         log_level is the maximum log level to log. LogLevel.DEBUG will log
         everything, LogLevel.INFO will log everything but debug messages, etc.
 
+        Call start() after calling this method.
+
         :param log_file_path: path to the log file
-        :param log_append_function: function used to append to the log
         :param log_level:
         :return: the maximum log level to log
         """
 
         self._log_file_path = log_file_path
-        self._log_append_function = log_append_function
-        self._writer = LogFileWriter(log_file_path, self._log_append_function)
         self._log_level = log_level
         self._new_line_queue = Queue()
         self._shutdown_flag = False
+
+        # if the file does not exist, create it with an edit warning header
+        if not os.path.isfile(self._log_file_path):
+            with open(self._log_file_path, 'w') as f:
+                print('# THIS FILE WAS AUTO-GENERATED, DO NOT EDIT',
+                      file=f)
 
     def shutdown(self):
         """
@@ -170,14 +161,20 @@ class SystemLoggerThread(Thread):
                 pass
 
     def _cleanup_and_log(self, log_level, text: str):
-        # Replace newlines with spaces and pass the message off to the writer.
+        # Replace newlines with spaces and log the message
 
         # Only log if we're logging this log level
         if self._log_level >= log_level:
             # Replace newlines in text with spaces so the entire log text is on
             # one line
             text = text.replace('\n', ' ')
-            self._writer.log(log_level.name, text)
+            command = log_append_command(self._log_file_path,
+                                         log_level.name, text)
+            try:
+                run_command(command)
+            except CommandError as e:
+                # bad news. raising an exception would only kill the thread
+                print('ERROR LOGGING: {0}'.format(e))
 
     def log_debug(self, text: str):
         """
@@ -220,4 +217,4 @@ class SystemLoggerThread(Thread):
 
 
 # module-level instance for global access.
-system_logger = SystemLoggerThread()
+gkeepd_logger = GkeepdLoggerThread()
