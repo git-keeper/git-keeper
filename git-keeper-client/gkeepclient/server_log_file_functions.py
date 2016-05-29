@@ -16,14 +16,11 @@
 """
 Provides the functions to pass to a LogFileReader in order to read
 
-Thread-safe if the strings written to the log are <= 512 bytes.
-
 See the gkeepcore.log_file module for more information.
 """
 
-
+from gkeepserver.log_polling import LogFileException
 from .server_interface import server_interface, ServerInterfaceError
-from gkeepcore.log_polling import LogFileException
 
 
 def byte_count_function(file_path: str) -> int:
@@ -36,7 +33,7 @@ def byte_count_function(file_path: str) -> int:
     """
 
     try:
-        byte_count = server_interface.get_file_byte_count(file_path)
+        byte_count = server_interface.file_byte_count(file_path)
     except ServerInterfaceError as e:
         raise LogFileException(e)
 
@@ -44,6 +41,13 @@ def byte_count_function(file_path: str) -> int:
 
 
 def read_bytes_function(file_path, seek_position) -> bytes:
+    """
+    Read from a file starting at an offset.
+
+    :param file_path: path to the file
+    :param seek_position: offset at which to start reading
+    :return: data from the file as bytes
+    """
     try:
         data_bytes = server_interface.read_file_bytes(file_path, seek_position)
     except ServerInterfaceError as e:

@@ -18,7 +18,7 @@ Main entry point for gkeepd, the git-keeper server process.
 
 Spawns a number of threads:
 
-logger - SystemLoggerThread for logging runtime information
+logger - GkeepdLoggerThread for logging runtime information
 email_sender - EmailSenderThread for sending rate-limited emails
 log_poller - LogPollingThread for watching student and faculty logs for events
 event_parser - LogEventParserThread for creating event handlers from log events
@@ -26,23 +26,20 @@ submission_test_threads - list of SubmissionTestThread objects which run tests
 
 """
 
-
 import sys
 from queue import Queue, Empty
 from signal import signal, SIGINT, SIGTERM
 
-from gkeepserver.server_configuration import config, ServerConfigurationError
+from gkeepserver.check_system import check_system, CheckSystemError
 from gkeepserver.email_sender_thread import email_sender
+from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
 from gkeepserver.local_log_file_functions import (byte_count_function,
                                                   read_bytes_function)
-from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
-from gkeepserver.local_log_file_functions import log_append_function
-from gkeepcore.system_logger import system_logger as logger
-from gkeepcore.log_event_parser import LogEventParserThread
+from gkeepserver.log_event_parser import LogEventParserThread
+from gkeepserver.log_polling import log_poller
+from gkeepserver.server_configuration import config, ServerConfigurationError
 from gkeepserver.submission_test_thread import SubmissionTestThread
-from gkeepcore.log_polling import log_poller
-from gkeepserver.check_system import check_system, CheckSystemError
-
+from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 
 # switched to True by the signal handler on SIGINT or SIGTERM
 shutdown_flag = False
@@ -83,8 +80,7 @@ def main():
         sys.exit(e)
 
     # initialize and start system logger
-    logger.initialize(config.log_file_path, log_append_function,
-                      log_level=config.log_level)
+    logger.initialize(config.log_file_path, log_level=config.log_level)
     logger.start()
 
     logger.log_info('--- Starting gkeepd ---')

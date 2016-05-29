@@ -14,22 +14,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""Handler for student submissions
+"""
+Handler for student submissions.
 
 Event type: SUBMISSION
 """
 
-
-from gkeepcore.event_handler import EventHandler, HandlerException
 from gkeepcore.path_utils import user_from_log_path, \
     parse_submission_repo_path
+from gkeepserver.event_handler import EventHandler, HandlerException
 
 
 class SubmissionHandler(EventHandler):
     """Handles a new submission from a student."""
 
     def handle(self):
-        """Takes action after a student pushes a new submission."""
+        """Take action after a student pushes a new submission."""
 
         # FIXME - ensure everything exists, set things up, and run tests
         print('Handling submission:')
@@ -47,15 +47,17 @@ class SubmissionHandler(EventHandler):
 
         :return: a string representation of the event to be handled
         """
-        repr = ('Submission event from {0} for assignment {1}/{2}/{3}'
-                .format(self._student_username, self._faculty_username,
-                        self._class_name, self._assignment_name))
 
-        return repr
+        string = ('Submission event from {0} for assignment {1}/{2}/{3}'
+                  .format(self._student_username, self._faculty_username,
+                          self._class_name, self._assignment_name))
+
+        return string
 
     def _parse(self):
-        """Extracts the student username, faculty username, class name,
-         assignment name, and student submission repository from the log event.
+        """
+        Extract the student username, faculty username, class name,
+        assignment name, and student submission repository from the log event.
 
         Attributes available after parsing:
             _student_username
@@ -73,7 +75,8 @@ class SubmissionHandler(EventHandler):
         self._parse_repo_path()
 
     def _parse_log_path(self):
-        """Extracts the student username from the log file path.
+        """
+        Extract the student username from the log file path.
 
         Raises:
              HandlerException
@@ -89,7 +92,8 @@ class SubmissionHandler(EventHandler):
                                    .format(self._log_path))
 
     def _parse_repo_path(self):
-        """Extracts the faculty username, class name, and assignment name from
+        """
+        Extract the faculty username, class name, and assignment name from
         the assignment path.
 
         Raises:

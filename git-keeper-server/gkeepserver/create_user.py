@@ -16,20 +16,19 @@
 
 """Provides functions to create a new faculty or student user."""
 
-
 import os
 from enum import Enum
 from tempfile import TemporaryDirectory
 
-from gkeepcore.log_polling import log_poller
 from gkeepcore.path_utils import user_home_dir, user_log_path
-from gkeepcore.system_logger import system_logger as logger
-from gkeepcore.system_commands import sudo_add_user, sudo_set_password, chmod, \
-    mv, sudo_chown
-from gkeepserver.server_configuration import config
+from gkeepcore.system_commands import (sudo_add_user, sudo_set_password, chmod,
+                                       mv, sudo_chown)
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.generate_password import generate_password
+from gkeepserver.log_polling import log_poller
+from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email
+from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 
 
 class UserType(Enum):
@@ -91,7 +90,8 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
     :param first_name: first name of the user
     :param last_name: last name of the user
     :param email_address: email address of the user
-    :param additional_groups: groups beyond the default group to add the user to
+    :param additional_groups: groups beyond the default group to add the user
+     to
     """
 
     logger.log_info('Creating user {0}'.format(username))

@@ -15,11 +15,14 @@
 
 
 """
-Provides 2 classes for reading and writing log files:
-    LogFileReader
-    LogFileWriter
+Provides functionality for reading and writing log files.
+
+LogFileReader is used by log file pollers for monitoring and reading log files.
+
+log_append_command() builds a shell command for appending to a log.
 
 """
+from shlex import quote
 
 
 class LogFileException(Exception):
@@ -123,37 +126,34 @@ class LogFileReader:
         return data_bytes.decode('utf-8')
 
 
-class LogFileWriter:
+def log_append_command(file_path: str, item_type: str, text: str):
     """
-    Used to create objects for writing files.
+    Create a shell command to append to a log file.
 
-    A LogFileWriter object can write to a local or a remote log depending on
-    the function passed to the constructor.
-
+    :param file_path: path to the log file
+    :param item_type: a string describing the event type
+    :param text: the payload of the event
+    :return: a shell command as a string which will append to the log
     """
-    def __init__(self, file_path: str, log_append_function):
-        """
-        Constructor.
 
-        Needs a function with this signature:
-            log_append_function(file_path: str, item_type: str, text: str)
+    # keep the log line to 4KB or less to maintain write atomicity
+    max_length = 4096
 
-        This allows a LogFileWriter to write to local or remote files depending
-        on which function is passed in.
+    time_length = 15
+    type_length = len(item_type.encode())
+    text_length = len(text.encode())
+    spacing_length = 2
 
-        :param file_path: path to the log file
-        :param log_append_function: function used to append to the log
-        """
+    total_length = time_length + type_length + text_length + spacing_length
 
-        self._file_path = file_path
-        self._log_append_function = log_append_function
+    if total_length > max_length:
+        diff = total_length - max_length
+        text = text[:len(text) - diff - 3] + '...'
 
-    def log(self, event_type: str, text: str):
-        """
-        Log an event
+    quoted_path = quote(file_path)
 
-        :param event_type: a string describing the event type
-        :param text: the payload of the event
-        """
+    command = ('echo "$(date +%s.%N | '
+               'cut -c 1-15) {0} {1}" >> {2}'.format(item_type, text,
+                                                     quoted_path))
 
-        self._log_append_function(self._file_path, event_type, text)
+    return command

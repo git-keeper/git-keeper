@@ -19,12 +19,11 @@ Provides a class for storing student submission information and running tests
 on the submission.
 """
 
-
-from time import sleep
 from random import random
+from time import sleep
 
 from gkeepcore.student import Student
-from gkeepcore.system_logger import system_logger as logger
+from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 
 
 class Submission:

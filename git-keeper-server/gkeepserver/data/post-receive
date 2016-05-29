@@ -34,11 +34,11 @@ import getpass
 
 from gkeepcore.log_file import LogFileWriter
 from gkeepserver.local_log_file_functions import append_to_file
-from gkeepcore.path_utils import get_log_path_from_username
+from gkeepcore.path_utils import log_path_from_username
 
 
 def main():
-    log_path = get_log_path_from_username(getpass.getuser())
+    log_path = log_path_from_username(getpass.getuser())
     writer = LocalLogFileWriter(log_path)
 
     writer.log('SUBMISSION', os.getcwd())

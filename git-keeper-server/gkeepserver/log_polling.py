@@ -40,7 +40,7 @@ Example usage::
 
         log_poller.initialize(new_log_line_queue, byte_count_function,
                               read_bytes_function,
-                              config.log_snapshot_file_path, system_logger)
+                              config.log_snapshot_file_path, gkeepd_logger)
 
         log_poller.start()
 
@@ -54,14 +54,14 @@ Example usage::
 
 """
 
-import os
 import json
-from threading import Thread
+import os
 from queue import Queue, Empty
+from threading import Thread
 from time import time, sleep
 
 from gkeepcore.log_file import LogFileReader, LogFileException
-from gkeepcore.system_logger import SystemLoggerThread
+from gkeepserver.gkeepd_logger import GkeepdLoggerThread
 
 
 class LogPollingThreadError(Exception):
@@ -107,7 +107,7 @@ class LogPollingThread(Thread):
 
     def initialize(self, new_log_line_queue: Queue, byte_count_function,
                    read_bytes_function, snapshot_file_path: str,
-                   logger: SystemLoggerThread, polling_interval=1):
+                   logger: GkeepdLoggerThread, polling_interval=1):
         """
         Initialize the attributes.
 
