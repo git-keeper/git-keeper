@@ -33,8 +33,7 @@ from signal import signal, SIGINT, SIGTERM
 from gkeepserver.check_system import check_system, CheckSystemError
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
-from gkeepserver.local_log_file_functions import (byte_count_function,
-                                                  read_bytes_function)
+from gkeepserver.local_log_file_reader import LocalLogFileReader
 from gkeepserver.log_event_parser import LogEventParserThread
 from gkeepserver.log_polling import log_poller
 from gkeepserver.server_configuration import config, ServerConfigurationError
@@ -105,8 +104,7 @@ def main():
                                         event_handlers_by_type, logger)
 
     # the log poller detects new events and passes them to the event parser
-    log_poller.initialize(new_log_line_queue, byte_count_function,
-                          read_bytes_function,
+    log_poller.initialize(new_log_line_queue, LocalLogFileReader,
                           config.log_snapshot_file_path, logger)
 
     # start the rest of the threads

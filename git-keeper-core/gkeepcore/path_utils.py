@@ -72,6 +72,18 @@ def user_log_path(home_dir: str, username: str):
     return os.path.join(home_dir, filename)
 
 
+def gkeepd_to_faculty_log_path(faculty_home_dir: str):
+    """
+    Build the path to the log that the server used to communicate with the
+    faculty member.
+
+    :param faculty_home_dir: home directory of the faculty account
+    :return: path to gkeepd's log for that faculty member
+    """
+
+    return os.path.join(faculty_home_dir, 'gkeepd.log')
+
+
 def user_from_log_path(path: str) -> str:
     """
     Extract the username from a faculty or student log file.

@@ -155,7 +155,6 @@ class ServerConfiguration:
 
         # faculty info locations
         self.faculty_csv_path = os.path.join(self.home_dir, 'faculty.csv')
-        self.faculty_log_dir_path = os.path.join(self.home_dir, 'faculty_logs')
 
         # testing student code
         self.test_thread_count = 4

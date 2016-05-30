@@ -18,11 +18,19 @@
 Provides functionality for reading and writing log files.
 
 LogFileReader is used by log file pollers for monitoring and reading log files.
+It is an abstract class, different concrete classes allow reading from local
+or remote logs.
 
 log_append_command() builds a shell command for appending to a log.
 
 """
+
 from shlex import quote
+import abc
+
+
+# keep the log line to 4KB or less to maintain write atomicity
+MAX_LOG_LINE_LENGTH = 4096
 
 
 class LogFileException(Exception):
@@ -32,37 +40,21 @@ class LogFileException(Exception):
     pass
 
 
-class LogFileReader:
+class LogFileReader(metaclass=abc.ABCMeta):
     """
-    Used to create objects to be used by a LogPollingThread to read log files.
-
-    A LogFileReader object can read local or remote files, depending on what
-    functions are passed to the constructor.
-
+    Base class for creating objects to be used by a LogPollingThread to read
+    log files.
     """
 
-    def __init__(self, file_path: str, byte_count_function, read_bytes_function,
-                 seek_position=None):
+    def __init__(self, file_path: str, seek_position=None):
         """
-        Constructor.
-
-        Needs 2 functions with these signatures:
-            byte_count_function(file_path: str) -> int
-            read_bytes_function(file_path: str, seek_position: int) -> bytes
-
-        This allows a LogFileReader to read local or remote files depending
-        on which functions were passed in.
+        Initialize attributes.
 
         :param file_path: path to the log file
-        :param byte_count_function: function for getting the file's size
-        :param read_bytes_function: function for reading the file as bytes
         :param seek_position: where in the file to start reading. None to go to
          the end and only read anything new
         """
         self._file_path = file_path
-
-        self._byte_count_function = byte_count_function
-        self._read_bytes_function = read_bytes_function
 
         if seek_position is None:
             # seek to the end
@@ -86,7 +78,7 @@ class LogFileReader:
         """
         return self._seek_position
 
-    def has_new_text(self) -> bool:
+    def has_new_lines(self) -> bool:
         """
         Determine if the file has grown since it was last read.
 
@@ -94,36 +86,47 @@ class LogFileReader:
         """
         return self.get_byte_count() > self._seek_position
 
-    def get_byte_count(self) -> int:
+    def get_new_lines(self) -> str:
         """
-        Get the current size of the file in bytes.
-
-        Uses the function which was provided to the constructor.
-
-        :return: the current size of the file in bytes
-        """
-        return self._byte_count_function(self._file_path)
-
-    def get_new_text(self) -> str:
-        """
-        Retrieve data from the file as a string, starting at _seek_position.
+        Retrieve lines from the file starting at _seek_position.
 
         Updates _seek_position so the next read will start after this one.
 
         Uses the function provided to the constructor.
 
-        :return: new text from the file
+        :return: a list of strings representing each new line
         """
 
+        if not self.has_new_lines():
+            return []
+
         # get the data as bytes so we can accurately update the seek position
-        data_bytes = self._read_bytes_function(self._file_path,
-                                               self._seek_position)
+        data_bytes = self._read_bytes()
 
         # move the seek position to the end of the file
         self._seek_position += len(data_bytes)
 
-        # convert to a string when returning
-        return data_bytes.decode('utf-8')
+        # convert to a string
+        data_string = data_bytes.decode('utf-8')
+
+        # split on newlines and return the list
+        return data_string.strip().split('\n')
+
+    @abc.abstractmethod
+    def get_byte_count(self) -> int:
+        """
+        Get the current size of the file in bytes.
+
+        :return: the current size of the file in bytes
+        """
+
+    @abc.abstractmethod
+    def _read_bytes(self) -> bytes:
+        """
+        Retrieve data as bytes from the file from _seek_position to the end
+
+        :return: data from the file as bytes
+        """
 
 
 def log_append_command(file_path: str, item_type: str, text: str):
@@ -136,9 +139,6 @@ def log_append_command(file_path: str, item_type: str, text: str):
     :return: a shell command as a string which will append to the log
     """
 
-    # keep the log line to 4KB or less to maintain write atomicity
-    max_length = 4096
-
     time_length = 15
     type_length = len(item_type.encode())
     text_length = len(text.encode())
@@ -146,8 +146,8 @@ def log_append_command(file_path: str, item_type: str, text: str):
 
     total_length = time_length + type_length + text_length + spacing_length
 
-    if total_length > max_length:
-        diff = total_length - max_length
+    if total_length > MAX_LOG_LINE_LENGTH:
+        diff = total_length - MAX_LOG_LINE_LENGTH
         text = text[:len(text) - diff - 3] + '...'
 
     quoted_path = quote(file_path)

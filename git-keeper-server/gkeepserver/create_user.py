@@ -18,13 +18,14 @@
 
 import os
 from enum import Enum
-from tempfile import TemporaryDirectory
 
-from gkeepcore.path_utils import user_home_dir, user_log_path
+from gkeepcore.path_utils import user_home_dir, user_log_path, \
+    gkeepd_to_faculty_log_path
 from gkeepcore.system_commands import (sudo_add_user, sudo_set_password, chmod,
-                                       mv, sudo_chown)
+                                       sudo_chown, mkdir)
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.generate_password import generate_password
+from gkeepserver.initialize_log import initialize_log
 from gkeepserver.log_polling import log_poller
 from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email
@@ -53,26 +54,49 @@ def initialize_user_log(username):
     home_dir = user_home_dir(username)
     log_path = user_log_path(home_dir, username)
 
-    # the starting contents of the log file
-    log_notice = '# THIS FILE WAS AUTO-GENERATED, DO NOT EDIT!\n'
-
-    # create the log file in a temporary directory since we don't have
-    # permission to write directly to the user's log.
-    with TemporaryDirectory() as temp_dir_path:
-        temp_log_path = os.path.join(temp_dir_path, os.path.basename(log_path))
-
-        with open(temp_log_path, 'w+') as f:
-            f.write(log_notice)
-
-        # move the log into place after writing
-        mv(temp_log_path, log_path, sudo=True)
-
-    # fix permissions and ownership
-    sudo_chown(log_path, username, config.keeper_group)
-    chmod(log_path, '640', sudo=True)
+    initialize_log(log_path, username, config.keeper_group, '640')
 
     # start watching the file for events
     log_poller.watch_log_file(log_path)
+
+
+def initialize_gkeepd_to_faculty_log(username):
+    """
+    Create the log file that gkeepd will write to in order to communicate with
+    a faculty client.
+
+    It will be located at ~username/gkeepd.log
+
+    It will be owned by the keeper user and the faculty group. The keeper user
+    will have read/write permissions and the faculty group will have read
+    permissions.
+
+    :param username: faculty username
+    """
+
+    home_dir = user_home_dir(username)
+    log_path = gkeepd_to_faculty_log_path(home_dir)
+
+    # this log will be owned and writable by keeper and readable by the
+    # faculty's group
+    initialize_log(log_path, config.keeper_user, username, '640')
+
+
+def create_git_keeper_dir(username: str):
+    """
+    Create the git-keeper directory in a faculty member's home directory.
+
+    :param username: username of the faculty member
+    :return:
+    """
+
+    home_dir = user_home_dir(username)
+    git_keeper_dir_path = os.path.join(home_dir, 'git-keeper')
+
+    mkdir(git_keeper_dir_path, sudo=True)
+    # world readable for the handouts directory
+    chmod(git_keeper_dir_path, '755', sudo=True)
+    sudo_chown(git_keeper_dir_path, username, config.keeper_group)
 
 
 def create_user(username, user_type, first_name, last_name, email_address=None,
@@ -102,6 +126,11 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
     sudo_set_password(username, password)
 
     initialize_user_log(username)
+
+    if user_type == UserType.faculty:
+        initialize_gkeepd_to_faculty_log(username)
+
+        create_git_keeper_dir(username)
 
     # email the credentials to the user if an email address was provided
     if email_address is not None:

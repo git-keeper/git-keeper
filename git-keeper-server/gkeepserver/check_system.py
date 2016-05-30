@@ -28,11 +28,9 @@ import csv
 import os
 
 from gkeepcore.faculty import Faculty, FacultyError
-from gkeepcore.path_utils import user_home_dir
 from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
-                                       sudo_add_group, mode, chmod, mkdir,
-                                       touch, sudo_chown, this_user,
-                                       this_group)
+                                       sudo_add_group, mode, chmod, touch,
+                                       this_user, this_group)
 from gkeepserver.create_user import create_user, UserType
 from gkeepserver.server_configuration import config
 from gkeepserver.gkeepd_logger import gkeepd_logger as gkeepd_logger
@@ -79,7 +77,6 @@ def check_keeper_paths_and_permissions():
             * keeper user's home directory: 750
             * gkeepd.log: 600,
             * log snapshot file: 600
-            * faculty log directory: 750
             * faculty.csv: 600
 
     Raises a CheckSystemError exception on fatal errors.
@@ -113,12 +110,6 @@ def check_keeper_paths_and_permissions():
         except CommandError as e:
             raise CheckSystemError(e)
 
-    if not os.path.isdir(config.faculty_log_dir_path):
-        gkeepd_logger.log_info('{0} does not exist, creating it now'
-                               .format(config.faculty_log_dir_path))
-
-        mkdir(config.faculty_log_dir_path)
-
     if not os.path.isfile(config.log_snapshot_file_path):
         gkeepd_logger.log_info('{0} does not exist, creating it now'
                                .format(config.log_snapshot_file_path))
@@ -129,7 +120,6 @@ def check_keeper_paths_and_permissions():
         config.home_dir: '750',
         config.log_file_path: '600',
         config.log_snapshot_file_path: '600',
-        config.faculty_log_dir_path: '750',
         config.faculty_csv_path: '600',
     }
 
@@ -139,32 +129,6 @@ def check_keeper_paths_and_permissions():
                                       'changing it now'
                                       .format(path, required_mode))
             chmod(path, required_mode)
-
-
-def create_keeper_faculty_event_log(faculty: Faculty):
-    """
-    Create a log for the faculty member to read from.
-
-    gkeepd writes events to this log to communicate to the faculty's client.
-
-    Log is located at <keeper home dir>/faculty_logs/<faculty username>.log
-
-    Log will contain a notice that it should not be edited.
-
-    keeper user has read/write permissions, keeper group has read permissions.
-
-    :param faculty: Faculty object representing the faculty member
-    """
-
-    log_filename = '{0}.log'.format(faculty.username)
-    log_path = os.path.join(config.home_dir, 'faculty_logs', log_filename)
-
-    log_notice = '# THIS FILE WAS AUTO-GENERATED, DO NOT EDIT!\n'
-
-    with open(log_path, 'w+') as f:
-        f.write(log_notice)
-
-    chmod(log_path, '640')
 
 
 def setup_faculty(faculty: Faculty):
@@ -186,18 +150,6 @@ def setup_faculty(faculty: Faculty):
 
     gkeepd_logger.log_debug('User created')
 
-    home_dir = user_home_dir(faculty.username)
-    git_keeper_dir_path = os.path.join(home_dir, 'git-keeper')
-
-    mkdir(git_keeper_dir_path, sudo=True)
-    # world readable for the handouts directory
-    chmod(git_keeper_dir_path, '755', sudo=True)
-    sudo_chown(git_keeper_dir_path, faculty.username, config.keeper_group)
-
-    gkeepd_logger.log_debug('git-keeper directory created')
-
-    create_keeper_faculty_event_log(faculty)
-
 
 def check_faculty():
     """Read faculty.csv and add any new faculty members."""
@@ -218,5 +170,3 @@ def check_faculty():
     for faculty in faculty_list:
         if not user_exists(faculty.username):
             setup_faculty(faculty)
-
-
