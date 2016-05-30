@@ -14,7 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""Provides a class for representing a student."""
+"""
+Provides a class for representing a student and a function for building a
+list of students from a CSV file.
+"""
+from gkeepcore.csv_files import CSVReader
 
 
 class StudentError(Exception):
@@ -106,3 +110,24 @@ class Student:
 
         return '{0}_{1}_{2}'.format(lower_last_name, lower_first_name,
                                     self.username)
+
+
+def students_from_csv(reader: CSVReader) -> list:
+    """
+    Build a list of students from a CSV file.
+
+    Raises CSVError if there was a problem with the CSV file.
+
+    Raises StudentError if there was a problem creating a student from a row
+    in the file.
+
+    :param reader: CSVReader object for getting rows
+    :return: list of students from the file
+    """
+
+    students = []
+
+    for row in reader.get_rows():
+        students.append(Student.from_csv_row(row))
+
+    return students

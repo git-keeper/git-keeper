@@ -27,9 +27,9 @@ from gkeepclient.server_interface import server_interface, ServerInterfaceError
 from gkeepclient.client_configuration import config, ClientConfigurationError
 from gkeepclient.server_log_file_reader import ServerLogFileReader
 from gkeepcore.csv_files import CSVError
-from gkeepcore.path_utils import faculty_class_directory
-from gkeepcore.local_csv_files import csv_rows
-from gkeepcore.student import Student, StudentError
+from gkeepcore.path_utils import faculty_class_dir_path
+from gkeepcore.local_csv_files import csv_rows, LocalCSVReader
+from gkeepcore.student import Student, StudentError, students_from_csv
 
 
 def class_add(csv_file_path='class.csv'):
@@ -54,19 +54,14 @@ def class_add(csv_file_path='class.csv'):
 
     home_dir = server_interface.user_home_dir(config.server_username)
 
-    class_dir_path = faculty_class_directory(class_name, home_dir)
+    class_dir_path = faculty_class_dir_path(class_name, home_dir)
 
     if server_interface.is_directory(class_dir_path):
         sys.exit('Class {0} already exists'.format(class_name))
 
-    students = []
-
     try:
-        for row in csv_rows(csv_file_path):
-            students.append(Student.from_csv_row(row))
-    except CSVError as e:
-        sys.exit(e)
-    except StudentError as e:
+        students = students_from_csv(LocalCSVReader(csv_file_path))
+    except (StudentError, CSVError) as e:
         sys.exit(e)
 
     print('Adding class {0} with the following students:'.format(class_name))
@@ -86,26 +81,30 @@ def class_add(csv_file_path='class.csv'):
     reader = ServerLogFileReader(gkeepd_log_path)
 
     # log that we added the class
-    server_interface.log_event('CLASSADD', class_dir_path)
+    server_interface.log_event('CLASS_ADD', class_dir_path)
 
     print('Waiting for server confirmation')
     sys.stdout.flush()
 
-    class_added = False
+    message_received = False
 
     # poll for the server's response
-    while not class_added:
+    while not message_received:
         while not reader.has_new_lines():
             print('.', end='')
             sys.stdout.flush()
             sleep(1)
 
         for line in reader.get_new_lines():
-            if line.endswith('CLASSADDED ' + class_dir_path):
-                class_added = True
+            if line.endswith('CLASS_ADDED ' + class_dir_path):
+                message_received = True
                 print('\nClass added successfully')
                 break
-
+            if 'CLASS_ADDED_ERROR ' + class_dir_path in line:
+                message_received = True
+                # FIXME - extract specific error
+                print('\nError adding class')
+                break
 
 if __name__ == '__main__':
     class_add()

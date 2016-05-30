@@ -14,7 +14,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""Provides concrete classes for reading and writing local CSV files"""
+"""
+Provides concrete classes for reading and writing local CSV files as well
+as a function for getting rows from a local CSV file.
+"""
 
 
 import csv
@@ -23,6 +26,13 @@ from gkeepcore.csv_files import CSVReader, CSVWriter, CSVError
 
 
 def csv_rows(file_path: str) -> list:
+    """
+    Retrieve rows from a local CSV file.
+
+    :param file_path: path to the file
+    :return: rows as a list of lists
+    """
+
     try:
         with open(file_path) as f:
             rows = list(csv.reader(f))
