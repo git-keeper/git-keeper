@@ -54,7 +54,7 @@ from shlex import quote
 
 from gkeepclient.client_configuration import config
 from gkeepcore.log_file import log_append_command
-from gkeepcore.path_utils import user_log_path
+from gkeepcore.path_utils import user_log_path, gkeepd_to_faculty_log_path
 
 
 class ServerInterfaceError(Exception):
@@ -104,7 +104,7 @@ class ServerInterface:
             self._sftp_client = self._ssh_client.open_sftp()
 
             self._home_dir = self.user_home_dir(config.server_username)
-            self._event_log_path = self.user_log_path(config.server_username)
+            self._event_log_path = self.me_to_gkeepd_log_path()
         except SSHException as e:
             raise ServerInterfaceError(e)
 
@@ -384,18 +384,27 @@ class ServerInterface:
 
         return self.run_command(command).strip()
 
-    def user_log_path(self, username) -> str:
+    def me_to_gkeepd_log_path(self) -> str:
         """
         Build the path to a student or faculty's event log file path on the
         server.
 
-        :param username: username of the user
-        :return: the path to the user's event log file
+        :return: the path to the faculty user's event log file
         """
 
-        home_dir = self.user_home_dir(username)
+        log_path = user_log_path(self._home_dir, config.server_username)
 
-        log_path = user_log_path(home_dir, username)
+        return log_path
+
+    def gkeepd_to_me_log_path(self) -> str:
+        """
+        Build the path to gkeepd's log file for communicating to the faculty
+        member.
+
+        :return: gkeepd log path
+        """
+
+        log_path = gkeepd_to_faculty_log_path(self._home_dir)
 
         return log_path
 

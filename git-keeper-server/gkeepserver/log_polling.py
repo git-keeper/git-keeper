@@ -96,8 +96,7 @@ class LogPollingThread(Thread):
         self._add_log_queue = Queue()
 
         self._new_log_line_queue = None
-        self._byte_count_function = None
-        self._read_bytes_function = None
+        self._reader_class = None
         self._snapshot_file_path = None
         self._polling_interval = None
         self._last_poll_time = None
@@ -105,28 +104,15 @@ class LogPollingThread(Thread):
         self._log_file_readers = None
         self._shutdown_flag = None
 
-    def initialize(self, new_log_line_queue: Queue, byte_count_function,
-                   read_bytes_function, snapshot_file_path: str,
-                   logger: GkeepdLoggerThread, polling_interval=1):
+    def initialize(self, new_log_line_queue: Queue, reader_class,
+                   snapshot_file_path: str, logger: GkeepdLoggerThread,
+                   polling_interval=1):
         """
         Initialize the attributes.
 
-        byte_count_function must have the following signature:
-            byte_count_function(file_path: str) -> int
-
-        read_bytes_function must have the following signature:
-            read_bytes_function(file_path: str, seek_position: int) -> bytes
-
-        These functions are used to create LogFileReader objects. This allows
-        reading from local or remote files, depending on what functions are
-        passed in.
-
         :param new_log_line_queue: the poller places (file_path, line) pairs
          into this queue
-        :param byte_count_function: function which gets the number of bytes in
-         a file
-        :param read_bytes_function: function which gets the data from a file
-         from a seek position to the end
+        :param reader_class: LogFileReader class to use for creating readers
         :param snapshot_file_path: path to the snapshot file
         :param logger: the system logger, used to log runtime information
         :param polling_interval: number of seconds between polling files
@@ -135,8 +121,7 @@ class LogPollingThread(Thread):
 
         self._new_log_line_queue = new_log_line_queue
 
-        self._byte_count_function = byte_count_function
-        self._read_bytes_function = read_bytes_function
+        self._reader_class = reader_class
 
         self._snapshot_file_path = snapshot_file_path
 
@@ -194,7 +179,7 @@ class LogPollingThread(Thread):
         if not os.path.isfile(self._snapshot_file_path or ''):
             self._logger.log_debug('Snapshot file does not exist')
             return
-        elif self._byte_count_function(self._snapshot_file_path) == 0:
+        if os.path.getsize(self._snapshot_file_path) == 0:
             self._logger.log_debug('Snapshot file is empty')
             return
 
@@ -257,9 +242,7 @@ class LogPollingThread(Thread):
         # Create a LogFileReader object for reading new data from the file
         # and add it to the dictionary of readers.
 
-        reader = LogFileReader(file_path, self._byte_count_function,
-                               self._read_bytes_function,
-                               seek_position=seek_position)
+        reader = self._reader_class(file_path, seek_position=seek_position)
         self._log_file_readers[file_path] = reader
 
     def _stop_watching_log_file(self, log_file: LogFileReader):
@@ -267,32 +250,6 @@ class LogPollingThread(Thread):
 
         del self._log_file_readers[log_file.get_file_path()]
         self._write_snapshot()
-
-    def _get_new_lines(self, log_file: LogFileReader) -> list:
-        # Get the new lines from a single log file since the last poll.
-        #
-        # :param log_file: LogFileReader object
-        # :return: a list of strings, one per line, in chronological order
-
-        lines = []
-
-        try:
-            if log_file.has_new_text():
-                self._logger.log_debug('New text in ' +
-                                       log_file.get_file_path())
-                new_text = log_file.get_new_text()
-                self._write_snapshot()
-
-                # split the new text into lines. strip the text because split
-                # will not remove the trailing newline
-                lines = new_text.strip().split('\n')
-        except LogFileException as e:
-            self._logger.log_warning(str(e))
-            # if something goes wrong we should not keep watching this file
-            self._stop_watching_log_file(log_file)
-        finally:
-            # we always need to return a list
-            return lines
 
     def _poll(self):
         # Poll once for changes in files, and check the queue for new files
@@ -304,8 +261,14 @@ class LogPollingThread(Thread):
 
         # for each file reader, add any new lines to the queue
         for reader in readers:
-            for line in self._get_new_lines(reader):
-                self._new_log_line_queue.put((reader.get_file_path(), line))
+            try:
+                for line in reader.get_new_lines():
+                    self._new_log_line_queue.put((reader.get_file_path(),
+                                                  line))
+            except LogFileException as e:
+                self._logger.log_warning(str(e))
+                # if something goes wrong we should not keep watching this file
+                self._stop_watching_log_file(reader)
 
         # consume all new log files until the queue is empty
         try:
