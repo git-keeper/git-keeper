@@ -166,7 +166,31 @@ def parse_faculty_assignment_path(path) -> (str, str):
     return class_name, assignment_name
 
 
-def faculty_class_directory(class_name: str, home_dir: str):
+def parse_faculty_class_path(path) -> str:
+    """
+    Extract the class name from a path to a faculty class directory.
+
+    :param path: path to the class directory
+    :return: the class name
+    """
+
+    # we're parsing a path that ends with this:
+    # git-keeper/<class name>
+
+    path_list = path_to_list(path)
+
+    if len(path_list) < 2:
+        return None
+
+    git_keeper, class_name = path_list[-2:]
+
+    if git_keeper != 'git-keeper':
+        return None
+
+    return class_name
+
+
+def faculty_class_dir_path(class_name: str, home_dir: str):
     """
     Build the path to a faculty member's class directory on the server.
 
@@ -194,3 +218,18 @@ def log_path_from_username(username: str) -> str:
     log_path = os.path.join(home_dir, filename)
 
     return log_path
+
+
+def student_class_dir_path(student_username, faculty_username,
+                           class_name) -> str:
+    """
+    Build a path to a student's directory for a class.
+
+    :param student_username: username of the student
+    :param faculty_username: username of the faculty teaching the class
+    :param class_name: name of the class
+    :return: path to the class directory
+    """
+
+    return os.path.join(user_home_dir(student_username), faculty_username,
+                        class_name)
