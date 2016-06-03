@@ -51,6 +51,11 @@ Attributes:
     username - user that is running gkeepd
     home_dir - path to gkeepd user's home directory
 
+    keeper_user - username of the user running gkeepd
+    keeper_group - group name of the user running gkeepd
+    faculty_group - group that all faculty accounts belong to
+    student_group - group that all student accounts belong to
+
     log_file_path - path to system log
     log_snapshot_file_path - path to file containing current log file sizes
     log_level - how detailed the log messages should be
@@ -138,7 +143,8 @@ class ServerConfiguration:
         self._initialize_default_attributes()
 
         self._parse_config_file()
-        self._initialize_email_attributes()
+        self._set_email_options()
+        self._set_gkeepd_options()
 
         self._parsed = True
 
@@ -163,6 +169,7 @@ class ServerConfiguration:
         self.keeper_user = 'keeper'
         self.keeper_group = 'keeper'
         self.faculty_group = 'faculty'
+        self.student_group = 'student'
 
     def _parse_config_file(self):
         # Use a ConfigParser object to parse the configuration file and store
@@ -185,7 +192,7 @@ class ServerConfiguration:
                      .format(section, self._config_path))
             raise ServerConfigurationError(error)
 
-    def _initialize_email_attributes(self):
+    def _set_email_options(self):
         # Initialize all the email-related attributes
 
         self._ensure_section_is_present('email')
@@ -201,6 +208,49 @@ class ServerConfiguration:
 
         except configparser.NoOptionError as e:
             raise ServerConfigurationError(e.message)
+
+        self._ensure_options_exist('email')
+
+    def _set_gkeepd_options(self):
+        # get any optional parameters from the parser and update the attributes
+        # from their default values
+
+        if not self._parser.has_section('gkeepd'):
+            return
+
+        optional_options = [
+            'test_thread_count',
+            'keeper_user',
+            'keeper_group',
+            'faculty_group',
+            'student_group'
+        ]
+
+        for name in optional_options:
+            # default values of all these options must be set first
+            assert hasattr(self, name)
+
+            if self._parser.has_option('gkeepd', name):
+                value = self._parser.get('gkeepd', name)
+                setattr(self, name, value)
+
+        # test_thread_count must be an integer
+        try:
+            self.test_thread_count = int(self.test_thread_count)
+        except ValueError:
+            error = 'test_thread_count must be an integer'
+            raise ServerConfigurationError(error)
+
+        self._ensure_options_exist('gkeepd')
+
+    def _ensure_options_exist(self, section):
+        # all section's options must exist as attributes
+
+        for name in self._parser.options(section):
+            if not hasattr(self, name):
+                error = ('{0} is not a valid option in config section [{1}]'
+                         .format(name, section))
+                raise ServerConfigurationError(error)
 
 
 # Module-level configuration instance. Someone must call parse() on this
