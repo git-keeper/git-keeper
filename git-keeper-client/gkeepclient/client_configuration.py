@@ -113,7 +113,8 @@ class ClientConfiguration:
 
         if config_path is None:
             relative_path = '.config/git-keeper/client.cfg'
-            self._config_path = os.path.join(self.local_home_dir, relative_path)
+            self._config_path = os.path.join(self.local_home_dir,
+                                             relative_path)
         else:
             self._config_path = config_path
 
@@ -122,7 +123,7 @@ class ClientConfiguration:
             raise ClientConfigurationError(error)
 
         self._parse_config_file()
-        self._initialize_server_attributes()
+        self._set_server_options()
 
         self._parsed = True
 
@@ -147,7 +148,7 @@ class ClientConfiguration:
                                                        self._config_path)
             raise ClientConfigurationError(error)
 
-    def _initialize_server_attributes(self):
+    def _set_server_options(self):
         # Initialize all the server-related attributes
 
         self._ensure_section_is_present('server')

@@ -209,7 +209,7 @@ class ServerConfiguration:
         except configparser.NoOptionError as e:
             raise ServerConfigurationError(e.message)
 
-        self._ensure_options_exist('email')
+        self._ensure_options_are_valid('email')
 
     def _set_gkeepd_options(self):
         # get any optional parameters from the parser and update the attributes
@@ -241,9 +241,9 @@ class ServerConfiguration:
             error = 'test_thread_count must be an integer'
             raise ServerConfigurationError(error)
 
-        self._ensure_options_exist('gkeepd')
+        self._ensure_options_are_valid('gkeepd')
 
-    def _ensure_options_exist(self, section):
+    def _ensure_options_are_valid(self, section):
         # all section's options must exist as attributes
 
         for name in self._parser.options(section):
