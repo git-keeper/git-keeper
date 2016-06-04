@@ -242,6 +242,13 @@ class LogPollingThread(Thread):
         # Create a LogFileReader object for reading new data from the file
         # and add it to the dictionary of readers.
 
+        # bail if the log does not exist
+        if not os.path.isfile(file_path):
+            warning = ('{0} does not exist and will not be watched'
+                       .format(file_path))
+            self._logger.log_warning(warning)
+            return
+
         reader = self._reader_class(file_path, seek_position=seek_position)
         self._log_file_readers[file_path] = reader
 
