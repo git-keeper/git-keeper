@@ -18,11 +18,12 @@
 
 import os
 from enum import Enum
+from shutil import which
 
 from gkeepcore.path_utils import user_home_dir, user_log_path, \
     gkeepd_to_faculty_log_path
 from gkeepcore.system_commands import (sudo_add_user, sudo_set_password, chmod,
-                                       sudo_chown, mkdir)
+                                       sudo_chown, mkdir, make_symbolic_link)
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.generate_password import generate_password
 from gkeepserver.initialize_log import initialize_log
@@ -99,6 +100,32 @@ def create_git_keeper_dir(username: str):
     sudo_chown(git_keeper_dir_path, username, config.keeper_group)
 
 
+def create_git_shell_commands(username: str, command_list: list):
+    """
+    Create the git-shell-commands directory for a user and populate it with
+    symbolic links to allowed commands.
+
+    The user will only be able to run the listed commands from an interactive
+    shell.
+
+    :param username: username of the user
+    :param command_list: list of commands that they will be able to run
+    """
+
+    home_dir = user_home_dir(username)
+    git_shell_commands_path = os.path.join(home_dir, 'git-shell-commands')
+
+    mkdir(git_shell_commands_path, sudo=True)
+
+    for command in command_list:
+        path = which(command)
+        link_path = os.path.join(git_shell_commands_path, command)
+
+        make_symbolic_link(path, link_path, sudo=True)
+
+    sudo_chown(git_shell_commands_path, username, username, recursive=True)
+
+
 def create_user(username, user_type, first_name, last_name, email_address=None,
                 additional_groups=None):
     """
@@ -120,7 +147,14 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
 
     logger.log_info('Creating user {0}'.format(username))
 
-    sudo_add_user(username, additional_groups)
+    if user_type == UserType.faculty:
+        shell = 'bash'
+    elif user_type == UserType.student:
+        shell = 'git-shell'
+    else:
+        shell = None
+
+    sudo_add_user(username, additional_groups, shell)
 
     password = generate_password()
     sudo_set_password(username, password)
@@ -131,6 +165,9 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
         initialize_gkeepd_to_faculty_log(username)
 
         create_git_keeper_dir(username)
+
+    elif user_type == UserType.student:
+        create_git_shell_commands(username, ['passwd'])
 
     # email the credentials to the user if an email address was provided
     if email_address is not None:

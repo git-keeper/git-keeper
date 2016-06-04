@@ -23,6 +23,7 @@ import os
 from pwd import getpwuid, getpwnam
 from grp import getgrgid, getgrnam
 from getpass import getuser
+from shutil import which
 
 from gkeepcore.shell_command import run_command, CommandError
 
@@ -123,7 +124,7 @@ def sudo_add_group(group):
     run_command(cmd, sudo=True)
 
 
-def sudo_add_user(username, groups=None):
+def sudo_add_user(username, groups=None, shell=None):
     """
     Add a new user to the system using sudo and useradd.
 
@@ -136,9 +137,18 @@ def sudo_add_user(username, groups=None):
 
     :param username: username of the new user
     :param groups: additional groups that the user shoul be in
+    :param shell: name of the user's shell, will be bash if None
     """
 
-    cmd = ['useradd', '-m', '-U', '-s', '/bin/bash']
+    if shell is None:
+        shell = 'bash'
+
+    shell_path = which(shell)
+
+    if shell_path is None:
+        raise CommandError('{0} is not a valid shell'.format(shell))
+
+    cmd = ['useradd', '-m', '-U', '-s', shell_path]
     if groups is not None and len(groups) > 0:
         cmd += ['-G', ','.join(groups)]
     cmd += [username]
@@ -242,6 +252,18 @@ def mkdir(path, sudo=False):
     """
 
     cmd = ['mkdir', '-p', path]
+    run_command(cmd, sudo=sudo)
+
+
+def make_symbolic_link(source_path: str, link_path: str, sudo=False):
+    """
+    Create a symbolic link to a file or directory.
+
+    :param source_path: path to the actual file or directory
+    :param link_path: path to the symbolic link to be created
+    """
+
+    cmd = ['ln', '-s', source_path, link_path]
     run_command(cmd, sudo=sudo)
 
 
