@@ -1,4 +1,0 @@
-#!/bin/bash
-
-docker exec -it git-keeper-server bash -c "cd /home/keeper/git-keeper-core && python3 setup.py install"
-docker exec -it git-keeper-server bash -c "cd /home/keeper/git-keeper-server && python3 setup.py install"

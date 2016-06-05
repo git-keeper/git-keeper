@@ -16,8 +16,11 @@
 
 from tests.docker_gkeepserver import start_docker_gkeepserver, stop_docker_gkeepserver
 
+from tests.testing_environment import TestingEnvironment
 
 class TestWithServer:
+
+    testing_env = TestingEnvironment()
 
     @classmethod
     def setup_class(cls):

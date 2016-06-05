@@ -1,11 +1,8 @@
 
-from tests.docker_gkeepserver import start_docker_gkeepserver, stop_docker_gkeepserver
+from tests.testing_environment import TestingEnvironment
 
-print("Starting server")
-start_docker_gkeepserver(debug_output=True)
+testing_env = TestingEnvironment()
 
 input("\n\nServer running.  Hit return to stop it.")
 
-stop_docker_gkeepserver(debug_output=True)
-
-
+testing_env.take_down()

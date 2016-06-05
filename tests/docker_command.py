@@ -92,7 +92,7 @@ class DockerCommand:
 
         return self
 
-    def run(self):
+    def run(self, print_command=False):
         """
         Execute the command.  If the command is somehow malformed, this method will
         raise a subprocess exception.
@@ -101,12 +101,15 @@ class DockerCommand:
         """
         full_command = 'docker ' + self._command + self._arguments
 
+        if print_command:
+            print(full_command)
+
         # If we are producing output, create a single pipe to both stdout and stderr
         if self._output:
-            with Popen(full_command, shell=True, stdout=PIPE, stderr=STDOUT, universal_newlines=True) as proc:
+            with Popen(full_command, shell=True, stdout=PIPE, stderr=STDOUT) as proc:
                 # This loop will terminate when the command returns
                 for line in proc.stdout:
-                    print(line.strip())
+                    print(line.decode().strip())
 
             return proc.returncode
         else:
