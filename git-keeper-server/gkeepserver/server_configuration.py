@@ -171,6 +171,11 @@ class ServerConfiguration:
         self.faculty_group = 'faculty'
         self.student_group = 'student'
 
+        # email
+        self.use_tls = True
+        self.email_username = None
+        self.email_password = None
+
     def _parse_config_file(self):
         # Use a ConfigParser object to parse the configuration file and store
         # the state
@@ -203,11 +208,33 @@ class ServerConfiguration:
             self.from_address = self._parser.get('email', 'from_address')
             self.smtp_server = self._parser.get('email', 'smtp_server')
             self.smtp_port = self._parser.get('email', 'smtp_port')
-            self.email_username = self._parser.get('email', 'email_username')
-            self.email_password = self._parser.get('email', 'email_password')
 
         except configparser.NoOptionError as e:
             raise ServerConfigurationError(e.message)
+
+        optional_options = [
+            'use_tls',
+            'email_username',
+            'email_password'
+        ]
+
+        for name in optional_options:
+            # default values of all these options must be set first
+            assert hasattr(self, name)
+
+            if self._parser.has_option('email', name):
+                value = self._parser.get('email', name)
+                setattr(self, name, value)
+
+        # use_tls must be true or false
+        if isinstance(self.use_tls, str):
+            if self.use_tls.lower() == 'true':
+                self.use_tls = True
+            elif self.use_tls.lower() == 'false':
+                self.use_tls = False
+            else:
+                error = 'use_tls must be true or false'
+                raise ServerConfigurationError(error)
 
         self._ensure_options_are_valid('email')
 

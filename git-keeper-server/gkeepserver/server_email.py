@@ -150,8 +150,13 @@ class Email:
         try:
             server = SMTP(config.smtp_server, config.smtp_port)
             server.ehlo()
-            server.starttls()
-            server.login(config.email_username, config.email_password)
+
+            if config.use_tls:
+                server.starttls()
+
+            if config.email_username and config.email_password:
+                server.login(config.email_username, config.email_password)
+
             server.sendmail(config.from_address, self.to_address,
                             self.message_string)
             server.quit()
