@@ -30,7 +30,7 @@ setup(
     package_data={
         'gkeepserver': ['data/*']
     },
-    install_requires=['git-keeper-core', 'paramiko', 'pyinotify'],
+    install_requires=['git-keeper-core'],
     setup_requires=['pytest-runner'],
     tests_require=['pytest']
 )
