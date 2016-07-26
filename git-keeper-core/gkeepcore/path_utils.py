@@ -175,19 +175,30 @@ def parse_faculty_class_path(path) -> str:
     """
 
     # we're parsing a path that ends with this:
-    # git-keeper/<class name>
+    # classes/<class name>
 
     path_list = path_to_list(path)
 
     if len(path_list) < 2:
         return None
 
-    git_keeper, class_name = path_list[-2:]
+    classes, class_name = path_list[-2:]
 
-    if git_keeper != 'git-keeper':
+    if classes != 'classes':
         return None
 
     return class_name
+
+
+def faculty_upload_dir_path(home_dir: str) -> str:
+    """
+    Build the path to the faculty's upload directory on the server.
+
+    :param home_dir: faculty's home directory
+    :return: upload directory path
+    """
+
+    return os.path.join(home_dir, 'uploads')
 
 
 def faculty_class_dir_path(class_name: str, home_dir: str):
@@ -198,7 +209,21 @@ def faculty_class_dir_path(class_name: str, home_dir: str):
     :param home_dir: home directory of the faculty member.
     """
 
-    return os.path.join(home_dir, 'git-keeper', class_name)
+    return os.path.join(home_dir, 'classes', class_name)
+
+
+def faculty_assignment_dir_path(class_name: str, assignment_name: str,
+                                home_dir: str,):
+    """
+    Build the path to a faculty member's assignment directory on the server.
+
+    :param class_name: name of the class
+    :param assignment_name: name of the assignment
+    :param home_dir: home directory of the faculty member.
+    """
+
+    return os.path.join(faculty_class_dir_path(class_name, home_dir),
+                        assignment_name)
 
 
 def log_path_from_username(username: str) -> str:
@@ -233,3 +258,19 @@ def student_class_dir_path(student_username, faculty_username,
 
     return os.path.join(user_home_dir(student_username), faculty_username,
                         class_name)
+
+
+def student_assignment_repo_path(student_username: str, faculty_username: str,
+                                 class_name: str, assignment_name: str) -> str:
+    """
+    Build a path to a student's repository for an assignment.
+
+    :param student_username: username of the student
+    :param faculty_username: username of the faculty who owns the class
+    :param class_name: name of the class
+    :param assignment_name: name of the assignment
+    :return: path to the assignment repository
+    """
+    return os.path.join(student_class_dir_path(student_username,
+                                               faculty_username, class_name),
+                        assignment_name + '.git')

@@ -46,6 +46,7 @@ from threading import Thread
 from queue import Queue, Empty
 from time import time, sleep
 
+from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepserver.server_email import Email, EmailException
 
 
@@ -130,8 +131,9 @@ class EmailSenderThread(Thread):
                     if isinstance(email, Email):
                         self._send_email_with_rate_limiting(email)
                     else:
-                        # FIXME - log this
-                        pass
+                        warning = ('Item enqueued for emailing that is not an '
+                                   'email: {0}'.format(email))
+                        logger.log_warning(warning)
             except Empty:
                 pass
 
@@ -152,11 +154,10 @@ class EmailSenderThread(Thread):
 
         try:
             email.send()
-            # FIXME - log this instead
-            print('EMAILER: Sent email to', email.to_address)
+            logger.log_info('Sent email to {0}'.format(email.to_address))
         except EmailException as e:
-            # FIXME - log this instead
-            print('EMAILER: Failed to send email to', email.to_address)
+            logger.log_error('Failed to send email to {0}'
+                             .format(email.to_address))
 
 
 # module-level instance for global email sending

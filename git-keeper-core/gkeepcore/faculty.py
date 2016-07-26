@@ -17,6 +17,8 @@
 Provides a class for representing a faculty member.
 
 """
+import csv
+
 
 class FacultyError(Exception):
     pass
@@ -57,12 +59,17 @@ class Faculty:
         """
 
         if len(csv_row) != 3:
-            raise FacultyError('Not a valid faculty row: ' + str(csv_row))
+            raise FacultyError('Not a valid faculty row: {0}'
+                               .format(str(csv_row)))
 
         last_name, first_name, email_address = csv_row
 
         # the faculty's username is their email address username
-        username, domain = email_address.split('@')
+        try:
+            username, domain = email_address.split('@')
+        except ValueError:
+            raise FacultyError('Not a valid email address: {0}'
+                               .format(email_address))
 
         return cls(last_name, first_name, username, email_address)
 
@@ -78,3 +85,25 @@ class Faculty:
 
         return '{0}, {1} ({2}) <{3}>'.format(self.last_name, self.first_name,
                                              self.username, self.email_address)
+
+
+def faculty_from_csv_file(csv_path: str):
+    """
+    Yield a Faculty object for each row in a CSV file.
+
+    Raises FacultyError on a malformed row.
+
+    :param csv_path: path to the CSV file
+    :return: iterator over Faculty objects
+    """
+    try:
+        with open(csv_path) as f:
+            reader = csv.reader(f)
+
+            for row in reader:
+                # skip blank lines
+                if len(row) > 0:
+                    yield Faculty.from_csv_row(row)
+
+    except (csv.Error, OSError) as e:
+        raise FacultyError(e)

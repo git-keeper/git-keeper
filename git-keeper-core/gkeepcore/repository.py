@@ -46,6 +46,10 @@ class Repository:
         self.ssh = ssh
         self.student_username = student_username
 
+    @classmethod
+    def local_bare(cls, path, assignment):
+        return Repository(path, assignment, is_local=True, is_bare=True)
+
     def __repr__(self):
         string = '{0}\n{1}\n{2}'.format(self.path, self.assignment,
                                         self.student_username)

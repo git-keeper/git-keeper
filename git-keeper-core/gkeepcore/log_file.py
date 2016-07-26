@@ -139,6 +139,8 @@ def log_append_command(file_path: str, item_type: str, text: str):
     :return: a shell command as a string which will append to the log
     """
 
+    text = text.replace('\n', '  ')
+
     time_length = 15
     type_length = len(item_type.encode())
     text_length = len(text.encode())

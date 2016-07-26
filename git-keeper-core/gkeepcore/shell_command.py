@@ -18,7 +18,7 @@
 Provides a run_command() function for running shell commands.
 """
 
-
+import os
 from subprocess import check_output, CalledProcessError, STDOUT
 
 
@@ -54,9 +54,9 @@ def run_command(command, sudo=False, stderr=STDOUT) -> str:
     # prepend sudo if need be
     if sudo:
         if isinstance(command, str):
-            command = 'sudo ' + command
+            command = 'sudo -n ' + command
         else:
-            command = ['sudo'] + command
+            command = ['sudo', '-n'] + command
 
     # run the command
     try:
@@ -71,3 +71,51 @@ def run_command(command, sudo=False, stderr=STDOUT) -> str:
 
     # convert the output from bytes to a string when returning
     return output.decode('utf-8')
+
+
+class ChangeDirectoryContext:
+    """
+    For use as a context manager to change into a directory and change out
+    again.
+
+    Example:
+
+        with ChangeDirectoryContext('path/to/dir'):
+            # do stuff in the new working directory
+
+        # changed back to old directory
+    """
+
+    def __init__(self, path):
+        self._old_wd = os.getcwd()
+        self._new_wd = path
+
+    def __enter__(self):
+        os.chdir(self._new_wd)
+
+    def __exit__(self, *args):
+        os.chdir(self._old_wd)
+
+
+def run_command_in_directory(path, command, sudo=False, stderr=STDOUT):
+    """
+    Change into a new working directory, run a command, and change back.
+
+    Raises CommandError if the command could not be called or has a non-zero
+    exit code.
+
+    After returning, the working directory will be the original working
+    directory regardless of whether an exception was thrown or not.
+
+    :param path: new working directory to change in to
+    :param command: a shell command as a string or a list of strings
+     representing each argument
+    :param sudo: set to True to run the command using sudo
+    :param stderr: where to send stderr
+    :return: the output of the command
+    """
+    try:
+        with ChangeDirectoryContext(path):
+            run_command(command, sudo=sudo, stderr=stderr)
+    except OSError as e:
+        raise CommandError(e)

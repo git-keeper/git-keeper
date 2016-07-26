@@ -83,21 +83,27 @@ def initialize_gkeepd_to_faculty_log(username):
     initialize_log(log_path, config.keeper_user, username, '640')
 
 
-def create_git_keeper_dir(username: str):
+def create_faculty_dirs(username: str):
     """
-    Create the git-keeper directory in a faculty member's home directory.
+    Create the classes and uploads directories in a faculty member's home
+    directory.
 
     :param username: username of the faculty member
-    :return:
     """
 
     home_dir = user_home_dir(username)
-    git_keeper_dir_path = os.path.join(home_dir, 'git-keeper')
+    classes_dir_path = os.path.join(home_dir, 'classes')
 
-    mkdir(git_keeper_dir_path, sudo=True)
+    mkdir(classes_dir_path, sudo=True)
     # world readable for the handouts directory
-    chmod(git_keeper_dir_path, '755', sudo=True)
-    sudo_chown(git_keeper_dir_path, username, config.keeper_group)
+    chmod(classes_dir_path, '755', sudo=True)
+    sudo_chown(classes_dir_path, username, config.keeper_group)
+
+    uploads_dir_path = os.path.join(home_dir, 'uploads')
+
+    mkdir(uploads_dir_path, sudo=True)
+    chmod(uploads_dir_path, '750', sudo=True)
+    sudo_chown(uploads_dir_path, username, config.keeper_group)
 
 
 def create_git_shell_commands(username: str, command_list: list):
@@ -164,7 +170,7 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
     if user_type == UserType.faculty:
         initialize_gkeepd_to_faculty_log(username)
 
-        create_git_keeper_dir(username)
+        create_faculty_dirs(username)
 
     elif user_type == UserType.student:
         create_git_shell_commands(username, ['passwd'])

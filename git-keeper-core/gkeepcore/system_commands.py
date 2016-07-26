@@ -295,3 +295,50 @@ def mv(source_path, dest_path, sudo=False):
 
     cmd = ['mv', source_path, dest_path]
     run_command(cmd, sudo=sudo)
+
+
+def cp(source_path, dest_path, recursive=False, sudo=False):
+    """
+    Copy a file or directory.
+
+    recursive must be True if copying a directory.
+
+    If the destination is a directory that exists, the source will be copied
+    into that directory.
+
+    :param source_path: path to the file or directory to be copied
+    :param dest_path: the new path or an existing directory to copy the file
+     into
+    :param recursive: if True, will copy directories
+    :param sudo: if True, it will be run as root using sudo
+    """
+
+    cmd = ['cp']
+
+    if recursive:
+        cmd.append('-r')
+
+    cmd += [source_path, dest_path]
+
+    run_command(cmd, sudo=sudo)
+
+
+def rm(path, recursive=False, sudo=False):
+    """
+    Remove a file or directory.
+
+    recursive must be True if removing a directory.
+
+    :param path: path to the file or directory to be removed
+    :param recursive: if True, will remove directories
+    :param sudo: if True, it will be run as root using sudo
+    """
+
+    cmd = ['rm', '-f']
+
+    if recursive:
+        cmd.append('-r')
+
+    cmd.append(path)
+
+    run_command(cmd, sudo=sudo)

@@ -15,163 +15,152 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Provides a function for uploading an assignment to the server."""
+
 import os
 import sys
-from tempfile import TemporaryDirectory
+from time import time, sleep
 
-from configuration import GraderConfiguration, ConfigurationError
-from repository import Repository, copy_and_create_repo
-from subprocess_commands import directory_exists, touch, CommandError,\
-    chmod_world_writable_recursive, home_dir_from_username, scp_file
-
-from student import Student
+from gkeepclient.server_interface import server_interface, ServerInterfaceError
+from gkeepclient.client_configuration import config, ClientConfigurationError
+from gkeepclient.server_log_file_reader import ServerLogFileReader
+from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
 
 
-def upload_assignment(class_name, grader_project):
+class UploadAssignmentError(Exception):
+    """Raised if there are any errors uploading the assignment."""
+    pass
 
-    grader_project_path = os.path.dirname(sys.argv[0])
-    post_update_path = os.path.join(grader_project_path, 'post-update')
 
-    local_assignment_dir = os.path.expanduser(grader_project)
-    local_assignment_dir = os.path.abspath(local_assignment_dir)
+def upload_assignment(class_name: str, upload_dir_path: str,
+                      response_timeout=20):
+    """
+    Upload an assignment to the server.
 
-    assignment = os.path.basename(local_assignment_dir.rstrip('/'))
+    The name of the assignment will be the name of the upload_dir_path.
 
-    base_code_dir = os.path.join(local_assignment_dir, 'base_code')
-    test_code_dir = os.path.join(local_assignment_dir, 'tests')
+    upload_dir_path must contain the following:
 
-    if not os.path.isdir(base_code_dir):
-        sys.exit('{0} does not exist'.format(base_code_dir))
+        base_code/
+        email.txt
+        tests/
+            action.sh
 
-    if not os.path.isdir(test_code_dir):
-        sys.exit('{0} does not exist'.format(test_code_dir))
+    Copies files to the server, writes a log entry to notify the server of the
+    upload, and waits for a logged confirmation of success or error from the
+    server.
 
-    action_file_path = os.path.join(test_code_dir, 'action.sh')
+    Raises UploadAssignmentError if anything goes wrong.
 
-    if not os.path.isfile(action_file_path):
-        sys.exit('No action.sh in {0}'.format(test_code_dir))
+    :param class_name: name of the class the assignment belongs to
+    :param upload_dir_path: path to the assignment
+    :param response_timeout: seconds to wait for server response
+    """
 
-    email_file_path = os.path.join(local_assignment_dir, 'email.txt')
+    # expand any special path components, strip trailing slash
+    upload_dir_path = os.path.abspath(upload_dir_path)
 
-    if not os.path.isfile(email_file_path):
-        sys.exit('{0} does not exist'.format(email_file_path))
-
+    # build an UploadDirectory object, ensuring all files are in place
     try:
-        config = GraderConfiguration(single_class_name=class_name)
-    except ConfigurationError as e:
-        sys.exit(e)
+        upload_dir = UploadDirectory(upload_dir_path)
+    except UploadDirectoryError as e:
+        error = 'Error in {0}: {1}'.format(upload_dir_path, str(e))
+        raise UploadAssignmentError(error)
 
-    if class_name not in config.students_by_class:
-        sys.exit('Class {0} does not exist'.format(class_name))
-
-    base_code_repo_tempdir = TemporaryDirectory()
-
+    # parse the configuration file
     try:
-        base_code_repo = copy_and_create_repo(base_code_dir,
-                                              base_code_repo_tempdir.name,
-                                              assignment, 'created assignment')
-    except CommandError as e:
-        error = 'Error copying base code repo:\n{0}'.format(e)
-        sys.exit(error)
+        config.parse()
+    except ClientConfigurationError as e:
+        error = 'Configuration error:\n{0}'.format(str(e))
+        raise UploadAssignmentError(error)
 
-    test_code_repo_tempdir = TemporaryDirectory()
-
+    # connect to the server
     try:
-        test_code_repo = copy_and_create_repo(test_code_dir,
-                                              test_code_repo_tempdir.name,
-                                              assignment)
-    except CommandError as e:
-        error = 'Error copying test code repo:\n{0}'.format(e)
-        sys.exit(error)
+        server_interface.connect()
+    except ServerInterfaceError as e:
+        error = 'Error connecting to the server:\n{0}'.format(str(e))
+        raise UploadAssignmentError(error)
 
+    # path that the assignment will eventually end up in
+    assignment_path =\
+        server_interface.my_assignment_dir_path(class_name,
+                                                upload_dir.assignment_name)
+
+    # check to see if the assignment path already exists
+    if server_interface.is_directory(assignment_path):
+        error = '{0} already exists'.format(upload_dir.assignment_name)
+        raise UploadAssignmentError(error)
+
+    # directory that we'll upload to on the server, the server will then
+    # move the files to their final location
+    upload_target = os.path.join(server_interface.upload_dir_path(),
+                                 str(time()), class_name,
+                                 upload_dir.assignment_name)
+
+    print('uploading', upload_dir_path, 'to', upload_target)
+
+    # create the directory to upload to
     try:
-        remote_home_dir = home_dir_from_username(config.username,
-                                                 config.username,
-                                                 config.host)
-    except CommandError as e:
-        sys.exit('Error getting remote home dir for {0}:\n{1}'
-                 .format(config.username, e))
+        server_interface.create_directory(upload_target)
+    except ServerInterfaceError as e:
+        error = 'Error creating remote upload directory: {0}'.format(str(e))
+        raise UploadAssignmentError(error)
 
-    remote_assignment_dir = os.path.join(remote_home_dir, class_name,
-                                         'assignments', assignment)
+    # copy base_code, email.txt, and tests
+    try:
+        server_interface.copy_directory(upload_dir.base_code_path,
+                                        os.path.join(upload_target,
+                                                     'base_code'))
+        server_interface.copy_file(upload_dir.email_path,
+                                   os.path.join(upload_target, 'email.txt'))
+        server_interface.copy_directory(upload_dir.tests_path,
+                                        os.path.join(upload_target, 'tests'))
+    except ServerInterfaceError as e:
+        error = 'Error uploading assignment: {0}'.format(str(e))
+        raise UploadAssignmentError(error)
 
-    tests_bare_repo_dir = os.path.join(remote_assignment_dir,
-                                       '{0}_tests.git'.format(assignment))
-    reports_bare_repo_dir = os.path.join(remote_assignment_dir,
-                                         '{0}_reports.git'.format(assignment))
+    # start watching server log for the response. done before writing to our
+    # log so we don't miss the response due to latency
+    gkeepd_log_path = server_interface.gkeepd_to_me_log_path()
+    reader = ServerLogFileReader(gkeepd_log_path)
 
-    if directory_exists(tests_bare_repo_dir, config.username, config.host):
-        sys.exit('{0} already exists on {1}'.format(tests_bare_repo_dir,
-                                                    config.host))
-    if directory_exists(reports_bare_repo_dir, config.username, config.host):
-        sys.exit('{0} already exists on {1}'.format(reports_bare_repo_dir,
-                                                    config.host))
+    # log the event
+    try:
+        server_interface.log_event('UPLOAD', upload_target)
+    except ServerInterfaceError as e:
+        error = 'Error logging event: {0}'.format(str(e))
+        raise UploadAssignmentError(error)
 
-    print('Uploading assignment', assignment)
+    print('Waiting for server confirmation ...', end='')
+    sys.stdout.flush()
 
-    reports_repo_tempdir = TemporaryDirectory()
-    reports_repo_dir = reports_repo_tempdir.name
+    keep_polling = True
+    poll_start_time = time()
 
-    reports_repo = Repository(reports_repo_dir, assignment)
-    reports_repo.init()
-
-    for student in config.students_by_class[class_name]:
-        assert isinstance(student, Student)
-        bare_repo_dir = student.get_bare_repo_dir(class_name, assignment)
-        if directory_exists(bare_repo_dir, config.username, config.host):
-            sys.exit('{0} already exists on {1}'.format(bare_repo_dir,
-                                                        config.host))
-        student_repo = Repository(bare_repo_dir, assignment,
-                                  is_local=False, is_bare=True,
-                                  remote_user=config.username,
-                                  remote_host=config.host,
-                                  student_username=student.username)
+    # poll for the server's response
+    while keep_polling:
         try:
-            student_repo.init()
-            student_repo.add_update_flag_hook(post_update_path)
-            base_code_repo.push(student_repo)
-            chmod_world_writable_recursive(student_repo.path,
-                                           remote_user=config.username,
-                                           remote_host=config.host)
-            print('Pushed base code to', bare_repo_dir)
-        except CommandError as e:
-            sys.exit('Error creating {0} on {1}:\n{2}'.format(bare_repo_dir,
-                                                              config.host, e))
+            while not reader.has_new_lines() and keep_polling:
+                print('.', end='')
+                sys.stdout.flush()
+                sleep(1)
+                if time() > poll_start_time + response_timeout:
+                    keep_polling = False
+                    print('\nTimed out waiting for response. '
+                          'Upload status is unclear.')
 
-        student_report_dir = os.path.join(reports_repo_dir,
-                                          student.get_last_first_username())
-        os.makedirs(student_report_dir)
-        placeholder_path = os.path.join(student_report_dir, '.placeholder')
-        touch(placeholder_path)
+            for line in reader.get_new_lines():
+                if line.endswith('UPLOAD_SUCCESS ' + upload_target):
+                    keep_polling = False
+                    print('\nAssignment uploaded successfully')
+                    break
+                if 'UPLOAD_ERROR ' + upload_target in line:
+                    keep_polling = False
+                    print(line)
+                    break
+        except ServerInterfaceError as e:
+            error = 'Error reading server log file: {0}'.format(str(e))
+            raise UploadAssignmentError(error)
 
-    reports_bare_repo = Repository(reports_bare_repo_dir, assignment,
-                                   is_local=False, is_bare=True,
-                                   remote_user=config.username,
-                                   remote_host=config.host)
-
-    try:
-        reports_repo.add_all_and_commit('added student directories')
-        reports_bare_repo.init()
-        reports_repo.push(reports_bare_repo)
-        print('Created reports repository in', reports_bare_repo_dir)
-    except CommandError as e:
-        sys.exit('Error creating reports repository:\n{0}'.format(e))
-
-    tests_bare_repo = Repository(tests_bare_repo_dir, assignment,
-                                 is_local=False, is_bare=True,
-                                 remote_user=config.username,
-                                 remote_host=config.host)
-
-    try:
-        tests_bare_repo.init()
-        test_code_repo.push(tests_bare_repo)
-        print('Pushed tests to', tests_bare_repo_dir)
-    except CommandError as e:
-        sys.exit('Error creating {0} on {1}\n{2}'.format(tests_bare_repo_dir,
-                                                         test_code_dir, e))
-
-    scp_file(email_file_path, config.username, config.host,
-             remote_assignment_dir)
-
-    print(assignment, 'uploaded successfully')
-    print('Reports repo clone URL:', reports_bare_repo.url)
+if __name__ == '__main__':
+    upload_assignment(sys.argv[1], sys.argv[2])

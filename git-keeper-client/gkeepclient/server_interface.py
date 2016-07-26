@@ -54,7 +54,8 @@ from shlex import quote
 
 from gkeepclient.client_configuration import config
 from gkeepcore.log_file import log_append_command
-from gkeepcore.path_utils import user_log_path, gkeepd_to_faculty_log_path
+from gkeepcore.path_utils import user_log_path, gkeepd_to_faculty_log_path, \
+    faculty_upload_dir_path, faculty_assignment_dir_path
 
 
 class ServerInterfaceError(Exception):
@@ -105,7 +106,7 @@ class ServerInterface:
 
             self._home_dir = self.user_home_dir(config.server_username)
             self._event_log_path = self.me_to_gkeepd_log_path()
-        except SSHException as e:
+        except (SSHException, ConnectionRefusedError) as e:
             raise ServerInterfaceError(e)
 
     def run_command(self, command) -> str:
@@ -232,10 +233,9 @@ class ServerInterface:
         :param remote_path: new path to create on the server
         """
 
-        try:
-            self._sftp_client.mkdir(remote_path)
-        except SSHException as e:
-            raise ServerInterfaceError(e)
+        cmd = ['mkdir', '-p', remote_path]
+
+        self.run_command(cmd)
 
     def copy_directory(self, source_path: str, dest_path: str):
         """
@@ -407,6 +407,28 @@ class ServerInterface:
         log_path = gkeepd_to_faculty_log_path(self._home_dir)
 
         return log_path
+
+    def upload_dir_path(self):
+        """
+        Build the path to the faculty's upload directory on the server.
+
+        :return: upload directory path
+        """
+
+        return faculty_upload_dir_path(self._home_dir)
+
+    def my_assignment_dir_path(self, class_name: str, assignment_name: str):
+        """
+        Build the path to this faculty member's assignment directory on the
+        server.
+
+        :param class_name: name of the class
+        :param assignment_name: name of the assignment
+        """
+
+        return faculty_assignment_dir_path(class_name, assignment_name,
+                                           self._home_dir)
+
 
 
 # Module-level interface instance. Someone must call connect() on this before
