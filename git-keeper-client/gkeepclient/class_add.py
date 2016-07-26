@@ -32,13 +32,7 @@ from gkeepcore.local_csv_files import csv_rows, LocalCSVReader
 from gkeepcore.student import Student, StudentError, students_from_csv
 
 
-def class_add(csv_file_path='class.csv'):
-    # FIXME - catch exception
-    class_name, extension = csv_file_path.split(os.extsep)
-
-    if extension.lower() != 'csv':
-        sys.exit('{0} must be a csv file'.format(csv_file_path))
-
+def class_add(class_name='class', csv_file_path='class.csv'):
     if not os.path.isfile(csv_file_path):
         sys.exit('{0} does not exist'.format(csv_file_path))
 
@@ -107,4 +101,4 @@ def class_add(csv_file_path='class.csv'):
                 break
 
 if __name__ == '__main__':
-    class_add()
+    class_add(sys.argv[1], sys.argv[2])
