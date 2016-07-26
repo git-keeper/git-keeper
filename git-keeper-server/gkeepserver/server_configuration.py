@@ -145,6 +145,7 @@ class ServerConfiguration:
         self._parse_config_file()
         self._set_email_options()
         self._set_gkeepd_options()
+        self._set_server_options()
 
         self._parsed = True
 
@@ -237,6 +238,14 @@ class ServerConfiguration:
                 raise ServerConfigurationError(error)
 
         self._ensure_options_are_valid('email')
+
+    def _set_server_options(self):
+        self._ensure_section_is_present('server')
+
+        try:
+            self.hostname = self._parser.get('server', 'hostname')
+        except configparser.NoOptionError as e:
+            raise ServerConfigurationError(e.message)
 
     def _set_gkeepd_options(self):
         # get any optional parameters from the parser and update the attributes

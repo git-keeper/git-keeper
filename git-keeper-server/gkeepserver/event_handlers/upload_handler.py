@@ -13,29 +13,218 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
-"""Handler for new assignment uploads.
+"""
+Provides UploadHandler, the handler for new assignment uploads.
 
 Event type: UPLOAD
 """
 
+import os
+from tempfile import TemporaryDirectory
+
+from gkeepcore.faculty import faculty_from_csv_file
+from gkeepcore.git_commands import git_init_bare, git_init, git_push, \
+    git_add_all, git_commit
 from gkeepcore.path_utils import user_from_log_path, \
-    parse_faculty_assignment_path
+    parse_faculty_assignment_path, faculty_assignment_dir_path, user_home_dir
+from gkeepcore.shell_command import CommandError
+from gkeepcore.system_commands import chmod, sudo_chown, rm, cp, mkdir
+from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
+from gkeepserver.assignment_directory import AssignmentDirectory, \
+    AssignmentDirectoryError
 from gkeepserver.event_handler import EventHandler, HandlerException
+from gkeepserver.gkeepd_logger import gkeepd_logger
+from gkeepserver.handler_utils import log_gkeepd_to_faculty
+from gkeepserver.server_configuration import config
+from gkeepserver.student_assignment import setup_student_assignment, \
+    StudentAssignmentError, write_post_receive_script
 
 
 class UploadHandler(EventHandler):
     """Handles a new assignment uploaded by a faculty member."""
 
     def handle(self):
-        """Take action after a faculty member uploads a new assignment."""
+        """
+        Take action after a faculty member uploads a new assignment.
 
-        # FIXME - ensure everything exists, create bare repos, email prof
+        Copies uploaded files into the proper directory, creates bare
+        repositories, and creates a repository the faculty member can use
+        to
+        """
+
+        faculty_home_dir = user_home_dir(self._faculty_username)
+
+        # path to the directory that the assignment's files will be kept in
+        assignment_path = faculty_assignment_dir_path(self._class_name,
+                                                      self._assignment_name,
+                                                      faculty_home_dir)
+
         print('Handling upload:')
-        print(' Faculty:   ', self._faculty_username)
-        print(' Class:     ', self._class_name)
-        print(' Assignment:', self._assignment_name)
-        print(' Path:      ', self._assignment_path)
+        print(' Faculty:        ', self._faculty_username)
+        print(' Class:          ', self._class_name)
+        print(' Assignment:     ', self._assignment_name)
+        print(' Path:           ', self._upload_path)
+        print(' Assignment path:', assignment_path)
+
+        assignment_dir = AssignmentDirectory(assignment_path, check=False)
+
+        try:
+            self._setup_assignment_dir(assignment_dir)
+            self._setup_faculty_test_assignment(assignment_dir)
+            log_gkeepd_to_faculty(self._faculty_username, 'UPLOAD_SUCCESS',
+                                  self._upload_path)
+            info = '{0} uploaded {1} to {2}'.format(self._faculty_username,
+                                                    self._assignment_name,
+                                                    self._class_name)
+            gkeepd_logger.log_info(info)
+        except HandlerException as e:
+            error = '{0} {1}'.format(self._upload_path, str(e))
+            log_gkeepd_to_faculty(self._faculty_username, 'UPLOAD_ERROR',
+                                  error)
+            warning = 'Faculty upload failed: {0}'.format(str(e))
+            gkeepd_logger.log_warning(warning)
+
+            # if we failed, remove the assignment directory
+            try:
+                rm(assignment_path, recursive=True, sudo=True)
+            except CommandError:
+                pass
+
+        # delete the upload directory
+        try:
+            rm(self._upload_path, recursive=True, sudo=True)
+        except CommandError:
+            pass
+
+    def _setup_faculty_test_assignment(self,
+                                       assignment_dir: AssignmentDirectory):
+        # Setup a bare repository so the faculty can test the assignment,
+        # and email the faculty.
+
+        faculty = None
+
+        # get the appropriate Faculty object from faculty.csv
+        for faculty_from_row in faculty_from_csv_file(config.faculty_csv_path):
+            if faculty_from_row.username == self._faculty_username:
+                faculty = faculty_from_row
+                break
+
+        # if the faculty doesn't exist in faculty.csv, raise
+        if faculty is None:
+            error = ('{0} {1} is not a faculty username'
+                     .format(self._upload_path, self._faculty_username))
+            raise HandlerException(error)
+
+        # set up the faculty's test assignment and send email
+        try:
+            setup_student_assignment(assignment_dir, faculty, faculty.username)
+        except StudentAssignmentError as e:
+            raise HandlerException(str(e))
+
+    def _setup_assignment_dir(self, assignment_dir: AssignmentDirectory):
+        # Setup the directory that holds the files for the assignment.
+
+        # Ensure all necessary files are present in the upload directory
+        try:
+            upload_dir = UploadDirectory(self._upload_path)
+        except UploadDirectoryError as e:
+            raise HandlerException(e)
+
+        # bail if assignment directory already exists
+        if os.path.isdir(assignment_dir.path):
+            error = '{0} already exists'.format(self._assignment_name)
+            raise HandlerException(error)
+
+        try:
+            # create the assignment directory and make it owned by keeper for
+            # now
+            mkdir(assignment_dir.path, sudo=True)
+            sudo_chown(assignment_dir.path, config.keeper_user,
+                       config.keeper_group)
+
+            # create the repo directories
+            mkdir(assignment_dir.base_code_repo_path)
+            mkdir(assignment_dir.reports_repo_path)
+        except CommandError as e:
+            error = 'error creating directory: {0}'.format(str(e))
+            raise HandlerException(error)
+
+        # temporary directory in which to create a git repository from
+        # base_code
+        base_code_tempdir = TemporaryDirectory()
+
+        # copy base_code to the temporary directory
+        try:
+            cp(upload_dir.base_code_path, base_code_tempdir.name,
+               recursive=True)
+        except CommandError as e:
+            error = ('Error copying base code to a temporary directory: {0}'
+                     .format(str(e)))
+            raise HandlerException(error)
+
+        base_code_temp_path = os.path.join(base_code_tempdir.name,
+                                           'base_code')
+
+        try:
+            # initialize assignment directory bare repositories
+            git_init_bare(assignment_dir.reports_repo_path)
+            git_init_bare(assignment_dir.base_code_repo_path)
+
+            # initialize base code repository in upload directory
+            git_init(base_code_temp_path)
+            git_add_all(base_code_temp_path)
+            git_commit(base_code_temp_path, 'Initial commit')
+
+            # push base code into bare repo
+            git_push(base_code_temp_path,
+                     assignment_dir.base_code_repo_path)
+
+            # put the post-receive git hook script in place
+            post_receive_script_path =\
+                os.path.join(assignment_dir.base_code_repo_path,
+                             'hooks', 'post-receive')
+            write_post_receive_script(post_receive_script_path)
+            chmod(post_receive_script_path, '750', sudo=True)
+        except (CommandError, StudentAssignmentError) as e:
+            error = 'error building repositories: {0}'.format(str(e))
+            raise HandlerException(error)
+
+        # copy email.txt and tests directory to assignment directory
+        try:
+            cp(upload_dir.email_path, assignment_dir.path, recursive=True,
+               sudo=True)
+            cp(upload_dir.tests_path, assignment_dir.tests_path,
+               recursive=True, sudo=True)
+        except CommandError as e:
+            error = ('error copying assignment files: {0}'.format(str(e)))
+            raise HandlerException(error)
+
+        # set permissions on assignment directory
+        try:
+            chmod(assignment_dir.path, '750', sudo=True)
+            sudo_chown(assignment_dir.path, self._faculty_username,
+                       config.keeper_group, recursive=True)
+        except CommandError as e:
+            error = ('error setting permissions on {0}: {1}'
+                     .format(assignment_dir.path, str(e)))
+            raise HandlerException(error)
+
+        # sanity check
+        try:
+            assignment_dir.check()
+        except AssignmentDirectoryError as e:
+            raise HandlerException(e)
+
+    def __repr__(self):
+        """
+        Create a string representation of the handler for printing and logging
+
+        :return: a string representation of the event to be handled
+        """
+
+        string = ('Upload from {0}: {1}'.format(self._faculty_username,
+                                                self._upload_path))
+        return string
 
     def _parse(self):
         """
@@ -46,15 +235,15 @@ class UploadHandler(EventHandler):
             _faculty_username
             _class_name
             _assignment_name
-            _assignment_path
+            _upload_path
         """
 
         self._parse_log_path()
 
         # the log payload simply contains the assignment path
-        self._assignment_path = self._payload
+        self._upload_path = self._payload
 
-        self._parse_assignment_path()
+        self._parse_upload_path()
 
     def _parse_log_path(self):
         """
@@ -73,7 +262,7 @@ class UploadHandler(EventHandler):
             raise HandlerException('Malformed log path: {0}'
                                    .format(self._log_path))
 
-    def _parse_assignment_path(self):
+    def _parse_upload_path(self):
         """
         Extract the class name and assignment name from the assignment path.
 
@@ -85,10 +274,10 @@ class UploadHandler(EventHandler):
             _assignment_name
         """
 
-        assignment_info = parse_faculty_assignment_path(self._assignment_path)
+        assignment_info = parse_faculty_assignment_path(self._upload_path)
 
         if assignment_info is None:
             raise HandlerException('Malformed assignment path: {0}'
-                                   .format(self._assignment_path))
+                                   .format(self._upload_path))
 
         self._class_name, self._assignment_name = assignment_info
