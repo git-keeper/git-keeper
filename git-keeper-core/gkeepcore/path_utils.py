@@ -212,6 +212,19 @@ def faculty_class_dir_path(class_name: str, home_dir: str):
     return os.path.join(home_dir, 'classes', class_name)
 
 
+def class_published_file_path(class_name: str, home_dir: str):
+    """
+    Build the path to a class's published flag file.
+
+    :param class_name: name of the class
+    :param home_dir: home dir of the faculty
+    :return: path to the published flag file
+    """
+
+    class_path = faculty_class_dir_path(class_name, home_dir)
+    return os.path.join(class_path, 'published')
+
+
 def faculty_assignment_dir_path(class_name: str, assignment_name: str,
                                 home_dir: str,):
     """
@@ -243,6 +256,20 @@ def log_path_from_username(username: str) -> str:
     log_path = os.path.join(home_dir, filename)
 
     return log_path
+
+
+def class_student_csv_path(faculty_username: str, class_name: str) -> str:
+    """
+    Build a path to the CSV file of students for a class.
+
+    :param faculty_username: username of the faculty running the class
+    :param class_name: name of the class
+    :return: path to the CSV file
+    """
+    home_dir = user_home_dir(faculty_username)
+    class_path = faculty_class_dir_path(class_name, home_dir)
+
+    return os.path.join(class_path, 'students.csv')
 
 
 def student_class_dir_path(student_username, faculty_username,

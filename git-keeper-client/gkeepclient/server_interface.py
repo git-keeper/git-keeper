@@ -49,16 +49,20 @@ Example usage::
 
 import os
 import csv
+from time import time
+
 from paramiko import SSHClient, SSHException
 from shlex import quote
 
 from gkeepclient.client_configuration import config
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.log_file import log_append_command
 from gkeepcore.path_utils import user_log_path, gkeepd_to_faculty_log_path, \
-    faculty_upload_dir_path, faculty_assignment_dir_path
+    faculty_upload_dir_path, faculty_assignment_dir_path,\
+    faculty_class_dir_path
 
 
-class ServerInterfaceError(Exception):
+class ServerInterfaceError(GkeepException):
     """Raised by ServerInterface methods."""
     pass
 
@@ -417,18 +421,42 @@ class ServerInterface:
 
         return faculty_upload_dir_path(self._home_dir)
 
-    def my_assignment_dir_path(self, class_name: str, assignment_name: str):
+    def create_new_upload_dir(self):
         """
-        Build the path to this faculty member's assignment directory on the
-        server.
+        Create a directory on the server to upload to and return the path.
 
-        :param class_name: name of the class
+        :return: path to the newly created directory on the server
+        """
+
+        new_upload_path = os.path.join(self.upload_dir_path(), str(time()))
+
+        self.create_directory(new_upload_path)
+
+        return new_upload_path
+
+    def class_exists(self, class_name: str) -> bool:
+        """
+        Determine if a class exists on the server.
+
+        :param class_name:
+        :return: True if the class exists, False otherwise
+        """
+
+        path = faculty_class_dir_path(class_name, self._home_dir)
+        return self.is_directory(path)
+
+    def assignment_exists(self, class_name: str, assignment_name: str) -> bool:
+        """
+        Determine if an assignment exists on the server.
+
+        :param class_name: name of the class that the assignment belongs to
         :param assignment_name: name of the assignment
+        :return: True if the assignment exists, False otherwise
         """
 
-        return faculty_assignment_dir_path(class_name, assignment_name,
+        path = faculty_assignment_dir_path(class_name, assignment_name,
                                            self._home_dir)
-
+        return self.is_directory(path)
 
 
 # Module-level interface instance. Someone must call connect() on this before

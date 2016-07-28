@@ -222,8 +222,10 @@ class UploadHandler(EventHandler):
         :return: a string representation of the event to be handled
         """
 
-        string = ('Upload from {0}: {1}'.format(self._faculty_username,
-                                                self._upload_path))
+        string = ('Upload from {0}: {1}/{2}'
+                  .format(self._faculty_username, self._class_name,
+                          self._assignment_name))
+
         return string
 
     def _parse(self):
@@ -238,46 +240,16 @@ class UploadHandler(EventHandler):
             _upload_path
         """
 
-        self._parse_log_path()
-
-        # the log payload simply contains the assignment path
-        self._upload_path = self._payload
-
-        self._parse_upload_path()
-
-    def _parse_log_path(self):
-        """
-        Extract the faculty username from the log file path.
-
-        Raises:
-             HandlerException
-
-        Initializes attributes:
-            _faculty_username
-        """
-
         self._faculty_username = user_from_log_path(self._log_path)
 
         if self._faculty_username is None:
             raise HandlerException('Malformed log path: {0}'
                                    .format(self._log_path))
 
-    def _parse_upload_path(self):
-        """
-        Extract the class name and assignment name from the assignment path.
-
-        Raises:
-            HandlerException
-
-        Initializes attributes:
-            _class_name
-            _assignment_name
-        """
-
-        assignment_info = parse_faculty_assignment_path(self._upload_path)
-
-        if assignment_info is None:
-            raise HandlerException('Malformed assignment path: {0}'
-                                   .format(self._upload_path))
-
-        self._class_name, self._assignment_name = assignment_info
+        try:
+            self._class_name, self._assignment_name, self._upload_path = \
+                self._payload.split(' ')
+        except ValueError:
+            error = ('Expected <class name> <assignment name> <upload path> '
+                     'not {0}'.format(self._payload))
+            raise HandlerException(error)

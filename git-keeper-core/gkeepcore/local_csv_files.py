@@ -52,7 +52,7 @@ class LocalCSVReader(CSVReader):
         try:
             with open(file_path) as f:
                 self._rows = list(csv.reader(f))
-        except OSError:
+        except (csv.Error, OSError):
             raise CSVError('Error reading from {0}'.format(file_path))
 
     def get_rows(self) -> list:

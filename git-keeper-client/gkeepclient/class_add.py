@@ -13,45 +13,41 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# FIXME
-"""
-This is a proof-of-concept script for adding a class from the client.
-"""
-
+"""Provides a function for adding a class to the server."""
 
 import os
 import sys
-from time import sleep
 
+from gkeepclient.server_response_poller import ServerResponsePoller, \
+    ServerResponseType
 from gkeepclient.server_interface import server_interface, ServerInterfaceError
 from gkeepclient.client_configuration import config, ClientConfigurationError
-from gkeepclient.server_log_file_reader import ServerLogFileReader
 from gkeepcore.csv_files import CSVError
-from gkeepcore.path_utils import faculty_class_dir_path
-from gkeepcore.local_csv_files import csv_rows, LocalCSVReader
-from gkeepcore.student import Student, StudentError, students_from_csv
+from gkeepcore.local_csv_files import LocalCSVReader
+from gkeepcore.student import StudentError, students_from_csv
 
 
-def class_add(class_name='class', csv_file_path='class.csv'):
+class ClassAddError(Exception):
+    """Raised if there are any errors adding the class."""
+    pass
+
+
+def class_add(class_name, csv_file_path):
     if not os.path.isfile(csv_file_path):
-        sys.exit('{0} does not exist'.format(csv_file_path))
+        raise ClassAddError('{0} does not exist'.format(csv_file_path))
 
     try:
         config.parse()
     except ClientConfigurationError as e:
-        sys.exit('Configuration error:\n{0}'.format(e))
+        raise ClassAddError('Configuration error: {0}'.format(e))
 
     try:
         server_interface.connect()
     except ServerInterfaceError as e:
-        sys.exit('Error connecting to the server:\n{0}'.format(e))
+        raise ClassAddError('Error connecting to the server: {0}'.format(e))
 
-    home_dir = server_interface.user_home_dir(config.server_username)
-
-    class_dir_path = faculty_class_dir_path(class_name, home_dir)
-
-    if server_interface.is_directory(class_dir_path):
-        sys.exit('Class {0} already exists'.format(class_name))
+    if server_interface.class_exists(class_name):
+        raise ClassAddError('Class already exists')
 
     try:
         students = students_from_csv(LocalCSVReader(csv_file_path))
@@ -64,41 +60,34 @@ def class_add(class_name='class', csv_file_path='class.csv'):
         print(student)
 
     # create directory and upload CSV
-    server_interface.create_directory(class_dir_path)
-    remote_csv_file_path = os.path.join(class_dir_path, 'students.csv')
+    upload_dir_path = server_interface.create_new_upload_dir()
+    remote_csv_file_path = os.path.join(upload_dir_path, 'students.csv')
+
     server_interface.copy_file(csv_file_path, remote_csv_file_path)
 
     print('CSV file uploaded')
 
-    # initialize a log reader for reading the server's response
-    gkeepd_log_path = server_interface.gkeepd_to_me_log_path()
-    reader = ServerLogFileReader(gkeepd_log_path)
+    poller = ServerResponsePoller('CLASS_ADD', timeout=20)
 
     # log that we added the class
-    server_interface.log_event('CLASS_ADD', class_dir_path)
+    server_interface.log_event('CLASS_ADD', '{0} {1}'
+                               .format(class_name, remote_csv_file_path))
 
-    print('Waiting for server confirmation')
-    sys.stdout.flush()
+    try:
+        for response in poller.response_generator():
+            if response.response_type == ServerResponseType.SUCCESS:
+                print('Class added successfully')
+            elif response.response_type == ServerResponseType.ERROR:
+                print('Error adding class:')
+                print(response.message)
+            elif response.response_type == ServerResponseType.WARNING:
+                print(response.message)
+            elif response.response_type == ServerResponseType.TIMEOUT:
+                print('Server response timeout. Class add status unknown.')
+    except ServerInterfaceError as e:
+        error = 'Server communication error: {0}'.format(e)
+        raise ClassAddError(error)
 
-    message_received = False
-
-    # poll for the server's response
-    while not message_received:
-        while not reader.has_new_lines():
-            print('.', end='')
-            sys.stdout.flush()
-            sleep(1)
-
-        for line in reader.get_new_lines():
-            if line.endswith('CLASS_ADDED ' + class_dir_path):
-                message_received = True
-                print('\nClass added successfully')
-                break
-            if 'CLASS_ADDED_ERROR ' + class_dir_path in line:
-                message_received = True
-                # FIXME - extract specific error
-                print('\nError adding class')
-                break
 
 if __name__ == '__main__':
     class_add(sys.argv[1], sys.argv[2])
