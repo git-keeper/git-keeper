@@ -21,10 +21,11 @@ client.
 
 import os
 
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import path_to_list
 
 
-class UploadDirectoryError(Exception):
+class UploadDirectoryError(GkeepException):
     """
     Thrown by the UploadDirectory constructor if a required file or directory
     does not exist.

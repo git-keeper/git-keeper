@@ -14,18 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""Provides a dictionary which maps event type strings to event handler
-classes. Pass event_handlers_by_type to a LogEventParserThread constructor."""
-
-from gkeepserver.event_handlers.class_add_handler import ClassAddHandler
-from gkeepserver.event_handlers.publish_handler import PublishHandler
-from gkeepserver.event_handlers.submission_handler import SubmissionHandler
-from gkeepserver.event_handlers.upload_handler import UploadHandler
-
-
-event_handlers_by_type = {
-    'CLASS_ADD': ClassAddHandler,
-    'SUBMISSION': SubmissionHandler,
-    'UPLOAD': UploadHandler,
-    'PUBLISH': PublishHandler
-}
+class GkeepException(Exception):
+    """Base class for exceptions"""
+    pass

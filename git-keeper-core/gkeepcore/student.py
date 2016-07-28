@@ -18,7 +18,7 @@
 Provides a class for representing a student and a function for building a
 list of students from a CSV file.
 """
-from gkeepcore.csv_files import CSVReader
+from gkeepcore.csv_files import CSVReader, CSVError
 
 
 class StudentError(Exception):
@@ -128,6 +128,7 @@ def students_from_csv(reader: CSVReader) -> list:
     students = []
 
     for row in reader.get_rows():
-        students.append(Student.from_csv_row(row))
+        if len(row) > 0:
+            students.append(Student.from_csv_row(row))
 
     return students
