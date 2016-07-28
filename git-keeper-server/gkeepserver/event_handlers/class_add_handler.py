@@ -19,15 +19,18 @@
 
 import os
 
+from gkeepcore import gkeep_exception
 from gkeepcore.csv_files import CSVError
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import parse_faculty_class_path, user_from_log_path, \
-    student_class_dir_path
+    student_class_dir_path, user_home_dir, faculty_class_dir_path, \
+    class_student_csv_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.student import students_from_csv, StudentError
-from gkeepcore.system_commands import user_exists, mkdir, sudo_chown
+from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, chmod
 from gkeepserver.create_user import create_user, UserType
 from gkeepserver.event_handler import EventHandler, HandlerException
+from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.server_configuration import config
 
@@ -46,20 +49,52 @@ class ClassAddHandler(EventHandler):
         in each student's home directory.
         """
 
-        # students.csv must be in place
-        if not os.path.isfile(self._students_file_path):
-            error = ('{0} does not exist, cannot add class'
-                     .format(self._students_file_path))
-            self._log_error_to_faculty(error)
-            return
-
-        # get the students from students.csv
         try:
-            reader = LocalCSVReader(self._students_file_path)
+            reader = LocalCSVReader(self._uploaded_csv_path)
             students = students_from_csv(reader)
-        except (CSVError, StudentError) as e:
+
+            self._copy_csv_to_class_dir()
+            self._add_students_class_dirs(students)
+
+            self._log_to_faculty('CLASS_ADD_SUCCESS', self._class_name)
+        except (CSVError, StudentError, HandlerException) as e:
             self._log_error_to_faculty(str(e))
-            return
+            gkeepd_logger.log_warning('Class add failed: {0}'.format(e))
+
+    def _copy_csv_to_class_dir(self):
+        # copy the CSV file to its final destination
+
+        # uploaded CSV must be in place
+        if not os.path.isfile(self._uploaded_csv_path):
+            error = ('{0} does not exist, cannot add class'
+                     .format(self._uploaded_csv_path))
+            raise HandlerException(error)
+
+        home_dir = user_home_dir(self._faculty_username)
+
+        faculty_class_path = faculty_class_dir_path(self._class_name, home_dir)
+
+        # class must not already exist
+        if os.path.isdir(faculty_class_path):
+            error = ('class {0} already exists'.format(self._class_name))
+            raise HandlerException(error)
+
+        # create the class directory, copy the CSV, and fix permissions
+        try:
+            mkdir(faculty_class_path, sudo=True)
+            final_csv_path = class_student_csv_path(self._faculty_username,
+                                                    self._class_name)
+            cp(self._uploaded_csv_path, final_csv_path, sudo=True)
+            chmod(faculty_class_path, '750', sudo=True)
+            sudo_chown(faculty_class_path, self._faculty_username,
+                       config.keeper_group, recursive=True)
+        except CommandError as e:
+            error = 'Error setting up class directory: {0}'.format(e)
+            raise HandlerException(error)
+
+    def _add_students_class_dirs(self, students):
+        # Add class directory in students' home directories. Add student
+        # accounts if necessary.
 
         # students we need to add accounts for
         new_students = []
@@ -78,13 +113,18 @@ class ClassAddHandler(EventHandler):
                              '{1}/{2}'.format(student.username,
                                               self._faculty_username,
                                               self._class_name))
-                    self._log_error_to_faculty(error)
-                    return
+                    raise HandlerException(error)
 
         # create new student accounts
         for student in new_students:
-            create_user(student.username, UserType.student, student.first_name,
-                        student.last_name, email_address=student.email_address)
+            try:
+                create_user(student.username, UserType.student,
+                            student.first_name, student.last_name,
+                            email_address=student.email_address)
+            except gkeep_exception as e:
+                error = 'Error adding user {0}: {1}'.format(student.username,
+                                                            e)
+                raise HandlerException(error)
 
         # for each student, create a directory for the class
         for student in students:
@@ -96,11 +136,7 @@ class ClassAddHandler(EventHandler):
                 sudo_chown(class_dir_path, student.username,
                            config.keeper_group)
             except CommandError as e:
-                self._log_error_to_faculty(str(e))
-                return
-
-        # log success
-        self._log_to_faculty('CLASS_ADDED', self._class_path)
+                raise HandlerException(e)
 
     def __repr__(self) -> str:
         """
@@ -121,22 +157,19 @@ class ClassAddHandler(EventHandler):
         Sets the following attributes:
 
         _faculty_username - username of the faculty member
-        _class_path - path to the class in the faculty's home directory
         _class_name - name of the class
-        _students_file_path - path to students.csv
+        _uploaded_csv_path - path to CSV file uploaded by the faculty
         """
 
         self._faculty_username = user_from_log_path(self._log_path)
 
-        self._class_path = self._payload
-        self._class_name = parse_faculty_class_path(self._class_path)
-
-        if self._class_name is None:
-            error = ('Malformed class path: {0}'.format(self._class_path))
+        try:
+            self._class_name, self._uploaded_csv_path =\
+                self._payload.split(' ')
+        except ValueError:
+            error = ('Payload must look like <class name> <uploaded CSV path> '
+                     ' not {0}'.format(self._payload))
             raise HandlerException(error)
-
-        self._students_file_path = os.path.join(self._class_path,
-                                                'students.csv')
 
     def _log_to_faculty(self, event_type, text):
         """
@@ -155,5 +188,4 @@ class ClassAddHandler(EventHandler):
         :param error: the error message
         """
 
-        log_text = '{0} {1}'.format(self._class_path, error)
-        self._log_to_faculty('CLASS_ADD_ERROR', log_text)
+        self._log_to_faculty('CLASS_ADD_ERROR', error)

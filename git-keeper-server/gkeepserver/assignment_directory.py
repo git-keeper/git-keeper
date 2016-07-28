@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os
 
-from gkeepcore.path_utils import path_to_list, parse_faculty_assignment_path
+from gkeepcore.path_utils import parse_faculty_assignment_path
 
 
 class AssignmentDirectoryError(Exception):
@@ -32,6 +32,7 @@ class AssignmentDirectory:
     Public attributes:
 
         path - path to the assignment directory
+        published_flag_path - path to published flag
         class_name - name of the class
         assignment_name - name of the assignment
         email_path - path to email.txt
@@ -52,6 +53,7 @@ class AssignmentDirectory:
         :param check: whether or not to check if everything exists
         """
         self.path = path
+        self.published_flag_path = os.path.join(self.path, 'published')
         self.email_path = os.path.join(self.path, 'email.txt')
         self.base_code_repo_path = os.path.join(self.path, 'base_code.git')
         self.reports_repo_path = os.path.join(self.path, 'reports.git')

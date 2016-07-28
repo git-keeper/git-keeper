@@ -21,8 +21,10 @@ Provides a run_command() function for running shell commands.
 import os
 from subprocess import check_output, CalledProcessError, STDOUT
 
+from gkeepcore.gkeep_exception import GkeepException
 
-class CommandError(Exception):
+
+class CommandError(GkeepException):
     """
     Raised if a command is run that returns a non-zero exit code, or if the
     command is not a list or a string.
