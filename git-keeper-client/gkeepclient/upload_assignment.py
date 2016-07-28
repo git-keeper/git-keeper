@@ -21,13 +21,17 @@ import os
 import sys
 from time import time, sleep
 
+from gkeepclient.assignment_uploader import AssignmentUploader
+from gkeepclient.server_response_poller import ServerResponsePoller, \
+    ServerResponseType
 from gkeepclient.server_interface import server_interface, ServerInterfaceError
 from gkeepclient.client_configuration import config, ClientConfigurationError
 from gkeepclient.server_log_file_reader import ServerLogFileReader
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
 
 
-class UploadAssignmentError(Exception):
+class UploadAssignmentError(GkeepException):
     """Raised if there are any errors uploading the assignment."""
     pass
 
@@ -63,7 +67,7 @@ def upload_assignment(class_name: str, upload_dir_path: str,
     # build an UploadDirectory object, ensuring all files are in place
     try:
         upload_dir = UploadDirectory(upload_dir_path)
-    except UploadDirectoryError as e:
+    except GkeepException as e:
         error = 'Error in {0}: {1}'.format(upload_dir_path, str(e))
         raise UploadAssignmentError(error)
 
@@ -74,93 +78,54 @@ def upload_assignment(class_name: str, upload_dir_path: str,
         error = 'Configuration error:\n{0}'.format(str(e))
         raise UploadAssignmentError(error)
 
-    # connect to the server
     try:
         server_interface.connect()
+        if server_interface.assignment_exists(class_name,
+                                              upload_dir.assignment_name):
+            error = '{0} already exists'.format(upload_dir.assignment_name)
+            raise UploadAssignmentError(error)
     except ServerInterfaceError as e:
-        error = 'Error connecting to the server:\n{0}'.format(str(e))
+        error = 'Server error: {0}'.format(e)
         raise UploadAssignmentError(error)
 
-    # path that the assignment will eventually end up in
-    assignment_path =\
-        server_interface.my_assignment_dir_path(class_name,
-                                                upload_dir.assignment_name)
+    print('uploading', upload_dir.assignment_name, 'in', class_name)
 
-    # check to see if the assignment path already exists
-    if server_interface.is_directory(assignment_path):
-        error = '{0} already exists'.format(upload_dir.assignment_name)
-        raise UploadAssignmentError(error)
-
-    # directory that we'll upload to on the server, the server will then
-    # move the files to their final location
-    upload_target = os.path.join(server_interface.upload_dir_path(),
-                                 str(time()), class_name,
-                                 upload_dir.assignment_name)
-
-    print('uploading', upload_dir_path, 'to', upload_target)
-
-    # create the directory to upload to
+    # upload base_code, email.txt, and tests
     try:
-        server_interface.create_directory(upload_target)
-    except ServerInterfaceError as e:
-        error = 'Error creating remote upload directory: {0}'.format(str(e))
-        raise UploadAssignmentError(error)
-
-    # copy base_code, email.txt, and tests
-    try:
-        server_interface.copy_directory(upload_dir.base_code_path,
-                                        os.path.join(upload_target,
-                                                     'base_code'))
-        server_interface.copy_file(upload_dir.email_path,
-                                   os.path.join(upload_target, 'email.txt'))
-        server_interface.copy_directory(upload_dir.tests_path,
-                                        os.path.join(upload_target, 'tests'))
-    except ServerInterfaceError as e:
+        uploader = AssignmentUploader(upload_dir)
+        uploader.upload_base_code()
+        uploader.upload_email_txt()
+        uploader.upload_tests()
+    except GkeepException as e:
         error = 'Error uploading assignment: {0}'.format(str(e))
         raise UploadAssignmentError(error)
 
-    # start watching server log for the response. done before writing to our
-    # log so we don't miss the response due to latency
-    gkeepd_log_path = server_interface.gkeepd_to_me_log_path()
-    reader = ServerLogFileReader(gkeepd_log_path)
+    poller = ServerResponsePoller('UPLOAD', response_timeout)
 
-    # log the event
+    payload = '{0} {1} {2}'.format(class_name, upload_dir.assignment_name,
+                                   uploader.get_target_path())
+
     try:
-        server_interface.log_event('UPLOAD', upload_target)
+        server_interface.log_event('UPLOAD', payload)
     except ServerInterfaceError as e:
         error = 'Error logging event: {0}'.format(str(e))
         raise UploadAssignmentError(error)
 
-    print('Waiting for server confirmation ...', end='')
-    sys.stdout.flush()
+    try:
+        for response in poller.response_generator():
+            if response.response_type == ServerResponseType.SUCCESS:
+                print('Assignment uploaded successfully')
+            elif response.response_type == ServerResponseType.ERROR:
+                print('Error uploading assignment:')
+                print(response.message)
+            elif response.response_type == ServerResponseType.WARNING:
+                print(response.message)
+            elif response.response_type == ServerResponseType.TIMEOUT:
+                print('Server response timeout. Upload status unknown.')
+    except ServerInterfaceError as e:
+        error = 'Server communication error: {0}'.format(e)
+        raise UploadAssignmentError(error)
 
-    keep_polling = True
-    poll_start_time = time()
-
-    # poll for the server's response
-    while keep_polling:
-        try:
-            while not reader.has_new_lines() and keep_polling:
-                print('.', end='')
-                sys.stdout.flush()
-                sleep(1)
-                if time() > poll_start_time + response_timeout:
-                    keep_polling = False
-                    print('\nTimed out waiting for response. '
-                          'Upload status is unclear.')
-
-            for line in reader.get_new_lines():
-                if line.endswith('UPLOAD_SUCCESS ' + upload_target):
-                    keep_polling = False
-                    print('\nAssignment uploaded successfully')
-                    break
-                if 'UPLOAD_ERROR ' + upload_target in line:
-                    keep_polling = False
-                    print(line)
-                    break
-        except ServerInterfaceError as e:
-            error = 'Error reading server log file: {0}'.format(str(e))
-            raise UploadAssignmentError(error)
 
 if __name__ == '__main__':
     upload_assignment(sys.argv[1], sys.argv[2])
