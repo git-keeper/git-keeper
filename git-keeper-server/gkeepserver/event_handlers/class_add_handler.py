@@ -19,12 +19,11 @@
 
 import os
 
-from gkeepcore import gkeep_exception
 from gkeepcore.csv_files import CSVError
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
-from gkeepcore.path_utils import parse_faculty_class_path, user_from_log_path, \
-    student_class_dir_path, user_home_dir, faculty_class_dir_path, \
-    class_student_csv_path
+from gkeepcore.path_utils import user_from_log_path, student_class_dir_path, \
+    user_home_dir, faculty_class_dir_path, class_student_csv_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.student import students_from_csv, StudentError
 from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, chmod
@@ -121,7 +120,7 @@ class ClassAddHandler(EventHandler):
                 create_user(student.username, UserType.student,
                             student.first_name, student.last_name,
                             email_address=student.email_address)
-            except gkeep_exception as e:
+            except GkeepException as e:
                 error = 'Error adding user {0}: {1}'.format(student.username,
                                                             e)
                 raise HandlerException(error)

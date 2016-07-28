@@ -12,12 +12,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
 import os
 
-from gkeepcore.path_utils import parse_faculty_assignment_path
+from gkeepcore.gkeep_exception import GkeepException
+from gkeepcore.path_utils import parse_faculty_assignment_path, \
+    user_home_dir, faculty_class_dir_path
 
 
-class AssignmentDirectoryError(Exception):
+class AssignmentDirectoryError(GkeepException):
     def __init__(self, path):
         Exception.__init__(self, '{0} does not exist'.format(path))
 
@@ -92,3 +96,31 @@ class AssignmentDirectory:
         for file_path in (self.email_path, self.action_sh_path):
             if not os.path.isfile(file_path):
                 raise AssignmentDirectoryError(file_path)
+
+    def is_published(self):
+        """
+        Determine if the assignment has been published.
+
+        :return: True if the assignment has bee published, False otherwise
+        """
+
+        return os.path.isfile(self.published_flag_path)
+
+
+def get_class_assignment_dirs(faculty_username: str, class_name: str) -> list:
+    class_path = faculty_class_dir_path(class_name,
+                                        user_home_dir(faculty_username))
+
+    assignment_dirs = []
+
+    if not os.path.isdir(class_path):
+        return assignment_dirs
+
+    for path in os.listdir(class_path):
+        try:
+            assignment_dir = AssignmentDirectory(path)
+            assignment_dirs.append(assignment_dir)
+        except AssignmentDirectoryError:
+            pass
+
+    return assignment_dirs
