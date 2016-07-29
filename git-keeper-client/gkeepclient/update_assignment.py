@@ -17,16 +17,14 @@
 
 import os
 import sys
-from time import time, sleep
 
 from gkeepclient.assignment_uploader import AssignmentUploader
+from gkeepclient.client_configuration import config, ClientConfigurationError
+from gkeepclient.server_interface import server_interface, ServerInterfaceError
 from gkeepclient.server_response_poller import ServerResponsePoller, \
     ServerResponseType
-from gkeepclient.server_interface import server_interface, ServerInterfaceError
-from gkeepclient.client_configuration import config, ClientConfigurationError
-from gkeepclient.server_log_file_reader import ServerLogFileReader
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
+from gkeepcore.upload_directory import UploadDirectory
 
 
 class UpdateAssignmentError(GkeepException):

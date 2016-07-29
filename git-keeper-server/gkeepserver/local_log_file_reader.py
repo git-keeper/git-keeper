@@ -20,7 +20,6 @@ files on the local machine.
 See the gkeepcore.log_file module for more information.
 """
 
-
 import os
 
 from gkeepcore.log_file import LogFileException, LogFileReader

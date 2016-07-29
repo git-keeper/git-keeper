@@ -19,7 +19,6 @@ Provides concrete classes for reading and writing local CSV files as well
 as a function for getting rows from a local CSV file.
 """
 
-
 import csv
 
 from gkeepcore.csv_files import CSVReader, CSVWriter, CSVError

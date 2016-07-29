@@ -25,8 +25,8 @@ log_append_command() builds a shell command for appending to a log.
 
 """
 
-from shlex import quote
 import abc
+from shlex import quote
 
 from gkeepcore.gkeep_exception import GkeepException
 

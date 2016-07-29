@@ -23,9 +23,8 @@ from threading import Thread
 from configuration import GraderConfiguration, ConfigurationError
 from email_sender import Email, process_email_queue
 from repository import Repository
-from subprocess_commands import directory_exists, CommandError
-
 from student import Student
+from subprocess_commands import directory_exists, CommandError
 
 
 def upload_handout(class_name, local_handout_dir):

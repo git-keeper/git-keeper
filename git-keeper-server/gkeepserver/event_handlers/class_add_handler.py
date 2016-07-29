@@ -16,7 +16,6 @@
 
 """Provides a handler for handling classes added by faculty."""
 
-
 import os
 
 from gkeepcore.csv_files import CSVError

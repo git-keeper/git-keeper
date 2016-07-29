@@ -30,10 +30,10 @@ Required structure:
 """
 
 import os
+
 import pytest
 
 from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
-
 
 test_path_prefix = os.path.join('tests', 'test_files', 'upload_directory')
 

@@ -18,11 +18,10 @@
 Provides functions for system calls and command line filesystem operations.
 """
 
-
 import os
-from pwd import getpwuid, getpwnam
-from grp import getgrgid, getgrnam
 from getpass import getuser
+from grp import getgrgid, getgrnam
+from pwd import getpwuid, getpwnam
 from shutil import which
 
 from gkeepcore.shell_command import run_command, CommandError

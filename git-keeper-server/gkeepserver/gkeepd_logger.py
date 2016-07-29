@@ -46,8 +46,8 @@ There is a method for logging a message at each level:
 """
 import os
 from enum import IntEnum
-from threading import Thread
 from queue import Queue, Empty
+from threading import Thread
 
 from gkeepcore.log_file import log_append_command
 from gkeepcore.shell_command import run_command, CommandError
