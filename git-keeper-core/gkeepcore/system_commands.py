@@ -260,6 +260,7 @@ def make_symbolic_link(source_path: str, link_path: str, sudo=False):
 
     :param source_path: path to the actual file or directory
     :param link_path: path to the symbolic link to be created
+    :param sudo: if True, it will be run as root using sudo
     """
 
     cmd = ['ln', '-s', source_path, link_path]
