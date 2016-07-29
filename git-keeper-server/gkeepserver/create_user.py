@@ -26,11 +26,11 @@ from gkeepcore.system_commands import (sudo_add_user, sudo_set_password, chmod,
                                        sudo_chown, mkdir, make_symbolic_link)
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.generate_password import generate_password
+from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepserver.initialize_log import initialize_log
 from gkeepserver.log_polling import log_poller
 from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email
-from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 
 
 class UserType(Enum):

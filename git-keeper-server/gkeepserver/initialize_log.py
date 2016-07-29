@@ -19,7 +19,6 @@ Provides the function intialize_log() for creating a log file with a header
 that warns against editing the file.
 """
 
-
 import os
 from tempfile import TemporaryDirectory
 

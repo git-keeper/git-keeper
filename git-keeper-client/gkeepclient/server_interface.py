@@ -46,13 +46,12 @@ Example usage::
         # Now call methods such as server_interface.is_file(file_path)
 """
 
-
-import os
 import csv
+import os
+from shlex import quote
 from time import time
 
 from paramiko import SSHClient, SSHException
-from shlex import quote
 
 from gkeepclient.client_configuration import config
 from gkeepcore.gkeep_exception import GkeepException

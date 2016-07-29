@@ -20,16 +20,14 @@ Event type: UPLOAD
 """
 
 import os
-from tempfile import TemporaryDirectory
 
 from gkeepcore.faculty import faculty_from_csv_file
-from gkeepcore.git_commands import git_init_bare, git_init, git_push, \
-    git_add_all, git_commit
+from gkeepcore.git_commands import git_init_bare
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_from_log_path, \
-    parse_faculty_assignment_path, faculty_assignment_dir_path, user_home_dir
+    faculty_assignment_dir_path, user_home_dir
 from gkeepcore.shell_command import CommandError
-from gkeepcore.system_commands import chmod, sudo_chown, rm, cp, mkdir
+from gkeepcore.system_commands import chmod, sudo_chown, rm, mkdir
 from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
 from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, create_base_code_repo, copy_email_txt_file, \

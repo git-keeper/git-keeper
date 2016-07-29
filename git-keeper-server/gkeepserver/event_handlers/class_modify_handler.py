@@ -16,7 +16,6 @@
 
 """Provides a handler for modifying class enrollments."""
 
-
 import os
 
 from gkeepcore.csv_files import CSVError

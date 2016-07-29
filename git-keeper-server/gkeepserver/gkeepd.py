@@ -35,12 +35,12 @@ from gkeepcore.gkeep_exception import GkeepException
 from gkeepserver.check_system import check_system, CheckSystemError
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
+from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepserver.local_log_file_reader import LocalLogFileReader
 from gkeepserver.log_event_parser import LogEventParserThread
 from gkeepserver.log_polling import log_poller
 from gkeepserver.server_configuration import config, ServerConfigurationError
 from gkeepserver.submission_test_thread import SubmissionTestThread
-from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 
 # switched to True by the signal handler on SIGINT or SIGTERM
 shutdown_flag = False

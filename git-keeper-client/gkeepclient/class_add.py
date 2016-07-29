@@ -18,10 +18,10 @@
 import os
 import sys
 
+from gkeepclient.client_configuration import config, ClientConfigurationError
+from gkeepclient.server_interface import server_interface, ServerInterfaceError
 from gkeepclient.server_response_poller import ServerResponsePoller, \
     ServerResponseType
-from gkeepclient.server_interface import server_interface, ServerInterfaceError
-from gkeepclient.client_configuration import config, ClientConfigurationError
 from gkeepcore.csv_files import CSVError
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader

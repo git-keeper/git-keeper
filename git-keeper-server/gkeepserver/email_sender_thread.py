@@ -41,9 +41,8 @@ Example usage:
 
 """
 
-
-from threading import Thread
 from queue import Queue, Empty
+from threading import Thread
 from time import time, sleep
 
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger

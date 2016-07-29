@@ -16,6 +16,7 @@
 
 import os
 from tempfile import TemporaryDirectory
+
 from pkg_resources import resource_exists, resource_string, ResolutionError, \
     ExtractionError
 
