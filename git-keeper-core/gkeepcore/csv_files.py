@@ -19,7 +19,6 @@ Allows using local and remote CSV readers and writers with the strategy
 pattern.
 """
 
-
 import abc
 
 from gkeepcore.gkeep_exception import GkeepException

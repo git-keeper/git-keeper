@@ -58,19 +58,29 @@ class UploadDirectory:
         action_sh_path - path to action.sh
     """
 
-    def __init__(self, path):
+    def __init__(self, path, check=True):
         """
         Assign attributes based on path.
 
         Raise ConfigDirectoryError if any required paths do not exist.
 
         :param path: path to the assignment directory
+        :param check: if True, raise an exception if any files or directories
+         do not exist
         """
         self.path = path
         self.email_path = os.path.join(self.path, 'email.txt')
         self.base_code_path = os.path.join(self.path, 'base_code')
         self.tests_path = os.path.join(self.path, 'tests')
         self.action_sh_path = os.path.join(self.tests_path, 'action.sh')
+
+        self.assignment_name = path_to_list(self.path)[-1]
+
+        if check:
+            self._ensure_items_exist()
+
+    def _ensure_items_exist(self):
+        # Raise an exception if any required directories or files are missing
 
         # ensure all required directories exist
         for dir_path in (self.path, self.base_code_path, self.tests_path):
@@ -82,4 +92,3 @@ class UploadDirectory:
             if not os.path.isfile(file_path):
                 raise UploadDirectoryError(file_path)
 
-        self.assignment_name = path_to_list(path)[-1]

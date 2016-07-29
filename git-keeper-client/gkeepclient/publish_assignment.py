@@ -19,10 +19,10 @@
 
 import sys
 
+from gkeepclient.client_configuration import config, ClientConfigurationError
+from gkeepclient.server_interface import server_interface, ServerInterfaceError
 from gkeepclient.server_response_poller import ServerResponsePoller,\
     ServerResponseType
-from gkeepclient.server_interface import server_interface, ServerInterfaceError
-from gkeepclient.client_configuration import config, ClientConfigurationError
 from gkeepcore.gkeep_exception import GkeepException
 
 
@@ -59,12 +59,8 @@ def publish_assignment(class_name: str, assignment_name: str,
         error = 'Error connecting to the server:\n{0}'.format(str(e))
         raise PublishAssignmentError(error)
 
-    # path that the assignment is in on the server
-    assignment_path = server_interface.my_assignment_dir_path(class_name,
-                                                              assignment_name)
-
     # check to make sure the assignment path exists
-    if not server_interface.is_directory(assignment_path):
+    if not server_interface.assignment_exists(class_name, assignment_name):
         error = ('Assignment {0} does not exist in class {1}'
                  .format(assignment_name, class_name))
         raise PublishAssignmentError(error)

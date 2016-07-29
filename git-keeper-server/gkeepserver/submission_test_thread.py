@@ -21,9 +21,8 @@ thread.
 New submissions are pulled from the global new_submission_queue.
 """
 
-
-from threading import Thread
 from queue import Empty
+from threading import Thread
 
 from gkeepserver.new_submission_queue import new_submission_queue
 

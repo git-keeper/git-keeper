@@ -18,11 +18,10 @@
 Provides functions for system calls and command line filesystem operations.
 """
 
-
 import os
-from pwd import getpwuid, getpwnam
-from grp import getgrgid, getgrnam
 from getpass import getuser
+from grp import getgrgid, getgrnam
+from pwd import getpwuid, getpwnam
 from shutil import which
 
 from gkeepcore.shell_command import run_command, CommandError
@@ -261,6 +260,7 @@ def make_symbolic_link(source_path: str, link_path: str, sudo=False):
 
     :param source_path: path to the actual file or directory
     :param link_path: path to the symbolic link to be created
+    :param sudo: if True, it will be run as root using sudo
     """
 
     cmd = ['ln', '-s', source_path, link_path]

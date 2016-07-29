@@ -24,24 +24,27 @@ EmailSenderThread which provides rate limiting.
 
 """
 
-
 import os
-
-from smtplib import SMTP
 from email.header import Header
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from smtplib import SMTP
 
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepserver.server_configuration import config
 
 
 class EmailException(GkeepException):
+    """Raised if anything goes wrong building or sending emails."""
     pass
 
 
 class Email:
+    """
+    Builds an email that can be sent using smtplib and provides a method
+    to send the email.
+    """
     def __init__(self, to_address, subject, body, files_to_attach=None,
                  max_character_count=1000000):
         """

@@ -16,7 +16,6 @@
 
 """Provides a handler for modifying class enrollments."""
 
-
 import os
 
 from gkeepcore.csv_files import CSVError
@@ -28,14 +27,13 @@ from gkeepcore.path_utils import user_from_log_path, \
 from gkeepcore.shell_command import CommandError
 from gkeepcore.student import students_from_csv, StudentError, Student
 from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, chmod
-from gkeepserver.assignment_directory import get_class_assignment_dirs
+from gkeepserver.assignments import get_class_assignment_dirs, \
+    setup_student_assignment, StudentAssignmentError
 from gkeepserver.create_user import create_user, UserType
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.server_configuration import config
-from gkeepserver.student_assignment import setup_student_assignment, \
-    StudentAssignmentError
 
 
 class ClassModifyHandler(EventHandler):
@@ -213,7 +211,7 @@ class ClassModifyHandler(EventHandler):
         """
         Log a CLASS_MODIFY_WARNING message to the gkeepd.log for the faculty.
 
-        :param error: the warning message
+        :param warning: the warning message
         """
 
         self._log_to_faculty('CLASS_MODIFY_WARNING', warning)
