@@ -17,6 +17,7 @@ import os
 from pkg_resources import resource_exists, resource_string, ResolutionError, \
     ExtractionError
 
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import student_assignment_repo_path,\
     student_class_dir_path
 from gkeepcore.shell_command import CommandError
@@ -27,7 +28,7 @@ from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email, EmailException
 
 
-class StudentAssignmentError(Exception):
+class StudentAssignmentError(GkeepException):
     """Raised if anything goes wrong with a student assignment."""
     pass
 

@@ -19,8 +19,10 @@ Provides a class for representing a faculty member.
 """
 import csv
 
+from gkeepcore.gkeep_exception import GkeepException
 
-class FacultyError(Exception):
+
+class FacultyError(GkeepException):
     pass
 
 

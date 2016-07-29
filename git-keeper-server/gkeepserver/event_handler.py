@@ -16,8 +16,10 @@
 
 import abc
 
+from gkeepcore.gkeep_exception import GkeepException
 
-class HandlerException(Exception):
+
+class HandlerException(GkeepException):
     pass
 
 
