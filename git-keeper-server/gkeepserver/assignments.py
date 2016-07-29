@@ -39,6 +39,10 @@ class StudentAssignmentError(GkeepException):
 
 
 class AssignmentDirectoryError(GkeepException):
+    """
+    Raised if any of the required items in the assignment directory do not
+    exist.
+    """
     def __init__(self, path):
         Exception.__init__(self, '{0} does not exist'.format(path))
 
