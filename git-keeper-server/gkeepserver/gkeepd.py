@@ -29,7 +29,9 @@ submission_test_threads - list of SubmissionTestThread objects which run tests
 import sys
 from queue import Queue, Empty
 from signal import signal, SIGINT, SIGTERM
+from traceback import extract_tb
 
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepserver.check_system import check_system, CheckSystemError
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
@@ -135,6 +137,17 @@ def main():
         # get() raises Empty after blocking for timeout seconds
         except Empty:
             pass
+        except (GkeepException, Exception) as e:
+            # A handler's handle() method should catch all exceptions. If we
+            # get here there is likely an issue with the handler.
+            error = ('An exception was caught that should have been caught\n'
+                     'earlier. This is likely due to a bug in the code.\n'
+                     'Please report this to the git-keeper developers along\n'
+                     'with the following stack trace:\n{0}'
+                     .format(extract_tb(e)))
+            print(error, file=sys.stderr)
+            logger.log_error('Unexpected exception. Please report this bug. '
+                             '{0}: {1}'.format(type(e), e))
 
     print('Shutting down. Waiting for threads to finish ... ', end='')
     # flush so it prints immediately despite no newline
