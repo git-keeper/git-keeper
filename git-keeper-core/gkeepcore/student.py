@@ -18,10 +18,12 @@
 Provides a class for representing a student and a function for building a
 list of students from a CSV file.
 """
-from gkeepcore.csv_files import CSVReader, CSVError
+
+from gkeepcore.csv_files import CSVReader
+from gkeepcore.gkeep_exception import GkeepException
 
 
-class StudentError(Exception):
+class StudentError(GkeepException):
     pass
 
 

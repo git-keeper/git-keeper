@@ -78,10 +78,11 @@ import configparser
 import os
 from getpass import getuser
 
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepserver.gkeepd_logger import LogLevel
 
 
-class ServerConfigurationError(Exception):
+class ServerConfigurationError(GkeepException):
     """
     Raised if anything goes wrong parsing the configuration file, which should
     always be treated as a fatal error.

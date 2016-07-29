@@ -23,9 +23,10 @@ from time import sleep, time
 
 from gkeepclient.server_interface import server_interface
 from gkeepclient.server_log_file_reader import ServerLogFileReader
+from gkeepcore.gkeep_exception import GkeepException
 
 
-class ServerResponsePollerError(Exception):
+class ServerResponsePollerError(GkeepException):
     pass
 
 

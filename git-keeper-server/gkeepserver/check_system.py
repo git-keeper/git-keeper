@@ -28,6 +28,7 @@ import csv
 import os
 
 from gkeepcore.faculty import Faculty, FacultyError
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
                                        sudo_add_group, mode, chmod, touch,
                                        this_user, this_group)
@@ -36,7 +37,7 @@ from gkeepserver.server_configuration import config
 from gkeepserver.gkeepd_logger import gkeepd_logger as gkeepd_logger
 
 
-class CheckSystemError(Exception):
+class CheckSystemError(GkeepException):
     """Raised for fatal errors."""
     pass
 

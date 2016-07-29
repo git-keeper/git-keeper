@@ -23,11 +23,12 @@ from gkeepclient.server_response_poller import ServerResponsePoller, \
 from gkeepclient.server_interface import server_interface, ServerInterfaceError
 from gkeepclient.client_configuration import config, ClientConfigurationError
 from gkeepcore.csv_files import CSVError
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.student import StudentError, students_from_csv
 
 
-class ClassAddError(Exception):
+class ClassAddError(GkeepException):
     """Raised if there are any errors adding the class."""
     pass
 
