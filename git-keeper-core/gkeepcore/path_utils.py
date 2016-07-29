@@ -212,17 +212,20 @@ def faculty_class_dir_path(class_name: str, home_dir: str):
     return os.path.join(home_dir, 'classes', class_name)
 
 
-def class_published_file_path(class_name: str, home_dir: str):
+def assignment_published_file_path(class_name: str, assignment_name: str,
+                                   home_dir: str):
     """
-    Build the path to a class's published flag file.
+    Build the path to an assignment's published flag file.
 
     :param class_name: name of the class
+    :param assignment_name: name of the assignment
     :param home_dir: home dir of the faculty
     :return: path to the published flag file
     """
 
-    class_path = faculty_class_dir_path(class_name, home_dir)
-    return os.path.join(class_path, 'published')
+    assignment_path = faculty_assignment_dir_path(class_name, assignment_name,
+                                                  home_dir)
+    return os.path.join(assignment_path, 'published')
 
 
 def faculty_assignment_dir_path(class_name: str, assignment_name: str,

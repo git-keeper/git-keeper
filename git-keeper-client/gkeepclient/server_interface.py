@@ -59,7 +59,7 @@ from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.log_file import log_append_command
 from gkeepcore.path_utils import user_log_path, gkeepd_to_faculty_log_path, \
     faculty_upload_dir_path, faculty_assignment_dir_path,\
-    faculty_class_dir_path
+    faculty_class_dir_path, assignment_published_file_path
 
 
 class ServerInterfaceError(GkeepException):
@@ -457,6 +457,20 @@ class ServerInterface:
         path = faculty_assignment_dir_path(class_name, assignment_name,
                                            self._home_dir)
         return self.is_directory(path)
+
+    def assignment_is_published(self, class_name: str,
+                                assignment_name: str) -> bool:
+        """
+        Determine if an assignment exists on the server.
+
+        :param class_name: name of the class that the assignment belongs to
+        :param assignment_name: name of the assignment
+        :return: True if the assignment exists, False otherwise
+        """
+
+        path = assignment_published_file_path(class_name, assignment_name,
+                                              self._home_dir)
+        return self.is_file(path)
 
 
 # Module-level interface instance. Someone must call connect() on this before

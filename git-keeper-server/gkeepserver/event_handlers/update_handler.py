@@ -14,9 +14,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Provides UploadHandler, the handler for new assignment uploads.
+Provides UpdateHandler, the handler for updating assignments.
 
-Event type: UPLOAD
+Event type: UPDATE
 """
 
 import os
@@ -33,73 +33,79 @@ from gkeepcore.system_commands import chmod, sudo_chown, rm, cp, mkdir
 from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
 from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, create_base_code_repo, copy_email_txt_file, \
-    copy_tests_dir, setup_student_assignment, StudentAssignmentError
+    copy_tests_dir, remove_student_assignment, setup_student_assignment, \
+    StudentAssignmentError
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.server_configuration import config
 
 
-class UploadHandler(EventHandler):
-    """Handles a new assignment uploaded by a faculty member."""
+class UpdateHandler(EventHandler):
+    """Handles an update to an assignment."""
 
     def handle(self):
         """
-        Take action after a faculty member uploads a new assignment.
+        Take action after a faculty member updates an assignment.
 
-        Copies uploaded files into the proper directory, creates bare
-        repositories, and creates a repository the faculty member can use
-        to
+        If the assignment is unpublished, any part of the assignment may be
+        updated. If the assignment has been published, only the tests may be
+        updated.
         """
 
         faculty_home_dir = user_home_dir(self._faculty_username)
 
-        # path to the directory that the assignment's files will be kept in
+        # path to the directory that the assignment's files are kept in on
+        # the server
         assignment_path = faculty_assignment_dir_path(self._class_name,
                                                       self._assignment_name,
                                                       faculty_home_dir)
 
-        print('Handling upload:')
+        print('Handling update:')
         print(' Faculty:        ', self._faculty_username)
         print(' Class:          ', self._class_name)
         print(' Assignment:     ', self._assignment_name)
         print(' Path:           ', self._upload_path)
         print(' Assignment path:', assignment_path)
 
-        assignment_dir = AssignmentDirectory(assignment_path, check=False)
+        assignment_dir = None
 
         try:
-            self._setup_assignment_dir(assignment_dir)
-            self._setup_faculty_test_assignment(assignment_dir)
-            log_gkeepd_to_faculty(self._faculty_username, 'UPLOAD_SUCCESS',
+            assignment_dir = AssignmentDirectory(assignment_path)
+
+            # take over ownership of the assignment directory temporarily
+            sudo_chown(assignment_dir.path, config.keeper_user,
+                       config.keeper_group, recursive=True)
+
+            upload_dir = UploadDirectory(self._upload_path, check=False)
+
+            self._update_items(assignment_dir, upload_dir)
+            self._replace_faculty_test_assignment(assignment_dir)
+            log_gkeepd_to_faculty(self._faculty_username, 'UPDATE_SUCCESS',
                                   self._upload_path)
-            info = '{0} uploaded {1} to {2}'.format(self._faculty_username,
-                                                    self._assignment_name,
-                                                    self._class_name)
+            info = '{0} updated {1} in {2}'.format(self._faculty_username,
+                                                   self._assignment_name,
+                                                   self._class_name)
             gkeepd_logger.log_info(info)
-        except HandlerException as e:
+        except GkeepException as e:
             error = '{0} {1}'.format(self._upload_path, str(e))
-            log_gkeepd_to_faculty(self._faculty_username, 'UPLOAD_ERROR',
+            log_gkeepd_to_faculty(self._faculty_username, 'UPDATE_ERROR',
                                   error)
-            warning = 'Faculty upload failed: {0}'.format(str(e))
+            warning = 'Faculty update failed: {0}'.format(str(e))
             gkeepd_logger.log_warning(warning)
 
-            # if we failed, remove the assignment directory
-            try:
-                rm(assignment_path, recursive=True, sudo=True)
-            except CommandError:
-                pass
-
-        # delete the upload directory
+        # return ownership to faculty and delete the upload directory
         try:
+            sudo_chown(assignment_dir.path, self._faculty_username,
+                       config.keeper_group, recursive=True)
             rm(self._upload_path, recursive=True, sudo=True)
-        except CommandError:
+        except Exception:
             pass
 
-    def _setup_faculty_test_assignment(self,
-                                       assignment_dir: AssignmentDirectory):
-        # Setup a bare repository so the faculty can test the assignment,
-        # and email the faculty.
+    def _replace_faculty_test_assignment(self,
+                                         assignment_dir: AssignmentDirectory):
+        # Remove and re-setup the bare repository so the faculty can test the
+        # assignment, and email the faculty.
 
         faculty = None
 
@@ -115,69 +121,34 @@ class UploadHandler(EventHandler):
                      .format(self._upload_path, self._faculty_username))
             raise HandlerException(error)
 
-        # set up the faculty's test assignment and send email
+        # remove existing test assignment and setup the new test assignment
         try:
+            remove_student_assignment(assignment_dir, faculty,
+                                      faculty.username)
             setup_student_assignment(assignment_dir, faculty, faculty.username)
         except StudentAssignmentError as e:
             raise HandlerException(str(e))
 
-    def _setup_assignment_dir(self, assignment_dir: AssignmentDirectory):
-        # Setup the directory that holds the files for the assignment.
+    def _update_items(self, assignment_dir: AssignmentDirectory,
+                      upload_dir: UploadDirectory):
+        # Update the directory that holds the files for the assignment.
 
-        # Ensure all necessary files are present in the upload directory
-        try:
-            upload_dir = UploadDirectory(self._upload_path)
-        except UploadDirectoryError as e:
-            raise HandlerException(e)
+        published = assignment_dir.is_published()
 
-        # bail if assignment directory already exists
-        if os.path.isdir(assignment_dir.path):
-            error = '{0} already exists'.format(self._assignment_name)
-            raise HandlerException(error)
-
-        try:
-            # create the assignment directory and make it owned by keeper for
-            # now
-            mkdir(assignment_dir.path, sudo=True)
-            sudo_chown(assignment_dir.path, config.keeper_user,
-                       config.keeper_group)
-        except CommandError as e:
-            error = 'error creating directory: {0}'.format(str(e))
-            raise HandlerException(error)
-
-        try:
-            # initialize reports repo
-            mkdir(assignment_dir.reports_repo_path)
-            git_init_bare(assignment_dir.reports_repo_path)
-
-            # create the base code repo
+        if os.path.isdir(upload_dir.base_code_path) and not published:
+            rm(assignment_dir.base_code_repo_path, recursive=True)
             create_base_code_repo(assignment_dir, upload_dir.base_code_path)
-        except GkeepException as e:
-            raise HandlerException(e)
 
-        # copy email.txt and tests directory to assignment directory
-        try:
+        if os.path.isfile(upload_dir.email_path) and not published:
+            rm(assignment_dir.email_path)
             copy_email_txt_file(assignment_dir, upload_dir.email_path)
-            copy_tests_dir(assignment_dir, upload_dir.tests_path)
-        except GkeepException as e:
-            error = ('error copying assignment files: {0}'.format(str(e)))
-            raise HandlerException(error)
 
-        # set permissions on assignment directory
-        try:
-            chmod(assignment_dir.path, '750', sudo=True)
-            sudo_chown(assignment_dir.path, self._faculty_username,
-                       config.keeper_group, recursive=True)
-        except CommandError as e:
-            error = ('error setting permissions on {0}: {1}'
-                     .format(assignment_dir.path, str(e)))
-            raise HandlerException(error)
+        if os.path.isdir(upload_dir.tests_path):
+            rm(assignment_dir.tests_path, recursive=True)
+            copy_tests_dir(assignment_dir, upload_dir.tests_path)
 
         # sanity check
-        try:
-            assignment_dir.check()
-        except AssignmentDirectoryError as e:
-            raise HandlerException(e)
+        assignment_dir.check()
 
     def __repr__(self):
         """
@@ -186,7 +157,7 @@ class UploadHandler(EventHandler):
         :return: a string representation of the event to be handled
         """
 
-        string = ('Upload from {0}: {1}/{2}'
+        string = ('Update from {0}: {1}/{2}'
                   .format(self._faculty_username, self._class_name,
                           self._assignment_name))
 
