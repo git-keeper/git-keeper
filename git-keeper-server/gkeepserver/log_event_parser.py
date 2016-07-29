@@ -28,6 +28,7 @@ from gkeepserver.event_handler import EventHandler, HandlerException
 
 
 class LogEventParserException(GkeepException):
+    """Raised if anything goes wrong parsing log events."""
     pass
 
 
@@ -127,7 +128,8 @@ class LogEventParserThread(Thread):
             handler = self._parse_line(log_path, log_line)
             # pass the handler off via a queue
             self._event_handler_queue.put(handler)
-        # log a warning if the log line is not a valid event that can be handled
+        # log a warning if the log line is not a valid event that can be
+        # handled
         except (LogEventParserException, HandlerException) as e:
             self._logger.log_warning(str(e))
 

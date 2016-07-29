@@ -28,13 +28,12 @@ When it is run, a line like this is appended to the student's log:
 <timestamp> SUBMISSION <repo path>
 """
 
-
-import os
 import getpass
+import os
 
 from gkeepcore.log_file import log_append_command
-from gkeepcore.shell_command import run_command
 from gkeepcore.path_utils import log_path_from_username
+from gkeepcore.shell_command import run_command
 
 
 def main():

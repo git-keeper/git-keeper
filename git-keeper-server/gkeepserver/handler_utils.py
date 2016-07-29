@@ -16,9 +16,8 @@
 
 """Provides utility functions used by EventHandler classes."""
 
-
-from gkeepcore.path_utils import user_home_dir, gkeepd_to_faculty_log_path
 from gkeepcore.log_file import log_append_command
+from gkeepcore.path_utils import user_home_dir, gkeepd_to_faculty_log_path
 from gkeepcore.shell_command import run_command
 
 

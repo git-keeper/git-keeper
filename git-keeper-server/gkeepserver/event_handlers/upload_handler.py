@@ -20,24 +20,22 @@ Event type: UPLOAD
 """
 
 import os
-from tempfile import TemporaryDirectory
 
 from gkeepcore.faculty import faculty_from_csv_file
-from gkeepcore.git_commands import git_init_bare, git_init, git_push, \
-    git_add_all, git_commit
+from gkeepcore.git_commands import git_init_bare
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_from_log_path, \
-    parse_faculty_assignment_path, faculty_assignment_dir_path, user_home_dir
+    faculty_assignment_dir_path, user_home_dir
 from gkeepcore.shell_command import CommandError
-from gkeepcore.system_commands import chmod, sudo_chown, rm, cp, mkdir
+from gkeepcore.system_commands import chmod, sudo_chown, rm, mkdir
 from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
-from gkeepserver.assignment_directory import AssignmentDirectory, \
-    AssignmentDirectoryError
+from gkeepserver.assignments import AssignmentDirectory, \
+    AssignmentDirectoryError, create_base_code_repo, copy_email_txt_file, \
+    copy_tests_dir, setup_student_assignment, StudentAssignmentError
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.server_configuration import config
-from gkeepserver.student_assignment import setup_student_assignment, \
-    StudentAssignmentError, write_post_receive_script
 
 
 class UploadHandler(EventHandler):
@@ -141,61 +139,25 @@ class UploadHandler(EventHandler):
             mkdir(assignment_dir.path, sudo=True)
             sudo_chown(assignment_dir.path, config.keeper_user,
                        config.keeper_group)
-
-            # create the repo directories
-            mkdir(assignment_dir.base_code_repo_path)
-            mkdir(assignment_dir.reports_repo_path)
         except CommandError as e:
             error = 'error creating directory: {0}'.format(str(e))
             raise HandlerException(error)
 
-        # temporary directory in which to create a git repository from
-        # base_code
-        base_code_tempdir = TemporaryDirectory()
-
-        # copy base_code to the temporary directory
         try:
-            cp(upload_dir.base_code_path, base_code_tempdir.name,
-               recursive=True)
-        except CommandError as e:
-            error = ('Error copying base code to a temporary directory: {0}'
-                     .format(str(e)))
-            raise HandlerException(error)
-
-        base_code_temp_path = os.path.join(base_code_tempdir.name,
-                                           'base_code')
-
-        try:
-            # initialize assignment directory bare repositories
+            # initialize reports repo
+            mkdir(assignment_dir.reports_repo_path)
             git_init_bare(assignment_dir.reports_repo_path)
-            git_init_bare(assignment_dir.base_code_repo_path)
 
-            # initialize base code repository in upload directory
-            git_init(base_code_temp_path)
-            git_add_all(base_code_temp_path)
-            git_commit(base_code_temp_path, 'Initial commit')
-
-            # push base code into bare repo
-            git_push(base_code_temp_path,
-                     assignment_dir.base_code_repo_path)
-
-            # put the post-receive git hook script in place
-            post_receive_script_path =\
-                os.path.join(assignment_dir.base_code_repo_path,
-                             'hooks', 'post-receive')
-            write_post_receive_script(post_receive_script_path)
-            chmod(post_receive_script_path, '750', sudo=True)
-        except (CommandError, StudentAssignmentError) as e:
-            error = 'error building repositories: {0}'.format(str(e))
-            raise HandlerException(error)
+            # create the base code repo
+            create_base_code_repo(assignment_dir, upload_dir.base_code_path)
+        except GkeepException as e:
+            raise HandlerException(e)
 
         # copy email.txt and tests directory to assignment directory
         try:
-            cp(upload_dir.email_path, assignment_dir.path, recursive=True,
-               sudo=True)
-            cp(upload_dir.tests_path, assignment_dir.tests_path,
-               recursive=True, sudo=True)
-        except CommandError as e:
+            copy_email_txt_file(assignment_dir, upload_dir.email_path)
+            copy_tests_dir(assignment_dir, upload_dir.tests_path)
+        except GkeepException as e:
             error = ('error copying assignment files: {0}'.format(str(e)))
             raise HandlerException(error)
 

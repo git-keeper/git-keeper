@@ -33,8 +33,8 @@ from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
                                        sudo_add_group, mode, chmod, touch,
                                        this_user, this_group)
 from gkeepserver.create_user import create_user, UserType
-from gkeepserver.server_configuration import config
 from gkeepserver.gkeepd_logger import gkeepd_logger as gkeepd_logger
+from gkeepserver.server_configuration import config
 
 
 class CheckSystemError(GkeepException):

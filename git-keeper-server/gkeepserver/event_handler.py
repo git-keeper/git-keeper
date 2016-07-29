@@ -20,6 +20,7 @@ from gkeepcore.gkeep_exception import GkeepException
 
 
 class HandlerException(GkeepException):
+    """Raised if anything goes wrong with the handler."""
     pass
 
 
