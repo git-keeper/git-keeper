@@ -60,11 +60,12 @@ from queue import Queue, Empty
 from threading import Thread
 from time import time, sleep
 
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.log_file import LogFileReader, LogFileException
 from gkeepserver.gkeepd_logger import GkeepdLoggerThread
 
 
-class LogPollingThreadError(Exception):
+class LogPollingThreadError(GkeepException):
     pass
 
 
