@@ -23,9 +23,10 @@ from gkeepclient.server_response_poller import ServerResponsePoller,\
     ServerResponseType
 from gkeepclient.server_interface import server_interface, ServerInterfaceError
 from gkeepclient.client_configuration import config, ClientConfigurationError
+from gkeepcore.gkeep_exception import GkeepException
 
 
-class PublishAssignmentError(Exception):
+class PublishAssignmentError(GkeepException):
     """Raised if there are any errors publishing the assignment."""
     pass
 

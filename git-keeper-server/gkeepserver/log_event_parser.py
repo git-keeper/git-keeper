@@ -23,10 +23,11 @@ import re
 from queue import Queue, Empty
 from threading import Thread
 
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepserver.event_handler import EventHandler, HandlerException
 
 
-class LogEventParserException(Exception):
+class LogEventParserException(GkeepException):
     pass
 
 

@@ -22,8 +22,10 @@ pattern.
 
 import abc
 
+from gkeepcore.gkeep_exception import GkeepException
 
-class CSVError(Exception):
+
+class CSVError(GkeepException):
     pass
 
 

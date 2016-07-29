@@ -33,10 +33,11 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepserver.server_configuration import config
 
 
-class EmailException(Exception):
+class EmailException(GkeepException):
     pass
 
 

@@ -28,12 +28,13 @@ log_append_command() builds a shell command for appending to a log.
 from shlex import quote
 import abc
 
+from gkeepcore.gkeep_exception import GkeepException
 
 # keep the log line to 4KB or less to maintain write atomicity
 MAX_LOG_LINE_LENGTH = 4096
 
 
-class LogFileException(Exception):
+class LogFileException(GkeepException):
     """
     Raised if anything goes wrong with the log files.
     """
