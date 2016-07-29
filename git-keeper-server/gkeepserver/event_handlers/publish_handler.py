@@ -28,14 +28,12 @@ from gkeepcore.path_utils import user_from_log_path, \
 from gkeepcore.shell_command import CommandError
 from gkeepcore.student import students_from_csv, StudentError, Student
 from gkeepcore.system_commands import touch, sudo_chown
-from gkeepserver.assignment_directory import AssignmentDirectory, \
-    AssignmentDirectoryError
+from gkeepserver.assignments import AssignmentDirectory, \
+    AssignmentDirectoryError, setup_student_assignment, StudentAssignmentError
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.server_configuration import config
-from gkeepserver.student_assignment import setup_student_assignment, \
-    StudentAssignmentError
 
 
 class PublishHandler(EventHandler):
