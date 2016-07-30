@@ -19,6 +19,7 @@ classes. Pass event_handlers_by_type to a LogEventParserThread constructor."""
 
 from gkeepserver.event_handlers.class_add_handler import ClassAddHandler
 from gkeepserver.event_handlers.class_modify_handler import ClassModifyHandler
+from gkeepserver.event_handlers.delete_handler import DeleteHandler
 from gkeepserver.event_handlers.publish_handler import PublishHandler
 from gkeepserver.event_handlers.submission_handler import SubmissionHandler
 from gkeepserver.event_handlers.update_handler import UpdateHandler
@@ -31,5 +32,6 @@ event_handlers_by_type = {
     'SUBMISSION': SubmissionHandler,
     'UPLOAD': UploadHandler,
     'UPDATE': UpdateHandler,
-    'PUBLISH': PublishHandler
+    'PUBLISH': PublishHandler,
+    'DELETE': DeleteHandler,
 }

@@ -19,7 +19,9 @@ Provides a class for representing a faculty member.
 """
 import csv
 
+from gkeepcore.csv_files import CSVReader
 from gkeepcore.gkeep_exception import GkeepException
+from gkeepcore.local_csv_files import LocalCSVReader
 
 
 class FacultyError(GkeepException):
@@ -89,23 +91,43 @@ class Faculty:
                                              self.username, self.email_address)
 
 
-def faculty_from_csv_file(csv_path: str):
+def faculty_from_csv_file(csv_reader: CSVReader):
     """
-    Yield a Faculty object for each row in a CSV file.
+    Build a list of Faculty from a CSV file reader.
 
     Raises FacultyError on a malformed row.
 
-    :param csv_path: path to the CSV file
-    :return: iterator over Faculty objects
+    :param csv_reader: the CSV reader
+    :return: list of Faculty objects
     """
+    faculty = []
+
     try:
-        with open(csv_path) as f:
-            reader = csv.reader(f)
-
-            for row in reader:
-                # skip blank lines
-                if len(row) > 0:
-                    yield Faculty.from_csv_row(row)
-
-    except (csv.Error, OSError) as e:
+        for row in csv_reader.get_rows():
+            # skip blank lines
+            if len(row) > 0:
+                faculty.append(Faculty.from_csv_row(row))
+    except GkeepException as e:
         raise FacultyError(e)
+
+    return faculty
+
+
+def faculty_from_username(username: str,
+                          csv_reader: CSVReader) -> Faculty:
+    """
+    Build a Faculty object for the faculty with the given username from the
+    given CSV reader.
+
+    Raises FacultyError or CSVError if something goes wrong.
+
+    :param username: username of the faculty
+    :param csv_reader: CSVReader to get the faculty data from
+    :return: Faculty object with the given username
+    """
+
+    for faculty in faculty_from_csv_file(csv_reader):
+        if faculty.username == username:
+            return faculty
+
+    raise FacultyError('{0} not found'.format(username))
