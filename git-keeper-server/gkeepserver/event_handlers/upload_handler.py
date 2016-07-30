@@ -21,9 +21,10 @@ Event type: UPLOAD
 
 import os
 
-from gkeepcore.faculty import faculty_from_csv_file
+from gkeepcore.faculty import faculty_from_username
 from gkeepcore.git_commands import git_init_bare
 from gkeepcore.gkeep_exception import GkeepException
+from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
     faculty_assignment_dir_path, user_home_dir
 from gkeepcore.shell_command import CommandError
@@ -99,19 +100,8 @@ class UploadHandler(EventHandler):
         # Setup a bare repository so the faculty can test the assignment,
         # and email the faculty.
 
-        faculty = None
-
-        # get the appropriate Faculty object from faculty.csv
-        for faculty_from_row in faculty_from_csv_file(config.faculty_csv_path):
-            if faculty_from_row.username == self._faculty_username:
-                faculty = faculty_from_row
-                break
-
-        # if the faculty doesn't exist in faculty.csv, raise
-        if faculty is None:
-            error = ('{0} {1} is not a faculty username'
-                     .format(self._upload_path, self._faculty_username))
-            raise HandlerException(error)
+        reader = LocalCSVReader(config.faculty_csv_path)
+        faculty = faculty_from_username(self._faculty_username, reader)
 
         # set up the faculty's test assignment and send email
         try:
