@@ -22,7 +22,7 @@ import sys
 from gkeepclient.client_configuration import config, ClientConfigurationError
 from gkeepclient.server_interface import server_interface, ServerInterfaceError
 from gkeepclient.server_response_poller import ServerResponsePoller,\
-    ServerResponseType
+    ServerResponseType, communicate_event
 from gkeepcore.gkeep_exception import GkeepException
 
 
@@ -67,31 +67,14 @@ def publish_assignment(class_name: str, assignment_name: str,
 
     print('Publishing assignment', assignment_name, 'in class', class_name)
 
-    poller = ServerResponsePoller('PUBLISH', response_timeout)
-
     payload = '{0} {1}'.format(class_name, assignment_name)
 
-    # log the event
-    try:
-        server_interface.log_event('PUBLISH', payload)
-    except ServerInterfaceError as e:
-        error = 'Error logging event: {0}'.format(str(e))
-        raise PublishAssignmentError(error)
+    communicate_event('PUBLISH', payload,
+                      success_message='Assignment successfully published',
+                      error_message='Error publishing assignment:',
+                      timeout_message='Server response timeout. '
+                                      'Publish status unknown.')
 
-    try:
-        for response in poller.response_generator():
-            if response.response_type == ServerResponseType.SUCCESS:
-                print('Assignment successfully published')
-            elif response.response_type == ServerResponseType.ERROR:
-                print('Error publishing response:')
-                print(response.message)
-            elif response.response_type == ServerResponseType.WARNING:
-                print(response.message)
-            elif response.response_type == ServerResponseType.TIMEOUT:
-                print('Server response timeout. Publish status unknown.')
-    except ServerInterfaceError as e:
-        error = 'Server communication error: {0}'.format(e)
-        raise PublishAssignmentError(error)
 
 if __name__ == '__main__':
     publish_assignment(sys.argv[1], sys.argv[2])

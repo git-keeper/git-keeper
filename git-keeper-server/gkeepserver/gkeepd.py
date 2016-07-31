@@ -21,7 +21,8 @@ Spawns a number of threads:
 logger - GkeepdLoggerThread for logging runtime information
 email_sender - EmailSenderThread for sending rate-limited emails
 log_poller - LogPollingThread for watching student and faculty logs for events
-event_parser - LogEventParserThread for creating event handlers from log events
+handler_assigner - EventHandlerAssignerThread for creating event handlers from
+                   log events
 submission_test_threads - list of SubmissionTestThread objects which run tests
 
 """
@@ -37,7 +38,7 @@ from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepserver.local_log_file_reader import LocalLogFileReader
-from gkeepserver.log_event_parser import LogEventParserThread
+from gkeepserver.event_handler_assigner import EventHandlerAssignerThread
 from gkeepserver.log_polling import log_poller
 from gkeepserver.server_configuration import config, ServerConfigurationError
 from gkeepserver.submission_test_thread import SubmissionTestThread
@@ -97,16 +98,18 @@ def main():
         sys.exit(1)
 
     # queues for thread communication
-    new_log_line_queue = Queue()
+    new_log_event_queue = Queue()
     event_handler_queue = Queue()
 
-    # the event parser creates event handlers for the main loop to call upon
-    event_parser = LogEventParserThread(new_log_line_queue,
-                                        event_handler_queue,
-                                        event_handlers_by_type, logger)
+    # the handler assigner creates event handlers for the main loop to call
+    # upon
+    handler_assigner = EventHandlerAssignerThread(new_log_event_queue,
+                                                  event_handler_queue,
+                                                  event_handlers_by_type,
+                                                  logger)
 
-    # the log poller detects new events and passes them to the event parser
-    log_poller.initialize(new_log_line_queue, LocalLogFileReader,
+    # the log poller detects new events and passes them to the handler assigner
+    log_poller.initialize(new_log_event_queue, LocalLogFileReader,
                           config.log_snapshot_file_path, logger)
 
     # start the rest of the threads
@@ -117,7 +120,7 @@ def main():
         # thread is automatically started by the constructor
         submission_test_threads.append(SubmissionTestThread())
 
-    event_parser.start()
+    handler_assigner.start()
     log_poller.start()
 
     logger.log_info('Server is running')
@@ -157,7 +160,7 @@ def main():
 
     # shut down the pipeline in this order so that no new log events are lost
     log_poller.shutdown()
-    event_parser.shutdown()
+    handler_assigner.shutdown()
 
     for thread in submission_test_threads:
         thread.shutdown()
