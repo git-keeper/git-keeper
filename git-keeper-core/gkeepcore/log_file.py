@@ -26,6 +26,7 @@ log_append_command() builds a shell command for appending to a log.
 """
 
 import abc
+import re
 from shlex import quote
 
 from gkeepcore.gkeep_exception import GkeepException
@@ -39,6 +40,53 @@ class LogFileException(GkeepException):
     Raised if anything goes wrong with the log files.
     """
     pass
+
+
+class LogEvent:
+    """
+    Stores the timestamp, event type, and payload from a log line.
+    """
+    def __init__(self, log_line: str):
+        """
+        Parse the log line and store the components as attributes.
+
+        A log line should look like this:
+            <timestamp> <event type> <payload>
+
+        Raises a LogFileException if the line does not parse correctly.
+
+        :param log_line: line from a log file
+        """
+        match = re.match('(\d+.\d+) (\w+) (.*)', log_line)
+
+        if match is None:
+            error = ('Log line does not look like an event: {0}'
+                     .format(log_line))
+            raise LogFileException(error)
+
+        self.timestamp, self.event_type, self.payload = match.groups()
+
+        try:
+            self.timestamp = float(self.timestamp)
+        except ValueError:
+            raise LogFileException('{0} is not a valid timestamp'
+                                   .format(self.timestamp))
+
+    @classmethod
+    def from_values(cls, timestamp: float, event_type: str, payload: str):
+        """
+        Create a LogEvent from the values that are usually parsed from a log
+        line rather than the line itself.
+
+        :param timestamp: floating point timestamp
+        :param event_type: type of the event
+        :param payload: payload of the event
+        :return: LogEvent object
+        """
+
+        log_line = '{0} {1} {2}'.format(str(timestamp), event_type, payload)
+
+        return cls(log_line)
 
 
 class LogFileReader(metaclass=abc.ABCMeta):
@@ -87,7 +135,7 @@ class LogFileReader(metaclass=abc.ABCMeta):
         """
         return self.get_byte_count() > self._seek_position
 
-    def get_new_lines(self) -> str:
+    def get_new_lines(self) -> list:
         """
         Retrieve lines from the file starting at _seek_position.
 
@@ -112,6 +160,23 @@ class LogFileReader(metaclass=abc.ABCMeta):
 
         # split on newlines and return the list
         return data_string.strip().split('\n')
+
+    def get_new_events(self) -> list:
+        """
+        Like get_new_lines() but parses the lines and returns a list of
+        LogEvent objects instead.
+
+        Raises LogFileException if anything goes wrong.
+
+        :return: a list of LogEvent objects
+        """
+
+        events = []
+
+        for line in self.get_new_lines():
+            events.append(LogEvent(line))
+
+        return events
 
     @abc.abstractmethod
     def get_byte_count(self) -> int:
