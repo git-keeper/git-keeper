@@ -87,6 +87,9 @@ class ServerInterface:
         self._home_dir = None
         self._event_log_path = None
 
+    def is_connected(self):
+        return self._ssh_client is not None
+
     def connect(self):
         """
         Connect to the server.
@@ -457,14 +460,14 @@ class ServerInterface:
                                            self._home_dir)
         return self.is_directory(path)
 
-    def assignment_is_published(self, class_name: str,
-                                assignment_name: str) -> bool:
+    def assignment_published(self, class_name: str,
+                             assignment_name: str) -> bool:
         """
-        Determine if an assignment exists on the server.
+        Determine if an assignment is published.
 
         :param class_name: name of the class that the assignment belongs to
         :param assignment_name: name of the assignment
-        :return: True if the assignment exists, False otherwise
+        :return: True if the assignment is published, False otherwise
         """
 
         path = assignment_published_file_path(class_name, assignment_name,

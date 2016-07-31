@@ -18,10 +18,11 @@
 import os
 import sys
 
-from gkeepclient.client_configuration import config, ClientConfigurationError
-from gkeepclient.server_interface import server_interface, ServerInterfaceError
-from gkeepclient.server_response_poller import ServerResponsePoller, \
-    ServerResponseType
+from gkeepclient.client_function_decorators import config_parsed, \
+    class_does_not_exist
+from gkeepclient.client_function_decorators import server_interface_connected
+from gkeepclient.server_interface import server_interface
+from gkeepclient.server_response_poller import communicate_event
 from gkeepcore.csv_files import CSVError
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
@@ -33,22 +34,19 @@ class ClassAddError(GkeepException):
     pass
 
 
-def class_add(class_name, csv_file_path):
+@config_parsed
+@server_interface_connected
+@class_does_not_exist
+def class_add(class_name: str, csv_file_path: str):
+    """
+    Add a class on the server.
+
+    :param class_name: name of the class
+    :param csv_file_path: path to the CSV file of students
+    """
+
     if not os.path.isfile(csv_file_path):
         raise ClassAddError('{0} does not exist'.format(csv_file_path))
-
-    try:
-        config.parse()
-    except ClientConfigurationError as e:
-        raise ClassAddError('Configuration error: {0}'.format(e))
-
-    try:
-        server_interface.connect()
-    except ServerInterfaceError as e:
-        raise ClassAddError('Error connecting to the server: {0}'.format(e))
-
-    if server_interface.class_exists(class_name):
-        raise ClassAddError('Class already exists')
 
     try:
         students = students_from_csv(LocalCSVReader(csv_file_path))
@@ -68,26 +66,13 @@ def class_add(class_name, csv_file_path):
 
     print('CSV file uploaded')
 
-    poller = ServerResponsePoller('CLASS_ADD', timeout=20)
+    payload = '{0} {1}'.format(class_name, remote_csv_file_path)
 
-    # log that we added the class
-    server_interface.log_event('CLASS_ADD', '{0} {1}'
-                               .format(class_name, remote_csv_file_path))
-
-    try:
-        for response in poller.response_generator():
-            if response.response_type == ServerResponseType.SUCCESS:
-                print('Class added successfully')
-            elif response.response_type == ServerResponseType.ERROR:
-                print('Error adding class:')
-                print(response.message)
-            elif response.response_type == ServerResponseType.WARNING:
-                print(response.message)
-            elif response.response_type == ServerResponseType.TIMEOUT:
-                print('Server response timeout. Class add status unknown.')
-    except ServerInterfaceError as e:
-        error = 'Server communication error: {0}'.format(e)
-        raise ClassAddError(error)
+    communicate_event('CLASS_ADD', payload,
+                      success_message='Class added successfully',
+                      error_message='Error adding class:',
+                      timeout_message='Server response timeout. '
+                                      'Class add status unknown')
 
 
 if __name__ == '__main__':

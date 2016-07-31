@@ -99,6 +99,9 @@ class ClientConfiguration:
 
         self._parsed = False
 
+    def is_parsed(self):
+        return self._parsed
+
     def parse(self, config_path=None):
         """
         Parse the configuration file and initialize the attributes.
