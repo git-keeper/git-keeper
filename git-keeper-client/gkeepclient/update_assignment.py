@@ -20,9 +20,11 @@ import sys
 
 from gkeepclient.assignment_uploader import AssignmentUploader
 from gkeepclient.client_configuration import config, ClientConfigurationError
+from gkeepclient.client_function_decorators import config_parsed, \
+    server_interface_connected, class_exists
 from gkeepclient.server_interface import server_interface, ServerInterfaceError
 from gkeepclient.server_response_poller import ServerResponsePoller, \
-    ServerResponseType
+    ServerResponseType, communicate_event
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.upload_directory import UploadDirectory
 
@@ -32,6 +34,9 @@ class UpdateAssignmentError(GkeepException):
     pass
 
 
+@config_parsed
+@server_interface_connected
+@class_exists
 def update_assignment(class_name: str, upload_dir_path: str,
                       items=('base_code', 'email', 'tests'),
                       response_timeout=20):
@@ -69,26 +74,9 @@ def update_assignment(class_name: str, upload_dir_path: str,
         error = 'Error in {0}: {1}'.format(upload_dir_path, str(e))
         raise UpdateAssignmentError(error)
 
-    # parse the configuration file
-    try:
-        config.parse()
-    except ClientConfigurationError as e:
-        error = 'Configuration error:\n{0}'.format(str(e))
-        raise UpdateAssignmentError(error)
-
-    try:
-        server_interface.connect()
-        if not server_interface.assignment_exists(class_name,
-                                                  upload_dir.assignment_name):
-            error = '{0} does not exist'.format(upload_dir.assignment_name)
-            raise UpdateAssignmentError(error)
-    except ServerInterfaceError as e:
-        error = 'Server error: {0}'.format(e)
-        raise UpdateAssignmentError(error)
-
     is_published =\
-        server_interface.assignment_is_published(class_name,
-                                                 upload_dir.assignment_name)
+        server_interface.assignment_published(class_name,
+                                              upload_dir.assignment_name)
 
     if is_published and ('base_code' in items or 'email' in items):
         error = 'Assignment is already published, only tests may be updated.'
@@ -109,31 +97,14 @@ def update_assignment(class_name: str, upload_dir_path: str,
         error = 'Error uploading assignment updates: {0}'.format(str(e))
         raise UpdateAssignmentError(error)
 
-    poller = ServerResponsePoller('UPDATE', response_timeout)
-
     payload = '{0} {1} {2}'.format(class_name, upload_dir.assignment_name,
                                    uploader.get_target_path())
 
-    try:
-        server_interface.log_event('UPDATE', payload)
-    except ServerInterfaceError as e:
-        error = 'Error logging event: {0}'.format(str(e))
-        raise UpdateAssignmentError(error)
-
-    try:
-        for response in poller.response_generator():
-            if response.response_type == ServerResponseType.SUCCESS:
-                print('Assignment updated successfully')
-            elif response.response_type == ServerResponseType.ERROR:
-                print('Error updating assignment:')
-                print(response.message)
-            elif response.response_type == ServerResponseType.WARNING:
-                print(response.message)
-            elif response.response_type == ServerResponseType.TIMEOUT:
-                print('Server response timeout. Update status unknown.')
-    except ServerInterfaceError as e:
-        error = 'Server communication error: {0}'.format(e)
-        raise UpdateAssignmentError(error)
+    communicate_event('UPDATE', payload,
+                      success_message='Assignment updated successfully',
+                      error_message='Error updating assignment:',
+                      timeout_message='Server response timeout. '
+                                      'Update status unknown')
 
 
 if __name__ == '__main__':

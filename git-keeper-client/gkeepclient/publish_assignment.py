@@ -19,51 +19,25 @@
 
 import sys
 
-from gkeepclient.client_configuration import config, ClientConfigurationError
-from gkeepclient.server_interface import server_interface, ServerInterfaceError
-from gkeepclient.server_response_poller import ServerResponsePoller,\
-    ServerResponseType, communicate_event
-from gkeepcore.gkeep_exception import GkeepException
+from gkeepclient.client_function_decorators import server_interface_connected,\
+    config_parsed, class_exists, assignment_exists, assignment_not_published
+from gkeepclient.server_response_poller import communicate_event
 
 
-class PublishAssignmentError(GkeepException):
-    """Raised if there are any errors publishing the assignment."""
-    pass
-
-
-def publish_assignment(class_name: str, assignment_name: str,
-                       response_timeout=20):
+@config_parsed
+@server_interface_connected
+@class_exists
+@assignment_exists
+@assignment_not_published
+def publish_assignment(class_name: str, assignment_name: str):
     """
     Publish an assignment on the server.
 
     The server will send emails to all students with clone URLs.
 
-    Raises PublishAssignmentError if anything goes wrong.
-
     :param class_name: name of the class the assignment belongs to
     :param assignment_name: name of the assignment
-    :param response_timeout: seconds to wait for server response
     """
-
-    # parse the configuration file
-    try:
-        config.parse()
-    except ClientConfigurationError as e:
-        error = 'Configuration error:\n{0}'.format(str(e))
-        raise PublishAssignmentError(error)
-
-    # connect to the server
-    try:
-        server_interface.connect()
-    except ServerInterfaceError as e:
-        error = 'Error connecting to the server:\n{0}'.format(str(e))
-        raise PublishAssignmentError(error)
-
-    # check to make sure the assignment path exists
-    if not server_interface.assignment_exists(class_name, assignment_name):
-        error = ('Assignment {0} does not exist in class {1}'
-                 .format(assignment_name, class_name))
-        raise PublishAssignmentError(error)
 
     print('Publishing assignment', assignment_name, 'in class', class_name)
 
