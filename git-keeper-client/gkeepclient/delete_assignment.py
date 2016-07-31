@@ -19,10 +19,9 @@
 
 import sys
 
-from gkeepclient.client_configuration import config, ClientConfigurationError
-from gkeepclient.server_interface import server_interface, ServerInterfaceError
-from gkeepclient.server_response_poller import ServerResponsePoller,\
-    ServerResponseType
+from gkeepclient.client_function_decorators import config_parsed, \
+    server_interface_connected, class_exists, assignment_exists
+from gkeepclient.server_response_poller import communicate_event
 from gkeepcore.gkeep_exception import GkeepException
 
 
@@ -31,6 +30,10 @@ class DeleteAssignmentError(GkeepException):
     pass
 
 
+@config_parsed
+@server_interface_connected
+@class_exists
+@assignment_exists
 def delete_assignment(class_name: str, assignment_name: str,
                       response_timeout=20):
     """
@@ -43,53 +46,16 @@ def delete_assignment(class_name: str, assignment_name: str,
     :param response_timeout: seconds to wait for server response
     """
 
-    # parse the configuration file
-    try:
-        config.parse()
-    except ClientConfigurationError as e:
-        error = 'Configuration error:\n{0}'.format(str(e))
-        raise DeleteAssignmentError(error)
-
-    # connect to the server
-    try:
-        server_interface.connect()
-    except ServerInterfaceError as e:
-        error = 'Error connecting to the server:\n{0}'.format(str(e))
-        raise DeleteAssignmentError(error)
-
-    # check to make sure the assignment path exists
-    if not server_interface.assignment_exists(class_name, assignment_name):
-        error = ('Assignment {0} does not exist in class {1}'
-                 .format(assignment_name, class_name))
-        raise DeleteAssignmentError(error)
-
     print('Deleting assignment', assignment_name, 'in class', class_name)
-
-    poller = ServerResponsePoller('DELETE', response_timeout)
 
     payload = '{0} {1}'.format(class_name, assignment_name)
 
-    # log the event
-    try:
-        server_interface.log_event('DELETE', payload)
-    except ServerInterfaceError as e:
-        error = 'Error logging event: {0}'.format(str(e))
-        raise DeleteAssignmentError(error)
+    communicate_event('DELETE', payload, response_timeout=response_timeout,
+                      success_message='Assignment deleted successfully',
+                      error_message='Error deleting response:',
+                      timeout_message='Server response timeout. '
+                                      'Delete status unknown')
 
-    try:
-        for response in poller.response_generator():
-            if response.response_type == ServerResponseType.SUCCESS:
-                print('Assignment successfully deleted')
-            elif response.response_type == ServerResponseType.ERROR:
-                print('Error deleting response:')
-                print(response.message)
-            elif response.response_type == ServerResponseType.WARNING:
-                print(response.message)
-            elif response.response_type == ServerResponseType.TIMEOUT:
-                print('Server response timeout. Delete status unknown.')
-    except ServerInterfaceError as e:
-        error = 'Server communication error: {0}'.format(e)
-        raise DeleteAssignmentError(error)
 
 if __name__ == '__main__':
     delete_assignment(sys.argv[1], sys.argv[2])
