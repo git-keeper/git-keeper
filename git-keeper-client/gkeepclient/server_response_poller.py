@@ -97,12 +97,54 @@ class ServerResponsePoller:
                     yield ServerResponse(ServerResponseType.TIMEOUT)
                     return
 
-            for line in self._reader.get_new_lines():
-                if self._success_type in line:
+            for event in self._reader.get_new_events():
+                if event.event_type == self._success_type:
                     yield ServerResponse(ServerResponseType.SUCCESS)
                     return
-                if self._error_type in line:
-                    yield ServerResponse(ServerResponseType.ERROR, line)
+                if event.event_type == self._error_type:
+                    yield ServerResponse(ServerResponseType.ERROR,
+                                         event.payload)
                     return
-                if self._warning_type in line:
-                    yield ServerResponse(ServerResponseType.WARNING, line)
+                if event.event_type == self._warning_type:
+                    yield ServerResponse(ServerResponseType.WARNING,
+                                         event.payload)
+
+
+def communicate_event(event_type: str, payload: str, response_timeout=20,
+                      success_message=None, error_message=None,
+                      warning_message=None, timeout_message=None):
+    """
+    Log an event on the server to initiate server action. Wait for server
+    responses and print messages accordingly.
+
+    :param event_type: type of the event logged
+    :param payload: payload of the event
+    :param response_timeout: seconds to wait before reporting a timeout
+    :param success_message: message to print if the server handled the
+     event successfully
+    :param error_message: message to print announcing that the server failed
+     to handle the event
+    :param warning_message: message to print announcing that the server issued
+     a warning when handling the event
+    :param timeout_message: message to print if the timeout is reached
+    """
+
+    poller = ServerResponsePoller(event_type, response_timeout)
+
+    server_interface.log_event(event_type, payload)
+
+    for response in poller.response_generator():
+        if response.response_type == ServerResponseType.SUCCESS:
+            if success_message is not None:
+                print(success_message)
+        elif response.response_type == ServerResponseType.ERROR:
+            if error_message is not None:
+                print(error_message)
+            print(response.message)
+        elif response.response_type == ServerResponseType.WARNING:
+            if warning_message is not None:
+                print(warning_message)
+            print(response.message)
+        elif response.response_type == ServerResponseType.TIMEOUT:
+            if timeout_message is not None:
+                print(timeout_message)

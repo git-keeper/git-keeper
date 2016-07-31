@@ -38,7 +38,7 @@ Example usage::
     def main():
         # set up other stuff
 
-        log_poller.initialize(new_log_line_queue, byte_count_function,
+        log_poller.initialize(new_log_event_queue, byte_count_function,
                               read_bytes_function,
                               config.log_snapshot_file_path, gkeepd_logger)
 
@@ -47,8 +47,8 @@ Example usage::
         log_poller.watch_log_file('/path/to/log')
 
         while keep_going:
-            log_file_path, log_line = new_log_line_queue.get()
-            # do something with the line
+            log_file_path, log_event = new_log_event_queue.get()
+            # do something with the event
 
         log_poller.shutdown()
 
@@ -74,7 +74,7 @@ class LogPollingThread(Thread):
     """
     Watches log files for modifications.
 
-    New lines from log files are put in a queue to be processed by another
+    New events from log files are put in a queue to be processed by another
     thread.
 
     See the module-level documentation for usage.
@@ -97,7 +97,7 @@ class LogPollingThread(Thread):
         # initialize this so we can add files to watch before the thread starts
         self._add_log_queue = Queue()
 
-        self._new_log_line_queue = None
+        self._new_log_event_queue = None
         self._reader_class = None
         self._snapshot_file_path = None
         self._polling_interval = None
@@ -106,13 +106,13 @@ class LogPollingThread(Thread):
         self._log_file_readers = None
         self._shutdown_flag = None
 
-    def initialize(self, new_log_line_queue: Queue, reader_class,
+    def initialize(self, new_log_event_queue: Queue, reader_class,
                    snapshot_file_path: str, logger: GkeepdLoggerThread,
                    polling_interval=1):
         """
         Initialize the attributes.
 
-        :param new_log_line_queue: the poller places (file_path, line) pairs
+        :param new_log_event_queue: the poller places (file_path, event) pairs
          into this queue
         :param reader_class: LogFileReader class to use for creating readers
         :param snapshot_file_path: path to the snapshot file
@@ -121,7 +121,7 @@ class LogPollingThread(Thread):
 
         """
 
-        self._new_log_line_queue = new_log_line_queue
+        self._new_log_event_queue = new_log_event_queue
 
         self._reader_class = reader_class
 
@@ -268,12 +268,12 @@ class LogPollingThread(Thread):
 
         readers = list(self._log_file_readers.values())
 
-        # for each file reader, add any new lines to the queue
+        # for each file reader, add any new events to the queue
         for reader in readers:
             try:
-                for line in reader.get_new_lines():
-                    self._new_log_line_queue.put((reader.get_file_path(),
-                                                  line))
+                for event in reader.get_new_events():
+                    self._new_log_event_queue.put((reader.get_file_path(),
+                                                   event))
             except LogFileException as e:
                 self._logger.log_warning(str(e))
                 # if something goes wrong we should not keep watching this file
