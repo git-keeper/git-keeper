@@ -20,14 +20,16 @@
 
 import sys
 from argparse import ArgumentParser
+
 from argcomplete import autocomplete
 
-from gkeepclient.class_add import class_add
-from gkeepclient.class_modify import class_modify
-from gkeepclient.delete_assignment import delete_assignment
-from gkeepclient.publish_assignment import publish_assignment
-from gkeepclient.update_assignment import update_assignment
-from gkeepclient.upload_assignment import upload_assignment
+from gkeepclient.actions.class_add import class_add
+from gkeepclient.actions.class_modify import class_modify
+from gkeepclient.actions.delete_assignment import delete_assignment
+from gkeepclient.actions.publish_assignment import publish_assignment
+from gkeepclient.actions.update_assignment import update_assignment
+from gkeepclient.actions.upload_assignment import upload_assignment
+from gkeepclient.queries import list_classes, list_assignments, list_students
 from gkeepcore.gkeep_exception import GkeepException
 
 
@@ -135,7 +137,14 @@ def add_delete_subparser(subparsers):
                            help='name of the assignment')
 
 
-def initialize_parser() -> GraderParser:
+def add_query_subparser(subparsers):
+    subparser = subparsers.add_parser('query', help='query the server')
+    subparser.add_argument('query_type', metavar='<query type>',
+                           help='classes, assignments, or students',
+                           choices=['classes', 'assignments', 'students'])
+
+
+def initialize_action_parser() -> GraderParser:
     """
     Initialize a GraderParser object.
 
@@ -145,7 +154,7 @@ def initialize_parser() -> GraderParser:
     # Create the argument parser object, and declare that it will have
     # sub-commands.
     # e.g. gkeep upload, gkeep publish, etc.
-    parser = GraderParser(prog='')
+    parser = GraderParser()
     subparsers = parser.add_subparsers(dest='subparser_name', title="Actions")
 
     # add subparsers
@@ -155,8 +164,18 @@ def initialize_parser() -> GraderParser:
     add_update_subparser(subparsers)
     add_publish_subparser(subparsers)
     add_delete_subparser(subparsers)
+    add_query_subparser(subparsers)
 
     return parser
+
+
+def run_query(query_type: str):
+    if query_type == 'classes':
+        list_classes()
+    elif query_type == 'assignments':
+        list_assignments()
+    elif query_type == 'students':
+        list_students()
 
 
 def main():
@@ -169,7 +188,7 @@ def main():
 
     # Initialize the parser object that will interpret the passed in
     # command line arguments
-    parser = initialize_parser()
+    parser = initialize_action_parser()
 
     # Allow for auto-complete
     autocomplete(parser)
@@ -207,6 +226,8 @@ def main():
         elif action_name == 'delete':
             delete_assignment(parsed_args.class_name,
                               parsed_args.assignment_name)
+        elif action_name == 'query':
+            run_query(parsed_args.query_type)
     except GkeepException as e:
         sys.exit(e)
 
