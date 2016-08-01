@@ -53,14 +53,16 @@ class ClassModifyHandler(EventHandler):
         for the class.
         """
 
+        home_dir = user_home_dir(self._faculty_username)
+
         try:
             new_students_reader = LocalCSVReader(self._uploaded_csv_path)
             new_students_by_username = {}
             for student in students_from_csv(new_students_reader):
                 new_students_by_username[student.username] = student
 
-            old_students_path = class_student_csv_path(self._faculty_username,
-                                                       self._class_name)
+            old_students_path = class_student_csv_path(self._class_name,
+                                                       home_dir)
             old_students_reader = LocalCSVReader(old_students_path)
             old_students_by_username = {}
             for student in students_from_csv(old_students_reader):
@@ -90,8 +92,7 @@ class ClassModifyHandler(EventHandler):
 
         # copy the CSV and fix permissions
         try:
-            final_csv_path = class_student_csv_path(self._faculty_username,
-                                                    self._class_name)
+            final_csv_path = class_student_csv_path(self._class_name, home_dir)
             cp(self._uploaded_csv_path, final_csv_path, sudo=True)
             chmod(faculty_class_path, '750', sudo=True)
             sudo_chown(faculty_class_path, self._faculty_username,
@@ -127,9 +128,10 @@ class ClassModifyHandler(EventHandler):
                                                             e)
                 raise HandlerException(error)
 
-        class_dir_path = student_class_dir_path(student.username,
-                                                self._faculty_username,
-                                                self._class_name)
+        home_dir = user_home_dir(student.username)
+
+        class_dir_path = student_class_dir_path(self._faculty_username,
+                                                self._class_name, home_dir)
         # create the class directory
         try:
             mkdir(class_dir_path, sudo=True)

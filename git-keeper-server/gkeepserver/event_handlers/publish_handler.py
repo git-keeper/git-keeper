@@ -98,8 +98,9 @@ class PublishHandler(EventHandler):
                                          assignment_dir: AssignmentDirectory):
         # Setup bare repositories for each student in the class
 
-        student_csv_path = class_student_csv_path(self._faculty_username,
-                                                  self._class_name)
+        home_dir = user_home_dir(self._faculty_username)
+
+        student_csv_path = class_student_csv_path(self._class_name, home_dir)
 
         try:
             students = students_from_csv(LocalCSVReader(student_csv_path))

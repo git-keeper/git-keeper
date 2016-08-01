@@ -82,8 +82,10 @@ class DeleteHandler(EventHandler):
         # Delete the assignment bare repos for the students and the faculty,
         # as well as the assignment directory itself.
 
-        reader = LocalCSVReader(class_student_csv_path(self._faculty_username,
-                                                       self._class_name))
+        home_dir = user_home_dir(self._faculty_username)
+
+        reader = LocalCSVReader(class_student_csv_path(self._class_name,
+                                                       home_dir))
         students = students_from_csv(reader)
 
         faculty = \
