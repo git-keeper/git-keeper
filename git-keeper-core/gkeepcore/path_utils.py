@@ -201,15 +201,27 @@ def faculty_upload_dir_path(home_dir: str) -> str:
     return os.path.join(home_dir, 'uploads')
 
 
+def faculty_classes_dir_path(home_dir: str):
+    """
+    Build the path to a faculty member's directory for storing classes.
+
+    :param home_dir: home directory of the faculty member.
+    :return: path to the classes directory
+    """
+
+    return os.path.join(home_dir, 'classes')
+
+
 def faculty_class_dir_path(class_name: str, home_dir: str):
     """
     Build the path to a faculty member's class directory on the server.
 
     :param class_name: name of the class
     :param home_dir: home directory of the faculty member.
+    :return: path to the class directory
     """
 
-    return os.path.join(home_dir, 'classes', class_name)
+    return os.path.join(faculty_classes_dir_path(home_dir), class_name)
 
 
 def assignment_published_file_path(class_name: str, assignment_name: str,
@@ -261,46 +273,44 @@ def log_path_from_username(username: str) -> str:
     return log_path
 
 
-def class_student_csv_path(faculty_username: str, class_name: str) -> str:
+def class_student_csv_path(class_name: str, home_dir: str) -> str:
     """
     Build a path to the CSV file of students for a class.
 
-    :param faculty_username: username of the faculty running the class
     :param class_name: name of the class
+    :param home_dir: home directory of the faculty
     :return: path to the CSV file
     """
-    home_dir = user_home_dir(faculty_username)
+
     class_path = faculty_class_dir_path(class_name, home_dir)
 
     return os.path.join(class_path, 'students.csv')
 
 
-def student_class_dir_path(student_username, faculty_username,
-                           class_name) -> str:
+def student_class_dir_path(faculty_username, class_name, home_dir) -> str:
     """
     Build a path to a student's directory for a class.
 
-    :param student_username: username of the student
-    :param faculty_username: username of the faculty teaching the class
+    :param faculty_username: username of the faculty
     :param class_name: name of the class
+    :param home_dir: home directory of the student
     :return: path to the class directory
     """
 
-    return os.path.join(user_home_dir(student_username), faculty_username,
-                        class_name)
+    return os.path.join(home_dir, faculty_username, class_name)
 
 
-def student_assignment_repo_path(student_username: str, faculty_username: str,
-                                 class_name: str, assignment_name: str) -> str:
+def student_assignment_repo_path(faculty_username: str, class_name: str,
+                                 assignment_name: str, home_dir: str) -> str:
     """
     Build a path to a student's repository for an assignment.
 
-    :param student_username: username of the student
     :param faculty_username: username of the faculty who owns the class
     :param class_name: name of the class
     :param assignment_name: name of the assignment
+    :param home_dir: home directory of the student
     :return: path to the assignment repository
     """
-    return os.path.join(student_class_dir_path(student_username,
-                                               faculty_username, class_name),
+    return os.path.join(student_class_dir_path(faculty_username, class_name,
+                                               home_dir),
                         assignment_name + '.git')
