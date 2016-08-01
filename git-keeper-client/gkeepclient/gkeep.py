@@ -23,12 +23,8 @@ from argparse import ArgumentParser
 
 from argcomplete import autocomplete
 
-from gkeepclient.actions.class_add import class_add
-from gkeepclient.actions.class_modify import class_modify
-from gkeepclient.actions.delete_assignment import delete_assignment
-from gkeepclient.actions.publish_assignment import publish_assignment
-from gkeepclient.actions.update_assignment import update_assignment
-from gkeepclient.actions.upload_assignment import upload_assignment
+from gkeepclient.actions import class_add, class_modify, delete_assignment, \
+ publish_assignment, update_assignment, upload_assignment
 from gkeepclient.queries import list_classes, list_assignments, list_students
 from gkeepcore.gkeep_exception import GkeepException
 
@@ -170,6 +166,11 @@ def initialize_action_parser() -> GraderParser:
 
 
 def run_query(query_type: str):
+    """
+    Run the query specified by query_type.
+
+    :param query_type: type of the query
+    """
     if query_type == 'classes':
         list_classes()
     elif query_type == 'assignments':
