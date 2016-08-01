@@ -15,9 +15,9 @@
 
 
 """Provides functions for running git commands."""
+import os
 
-
-from gkeepcore.shell_command import run_command_in_directory
+from gkeepcore.shell_command import run_command_in_directory, run_command
 
 
 def git_remote_add(repo_path, remote_name, url):
@@ -105,3 +105,58 @@ def git_push(repo_path, dest=None, branch='master', force=False):
         cmd += [dest, branch]
 
     run_command_in_directory(repo_path, cmd)
+
+
+def git_pull(repo_path, remote_url=None):
+    """
+    Pull from a remote repository.
+
+    :param repo_path: path to the local repository
+    :param remote_url: URL to pull from, None to pull from upstream remote
+    """
+
+    cmd = ['git', 'pull']
+
+    if remote_url is not None:
+        cmd.append(remote_url)
+
+    run_command_in_directory(repo_path, cmd)
+
+
+def is_non_bare_repo(repo_path):
+    """
+    Determine if a directory is a non-bare git repository by checking for the
+    existance of a .git folder.
+
+    :param repo_path: path to the repository
+    :return: True if the repository contains a .git folder, False otherwise
+    """
+
+    git_path = os.path.join(repo_path, '.git')
+
+    return os.path.isdir(git_path)
+
+
+def git_clone(remote_repo_url, local_repo_path):
+    """
+    Clone a remote repository.
+
+    :param remote_repo_url: URL of the remote repository
+    :param local_repo_path: path to the new local repository
+    """
+
+    cmd = ['git', 'clone', remote_repo_url, local_repo_path]
+    run_command(cmd)
+
+
+def git_head_hash(repo_path):
+    """
+    Get the hash of the HEAD of a git repository.
+
+    :param repo_path: path to the repository
+    :return: commit hash of HEAD
+    """
+
+    cmd = ['git', 'rev-parse', 'HEAD']
+
+    return run_command_in_directory(repo_path, cmd).rstrip()

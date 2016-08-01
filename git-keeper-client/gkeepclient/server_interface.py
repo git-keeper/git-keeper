@@ -92,6 +92,9 @@ class ServerInterface:
     def is_connected(self):
         return self._ssh_client is not None
 
+    def my_home_dir(self):
+        return self._home_dir
+
     def connect(self):
         """
         Connect to the server.
@@ -519,7 +522,13 @@ class ServerInterface:
 
         return assignments
 
-    def get_students(self, class_name: str):
+    def get_students(self, class_name: str) -> list:
+        """
+        Get a list of Student objects from a class.
+
+        :param class_name: name of the class
+        :return: list of Student objects
+        """
         students = []
 
         csv_path = class_student_csv_path(class_name, self._home_dir)
@@ -535,6 +544,19 @@ class ServerInterface:
 
         return students
 
+    def git_head_hash(self, repo_path):
+        """
+        Get the has of the HEAD of a bare git repository.
+
+        :param repo_path: path to the repository
+        :return: commit hash of HEAD
+        """
+
+        git_dir_argument = '--git-dir={0}'.format(repo_path)
+
+        cmd = ['git', git_dir_argument, 'rev-parse', 'HEAD']
+
+        return self.run_command(cmd).rstrip()
 
 
 # Module-level interface instance. Someone must call connect() on this before
