@@ -118,6 +118,8 @@ def run_command_in_directory(path, command, sudo=False, stderr=STDOUT):
     """
     try:
         with ChangeDirectoryContext(path):
-            run_command(command, sudo=sudo, stderr=stderr)
+            output = run_command(command, sudo=sudo, stderr=stderr)
     except OSError as e:
         raise CommandError(e)
+
+    return output

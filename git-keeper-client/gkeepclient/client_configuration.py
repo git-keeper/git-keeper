@@ -129,6 +129,7 @@ class ClientConfiguration:
 
         self._parse_config_file()
         self._set_server_options()
+        self._set_local_options()
 
         self._parsed = True
 
@@ -149,8 +150,8 @@ class ClientConfiguration:
         # Raise an exception if section is not in the config file
 
         if section not in self._parser.sections():
-            error = '{0} is not present in {1}'.format(section,
-                                                       self._config_path)
+            error = ('Section [{0}] is not present in {1}'
+                     .format(section, self._config_path))
             raise ClientConfigurationError(error)
 
     def _set_server_options(self):
@@ -177,6 +178,20 @@ class ClientConfiguration:
 
         except configparser.NoOptionError as e:
             raise ClientConfigurationError(e.message)
+
+    def _set_local_options(self):
+        # Initialize all attributes related to the local client machine
+
+        self._ensure_section_is_present('local')
+
+        try:
+            self.submissions_path = self._parser.get('local',
+                                                     'submissions_path')
+        except configparser.NoOptionError as e:
+            raise ClientConfigurationError(e.message)
+
+        self.submissions_path = os.path.expanduser(self.submissions_path)
+        self.submissions_path = os.path.abspath(self.submissions_path)
 
 
 # Module-level configuration instance. Someone must call parse() on this
