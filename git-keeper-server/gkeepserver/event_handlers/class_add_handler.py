@@ -80,8 +80,7 @@ class ClassAddHandler(EventHandler):
         # create the class directory, copy the CSV, and fix permissions
         try:
             mkdir(faculty_class_path, sudo=True)
-            final_csv_path = class_student_csv_path(self._faculty_username,
-                                                    self._class_name)
+            final_csv_path = class_student_csv_path(self._class_name, home_dir)
             cp(self._uploaded_csv_path, final_csv_path, sudo=True)
             chmod(faculty_class_path, '750', sudo=True)
             sudo_chown(faculty_class_path, self._faculty_username,
@@ -103,9 +102,11 @@ class ClassAddHandler(EventHandler):
             if not user_exists(student.username):
                 new_students.append(student)
             else:
-                class_dir_path = student_class_dir_path(student.username,
-                                                        self._faculty_username,
-                                                        self._class_name)
+                home_dir = user_home_dir(student.username)
+
+                class_dir_path = student_class_dir_path(self._faculty_username,
+                                                        self._class_name,
+                                                        home_dir)
                 if os.path.isdir(class_dir_path):
                     error = ('Student {0} already has a directory for class '
                              '{1}/{2}'.format(student.username,
@@ -126,9 +127,11 @@ class ClassAddHandler(EventHandler):
 
         # for each student, create a directory for the class
         for student in students:
-            class_dir_path = student_class_dir_path(student.username,
-                                                    self._faculty_username,
-                                                    self._class_name)
+            home_dir = user_home_dir(student.username)
+
+            class_dir_path = student_class_dir_path(self._faculty_username,
+                                                    self._class_name,
+                                                    home_dir)
             try:
                 mkdir(class_dir_path, sudo=True)
                 sudo_chown(class_dir_path, student.username,

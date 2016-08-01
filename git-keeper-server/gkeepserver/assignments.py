@@ -271,10 +271,12 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
     :param faculty_username: username of the faculty who owns the class
     """
 
+    home_dir = user_home_dir(student.username)
+
     # path to the student's directory containing the class that this assignment
     # belongs to
-    class_path = student_class_dir_path(student.username, faculty_username,
-                                        assignment_dir.class_name)
+    class_path = student_class_dir_path(faculty_username,
+                                        assignment_dir.class_name, home_dir)
 
     # path to the student's bare repository for this assignment
     assignment_repo_path = \

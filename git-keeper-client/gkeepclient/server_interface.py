@@ -58,7 +58,9 @@ from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.log_file import log_append_command
 from gkeepcore.path_utils import user_log_path, gkeepd_to_faculty_log_path, \
     faculty_upload_dir_path, faculty_assignment_dir_path,\
-    faculty_class_dir_path, assignment_published_file_path
+    faculty_class_dir_path, assignment_published_file_path, \
+    faculty_classes_dir_path, class_student_csv_path
+from gkeepcore.student import Student
 
 
 class ServerInterfaceError(GkeepException):
@@ -473,6 +475,66 @@ class ServerInterface:
         path = assignment_published_file_path(class_name, assignment_name,
                                               self._home_dir)
         return self.is_file(path)
+
+    def get_classes(self):
+        """
+        Get a list of the names of the classes for this faculty member.
+
+        :return: list of class names
+        """
+
+        classes_path = faculty_classes_dir_path(self._home_dir)
+
+        directory_items = self.list_directory(classes_path)
+
+        classes = []
+
+        for item in sorted(directory_items):
+            item_path = os.path.join(classes_path, item)
+
+            if self.is_directory(item_path):
+                classes.append(item)
+
+        return classes
+
+    def get_assignments(self, class_name: str):
+        """
+        Get a list of the names of assignments for a class.
+
+        :param class_name: name of the class
+        :return: list of assignment names
+        """
+
+        class_path = faculty_class_dir_path(class_name, self._home_dir)
+
+        directory_items = self.list_directory(class_path)
+
+        assignments = []
+
+        for item in sorted(directory_items):
+            item_path = os.path.join(class_path, item)
+
+            if self.is_directory(item_path):
+                assignments.append(item)
+
+        return assignments
+
+    def get_students(self, class_name: str):
+        students = []
+
+        csv_path = class_student_csv_path(class_name, self._home_dir)
+
+        if not self.is_file(csv_path):
+            return []
+
+        rows = self.csv_rows(csv_path)
+
+        for row in rows:
+            if len(row) != 0:
+                students.append(Student.from_csv_row(row))
+
+        return students
+
 
 
 # Module-level interface instance. Someone must call connect() on this before
