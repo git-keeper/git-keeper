@@ -180,7 +180,7 @@ class UploadHandler(EventHandler):
 
         return string
 
-    def _parse(self):
+    def _parse_payload(self):
         """
         Extract the faculty username, class name, assignment name, and
         assignment path from the log event.

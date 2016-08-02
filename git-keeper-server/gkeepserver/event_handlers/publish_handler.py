@@ -20,14 +20,16 @@ Event type: PUBLISH
 """
 
 import os
+from tempfile import TemporaryDirectory
 
 from gkeepcore.csv_files import CSVError
+from gkeepcore.git_commands import git_init, git_push, git_add_all, git_commit
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
     faculty_assignment_dir_path, user_home_dir, class_student_csv_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.student import students_from_csv, StudentError, Student
-from gkeepcore.system_commands import touch, sudo_chown
+from gkeepcore.system_commands import touch, sudo_chown, mkdir
 from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, setup_student_assignment, StudentAssignmentError
 from gkeepserver.event_handler import EventHandler, HandlerException
@@ -63,7 +65,8 @@ class PublishHandler(EventHandler):
         try:
             assignment_dir = AssignmentDirectory(assignment_path)
             self._ensure_not_published(assignment_dir)
-            self._setup_students_assignment_repos(assignment_dir)
+            students = self._setup_students_assignment_repos(assignment_dir)
+            self._populate_reports_repo(assignment_dir, students)
             self._create_published_flag(assignment_dir)
 
             log_gkeepd_to_faculty(self._faculty_username, 'PUBLISH_SUCCESS',
@@ -94,9 +97,35 @@ class PublishHandler(EventHandler):
             error = 'Error flagging as published: {0}'.format(e)
             raise HandlerException(error)
 
+    def _populate_reports_repo(self, assignment_dir: AssignmentDirectory,
+                               students: list):
+        temp_dir = TemporaryDirectory()
+
+        temp_dir_path = temp_dir.name
+
+        git_init(temp_dir_path)
+
+        for student in students:
+            student_report_path = \
+                os.path.join(temp_dir_path, student.get_last_first_username())
+            mkdir(student_report_path)
+
+            placeholder_path = os.path.join(student_report_path,
+                                            '.placeholder')
+            touch(placeholder_path)
+
+        git_add_all(temp_dir_path)
+        git_commit(temp_dir_path, 'Initial commit')
+        git_push(temp_dir_path, dest=assignment_dir.reports_repo_path,
+                 sudo=True)
+        sudo_chown(assignment_dir.reports_repo_path, self._faculty_username,
+                   config.keeper_group, recursive=True)
+
     def _setup_students_assignment_repos(self,
                                          assignment_dir: AssignmentDirectory):
         # Setup bare repositories for each student in the class
+        #
+        # Return a list of Student objects
 
         home_dir = user_home_dir(self._faculty_username)
 
@@ -113,6 +142,8 @@ class PublishHandler(EventHandler):
 
         for student in students:
             self._setup_student_assignment_repo(student, assignment_dir)
+
+        return students
 
     def _setup_student_assignment_repo(self, student: Student,
                                        assignment_dir: AssignmentDirectory):
@@ -140,7 +171,7 @@ class PublishHandler(EventHandler):
                           self._assignment_name))
         return string
 
-    def _parse(self):
+    def _parse_payload(self):
         """
         Extract the faculty username, class name, and assignment name from the
         log event.
@@ -159,19 +190,3 @@ class PublishHandler(EventHandler):
             raise HandlerException('Invalid payload for PUBLISH: {0}'
                                    .format(self._payload))
 
-    def _parse_log_path(self):
-        """
-        Extract the faculty username from the log file path.
-
-        Raises:
-             HandlerException
-
-        Initializes attributes:
-            _faculty_username
-        """
-
-        self._faculty_username = user_from_log_path(self._log_path)
-
-        if self._faculty_username is None:
-            raise HandlerException('Malformed log path: {0}'
-                                   .format(self._log_path))

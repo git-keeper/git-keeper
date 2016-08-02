@@ -144,7 +144,9 @@ def get_class_assignment_dirs(faculty_username: str, class_name: str) -> list:
     if not os.path.isdir(class_path):
         return assignment_dirs
 
-    for path in os.listdir(class_path):
+    for item in os.listdir(class_path):
+        path = os.path.join(class_path, item)
+
         try:
             assignment_dir = AssignmentDirectory(path)
             assignment_dirs.append(assignment_dir)
@@ -152,6 +154,25 @@ def get_class_assignment_dirs(faculty_username: str, class_name: str) -> list:
             pass
 
     return assignment_dirs
+
+
+def get_class_assignment_names(faculty_username: str, class_name: str) -> list:
+    """
+    Get all the assignment names from a class.
+
+    :param faculty_username: faculty who owns the class
+    :param class_name: name of the class
+    :return: list of assignment names
+    """
+
+    assignment_names = []
+
+    for assignment_path in get_class_assignment_dirs(faculty_username,
+                                                     class_name):
+        assignment_name = os.path.basename(assignment_path)
+        assignment_names.append(assignment_name)
+
+    return assignment_names
 
 
 def create_base_code_repo(assignment_dir: AssignmentDirectory,
@@ -280,9 +301,9 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
 
     # path to the student's bare repository for this assignment
     assignment_repo_path = \
-        student_assignment_repo_path(student.username, faculty_username,
+        student_assignment_repo_path(faculty_username,
                                      assignment_dir.class_name,
-                                     assignment_dir.assignment_name)
+                                     assignment_dir.assignment_name, home_dir)
 
     # the repo should not already exist
     if os.path.isdir(assignment_repo_path):

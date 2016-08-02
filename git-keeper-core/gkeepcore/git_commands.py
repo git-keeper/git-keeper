@@ -85,7 +85,7 @@ def git_commit(repo_path, message):
     run_command_in_directory(repo_path, cmd)
 
 
-def git_push(repo_path, dest=None, branch='master', force=False):
+def git_push(repo_path, dest=None, branch='master', force=False, sudo=False):
     """
     Push a repository to its upstream remote, or to a specific destination.
 
@@ -95,6 +95,7 @@ def git_push(repo_path, dest=None, branch='master', force=False):
     :param dest: optional destination to push to
     :param branch: optional branch, if dest is specified
     :param force: set to True to force a push (be careful!)
+    :param sudo: if true command is run as root
     """
     cmd = ['git', 'push']
 
@@ -104,7 +105,7 @@ def git_push(repo_path, dest=None, branch='master', force=False):
     if dest is not None:
         cmd += [dest, branch]
 
-    run_command_in_directory(repo_path, cmd)
+    run_command_in_directory(repo_path, cmd, sudo=sudo)
 
 
 def git_pull(repo_path, remote_url=None):
