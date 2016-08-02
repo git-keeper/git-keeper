@@ -21,13 +21,13 @@ from gkeepclient.client_configuration import config
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_exists
 from gkeepclient.server_interface import server_interface
+from gkeepclient.server_response_poller import ServerResponsePoller, \
+    ServerResponseType
 from gkeepclient.text_ui import confirmation
 from gkeepcore.git_commands import git_clone, is_non_bare_repo, git_head_hash, \
     git_pull
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.path_utils import student_assignment_repo_path, \
-    faculty_assignment_dir_path
-from gkeepcore.student import Student
+from gkeepcore.path_utils import student_assignment_repo_path
 
 
 def clone_repo(local_repo_path, remote_url):
@@ -49,14 +49,14 @@ def clone_repo(local_repo_path, remote_url):
         print('error cloning')
 
 
-def pull_repo_if_updated(local_repo_path, remote_repo_path, remote_url):
+def pull_repo_if_updated(local_repo_path, remote_url, remote_head_hash):
     """
     Perform a git pull in a git repository if the remote has changed since
     the last pull.
 
     :param local_repo_path: path to the local repository
-    :param remote_repo_path: path to the remote repostiroy
     :param remote_url: git clone URL
+    :param remote_head_hash: has of the HEAD commit of the remote repository
     """
 
     if not is_non_bare_repo(local_repo_path):
@@ -70,14 +70,6 @@ def pull_repo_if_updated(local_repo_path, remote_repo_path, remote_url):
     except GkeepException as e:
         print('Error reading local git repository {0}'
               .format(local_repo_path))
-        return
-
-    # get the hash of the HEAD of the remote repository
-    try:
-        remote_head_hash = server_interface.git_head_hash(remote_repo_path)
-    except GkeepException as e:
-        print('Error reading remote git repository {0}'
-              .format(remote_repo_path))
         return
 
     # no need to pull if the hashes are the same
@@ -101,8 +93,9 @@ def build_clone_url(path):
 
 
 def fetch_student_submission(class_name: str, assignment_name: str,
-                             student: Student,
-                             assignment_submission_path: str):
+                             assignment_submission_path: str,
+                             remote_head_hash: str, username: str,
+                             last_first_username: str):
     """
     Fetch a student's submission for an assignment.
 
@@ -113,19 +106,18 @@ def fetch_student_submission(class_name: str, assignment_name: str,
 
     :param class_name: name of the class
     :param assignment_name: name of the assignment
-    :param student: Student object representing the student
     :param assignment_submission_path: path to the directory containing the
      assignment's submissions
+    :param remote_head_hash: hash of the remote repo's HEAD commit
+    :param username: student's username
+    :param last_first_username: <last name>_<first name>_<username> for student
     """
-
-    # name of the directory to store the student's submission in
-    last_first_username = student.get_last_first_username()
 
     student_submission_path = os.path.join(assignment_submission_path,
                                            last_first_username)
 
     # paths on the server
-    student_home_dir = server_interface.user_home_dir(student.username)
+    student_home_dir = server_interface.user_home_dir(username)
     remote_repo_path = student_assignment_repo_path(config.server_username,
                                                     class_name,
                                                     assignment_name,
@@ -135,14 +127,14 @@ def fetch_student_submission(class_name: str, assignment_name: str,
 
     # pull if the repo already exists, clone otherwise
     if os.path.isdir(student_submission_path):
-        pull_repo_if_updated(student_submission_path, remote_repo_path,
-                             remote_git_url)
+        pull_repo_if_updated(student_submission_path, remote_git_url,
+                             remote_head_hash)
     else:
         clone_repo(student_submission_path, remote_git_url)
 
 
 def fetch_assignment_submissions(class_name: str, assignment_name: str,
-                                 class_submission_path):
+                                 class_submission_path: str, info: dict):
     """
     Fetch submissions for a single assignment.
 
@@ -153,7 +145,10 @@ def fetch_assignment_submissions(class_name: str, assignment_name: str,
     :param assignment_name: name of the assignment
     :param class_submission_path: path to the directory containing submissions
      for the class
+    :param info: info dictionary
     """
+
+    assignment_info = info[class_name]['assignments'][assignment_name]
 
     print()
     print('Fetching submissions for {0} in class {1}'
@@ -168,26 +163,28 @@ def fetch_assignment_submissions(class_name: str, assignment_name: str,
     assignment_reports_path = os.path.join(class_submission_path,
                                            assignment_name, 'reports')
 
-    remote_home_dir = server_interface.my_home_dir()
-    remote_reports_path = \
-        os.path.join(faculty_assignment_dir_path(class_name, assignment_name,
-                                                 remote_home_dir),
-                     'reports.git')
+    remote_reports_path = assignment_info['reports_repo']['path']
+    remote_reports_hash = assignment_info['reports_repo']['hash']
 
     remote_git_url = build_clone_url(remote_reports_path)
 
     if os.path.isdir(assignment_reports_path):
-        pull_repo_if_updated(assignment_reports_path, remote_reports_path,
-                             remote_git_url)
+        pull_repo_if_updated(assignment_reports_path, remote_git_url,
+                             remote_reports_hash)
     else:
         clone_repo(assignment_reports_path, remote_git_url)
 
-    students = server_interface.get_students(class_name)
-
     # fetch each student's submission
-    for student in students:
-        fetch_student_submission(class_name, assignment_name, student,
-                                 assignment_submissions_path)
+    for username in info[class_name]['students']:
+        remote_head_hash = \
+            info[class_name]['assignments'][assignment_name]['students_repos'][username]['hash']
+
+        last_first_username = \
+            info[class_name]['students'][username]['last_first_username']
+
+        fetch_student_submission(class_name, assignment_name,
+                                 assignment_submissions_path, remote_head_hash,
+                                 username, last_first_username)
 
 
 def create_dir_if_non_existent(dir_path, confirm=False):
@@ -203,6 +200,21 @@ def create_dir_if_non_existent(dir_path, confirm=False):
             raise GkeepException(error)
 
 
+def refresh_info():
+    """Request that the server refresh the info stored in info.json"""
+    poller = ServerResponsePoller('REFRESH_INFO', timeout=20)
+
+    server_interface.log_event('REFRESH_INFO', config.server_username)
+
+    for response in poller.response_generator():
+        if response.response_type == ServerResponseType.ERROR:
+            error = ('Error refreshing info:\n{0}'
+                     .format(response.message))
+            raise GkeepException(error)
+        elif response.response_type == ServerResponseType.WARNING:
+            print(response.message)
+
+
 @config_parsed
 @server_interface_connected
 @class_exists
@@ -215,6 +227,11 @@ def fetch_submissions(class_name: str, assignment_name: str):
      all assignments for the class
     """
 
+    # ask the server to refresh the hashes for assignment repositories
+    refresh_info()
+
+    info = server_interface.get_info()
+
     class_path = os.path.join(config.submissions_path, class_name)
 
     create_dir_if_non_existent(config.submissions_path, confirm=True)
@@ -222,9 +239,9 @@ def fetch_submissions(class_name: str, assignment_name: str):
 
     # build list of assignments to fetch
     if assignment_name is None:
-        assignments = server_interface.get_assignments(class_name)
+        assignments = list(info[class_name]['assignments'].keys())
     else:
-        if not server_interface.assignment_exists(class_name, assignment_name):
+        if assignment_name not in info[class_name]['assignments']:
             error = ('Assignment {0} does not exist in class {1}'
                      .format(assignment_name, class_name))
             raise GkeepException(error)
@@ -234,4 +251,5 @@ def fetch_submissions(class_name: str, assignment_name: str):
     # fetch the submissions
     for assignment_name in assignments:
         fetch_assignment_submissions(class_name, assignment_name,
-                                     class_path)
+                                     class_path, info)
+

@@ -54,7 +54,7 @@ class SubmissionHandler(EventHandler):
 
         return string
 
-    def _parse(self):
+    def _parse_payload(self):
         """
         Extract the student username, faculty username, class name,
         assignment name, and student submission repository from the log event.
