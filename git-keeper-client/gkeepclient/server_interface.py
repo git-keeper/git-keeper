@@ -92,9 +92,20 @@ class ServerInterface:
         self._event_log_path = None
 
     def is_connected(self):
+        """
+        Determine if we're connected to the server.
+
+        :return: True if connected, False otherwise
+        """
         return self._ssh_client is not None
 
     def my_home_dir(self):
+        """
+        Get the home directory path on the server for the faculty member
+        running the client.
+
+        :return: home directory path on the server
+        """
         return self._home_dir
 
     def connect(self):

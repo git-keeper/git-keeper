@@ -14,7 +14,28 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+"""Provides functions for interacting with the user in the terminal."""
+
+
 def confirmation(prompt: str, default=None):
+    """
+    Ask the user for 'y' or 'n' confirmation and return a boolean indicating
+    the user's choice.
+
+    Any string starting in 'y', 'Y', 'n', or 'N' will be accepted as a
+    response.
+
+    If a default is provided, that response will be selected automatically if
+    the user presses enter, and is indicated visually in the prompt with a
+    capital 'Y' or 'N'.
+
+    :param prompt: prompt to display to the user before asking yes or no
+    :param default: the response if the user presses enter without entering
+     anything. None for no default
+    :return: True if the user responds 'y', False if 'n'
+    """
+
+    # select how to display (y/n) based on the default
     if default == 'y':
         y_or_n = '(Y/n)'
     elif default == 'n':
@@ -22,6 +43,7 @@ def confirmation(prompt: str, default=None):
     else:
         y_or_n = '(y/n)'
 
+    # add (y/n) to the prompt
     prompt = '{0} {1} '.format(prompt, y_or_n)
 
     while True:

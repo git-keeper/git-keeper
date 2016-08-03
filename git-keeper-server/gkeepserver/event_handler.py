@@ -14,6 +14,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+"""Provides an abstract base class for event handlers."""
+
+
 import abc
 
 from gkeepcore.gkeep_exception import GkeepException
