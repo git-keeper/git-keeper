@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+"""Provides the AssignmentUploader class for uploading assignments."""
+
 import os
 
 from gkeepclient.server_interface import server_interface
@@ -20,6 +22,10 @@ from gkeepcore.upload_directory import UploadDirectory
 
 
 class AssignmentUploader:
+    """
+    Provides functionality for uploading specific parts of an assignment to
+    the server.
+    """
     def __init__(self, upload_dir: UploadDirectory):
         """
         Constructor.
@@ -34,6 +40,12 @@ class AssignmentUploader:
         self._target_path = server_interface.create_new_upload_dir()
 
     def get_target_path(self):
+        """
+        Getter for the target path, which is a directory on the server to
+        upload to.
+
+        :return: the target path
+        """
         return self._target_path
 
     def upload_base_code(self):

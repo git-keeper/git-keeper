@@ -18,6 +18,11 @@
 
 # PYTHON_ARGCOMPLETE_OK
 
+"""
+Provides the main entry point for the gkeep client. Parses command line
+arguments and calls the appropriate function.
+"""
+
 import sys
 from argparse import ArgumentParser
 
@@ -36,6 +41,11 @@ class GraderParser(ArgumentParser):
     displayed when the user has not used a command correctly.
     """
     def error(self, message):
+        """
+        Print the error message, a usage message, and then exit the program
+
+        :param message: error message
+        """
         print('Error: {0}\n'.format(message), file=sys.stderr)
         self.print_help()
         sys.exit(2)
@@ -247,8 +257,7 @@ def main():
     # Allow for auto-complete
     autocomplete(parser)
 
-    # If no arguments are given when teacher_interface is called,
-    # just display the help message and exit
+    # If no arguments are given just display the help message and exit
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)

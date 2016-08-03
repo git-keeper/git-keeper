@@ -14,6 +14,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+"""Provides functionality related to assignments on the server."""
+
+
 import os
 from tempfile import TemporaryDirectory
 

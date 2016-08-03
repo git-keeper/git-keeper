@@ -100,6 +100,11 @@ class ClientConfiguration:
         self._parsed = False
 
     def is_parsed(self):
+        """
+        Determine if the configuration file has been parsed.
+
+        :return: True if it has been parsed, False otherwise
+        """
         return self._parsed
 
     def parse(self, config_path=None):

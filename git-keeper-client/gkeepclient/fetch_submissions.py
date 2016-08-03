@@ -14,6 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+"""
+Provides fetch_submissions() for fetching student submissions from the server.
+"""
+
+
 import os
 import sys
 
@@ -87,6 +92,17 @@ def pull_repo_if_updated(local_repo_path, remote_url, remote_head_hash):
 
 
 def build_clone_url(path):
+    """
+    Build a git clone URL with the following form:
+
+    ssh://<username>@<hostname>:<port number>/<path>
+
+    The username, hostname, and port number come from the configuration file,
+    which needs to be parsed.
+
+    :param path: path to the repository on the server
+    :return:
+    """
     return ('ssh://{0}@{1}:{2}/{3}'
             .format(config.server_username, config.server_host,
                     config.server_ssh_port, path))
@@ -188,6 +204,13 @@ def fetch_assignment_submissions(class_name: str, assignment_name: str,
 
 
 def create_dir_if_non_existent(dir_path, confirm=False):
+    """
+    Create a directory if it does not exist. Optionally ask for confirmation
+    before creating.
+
+    :param dir_path: path to the directory
+    :param confirm: if True, user confirmation is required before creating
+    """
     if not os.path.isdir(dir_path):
         if confirm:
             prompt = '{0} does not exist. Create it now?'

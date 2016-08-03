@@ -12,6 +12,11 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+"""Provides functionality related to students and classes on the server."""
+
+
 import os
 
 from gkeepcore.local_csv_files import LocalCSVReader
@@ -21,6 +26,13 @@ from gkeepcore.student import students_from_csv
 
 
 def get_faculty_class_names(faculty_username: str) -> list:
+    """
+    Get a list of the names of all the classes owned by the faculty member.
+
+    :param faculty_username: username of the faculty
+    :return: list of class names
+    """
+
     home_dir = user_home_dir(faculty_username)
 
     classes_path = faculty_classes_dir_path(home_dir)
@@ -44,7 +56,15 @@ def get_faculty_class_names(faculty_username: str) -> list:
     return class_names
 
 
-def get_class_students(faculty_username: str, class_name: str):
+def get_class_students(faculty_username: str, class_name: str) -> list:
+    """
+    Get a list of Student objects representing all the students in a class.
+
+    :param faculty_username: username of the faculty
+    :param class_name: name of the class
+    :return: list of Student objects
+    """
+
     home_dir = user_home_dir(faculty_username)
 
     reader = LocalCSVReader(class_student_csv_path(class_name, home_dir))
@@ -52,5 +72,3 @@ def get_class_students(faculty_username: str, class_name: str):
     students = students_from_csv(reader)
 
     return students
-
-
