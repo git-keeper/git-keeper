@@ -51,6 +51,8 @@ Attributes:
     local_username - the user that is running gkeep
     local_home_dir - the local user's home directory on the client machine
 
+    submissions_path - path to the submissions directory
+
     server_host - hostname of the server
     server_username - the faculty member's username on the server
     server_ssh_port - the port to use for SSH connections (defaults to 22)
