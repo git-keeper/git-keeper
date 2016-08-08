@@ -16,7 +16,6 @@ RUN mkdir /var/run/sshd
 RUN sed -e '/ssh_host_ecdsa_key/ s/^#*/#/' -i /etc/ssh/sshd_config
 RUN sed -e '/ssh_host_ed25519_key/ s/^#*/#/' -i /etc/ssh/sshd_config
 
-
 # Set up python and the necessary libraries
 RUN apt-get install python3
 RUN apt-get install -y python3-pip
@@ -31,3 +30,4 @@ RUN echo 'prof:prof' | chpasswd
 
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D"]
+

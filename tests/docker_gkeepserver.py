@@ -37,6 +37,7 @@ def start_docker_gkeepserver(server_home_dir, debug_output = False):
     this_file_dir = os.path.dirname(os.path.realpath(__file__))
     parent_dir = os.path.abspath(os.path.join(this_file_dir, os.pardir))
 
+
     # make sure the containers are built
     build_exit_code = DockerCommand("build", output=debug_output)\
         .add("-t git-keeper-server")\
@@ -111,10 +112,6 @@ def start_docker_gkeepserver(server_home_dir, debug_output = False):
         .add("gkeepd")\
         .run()
 
-    DockerCommand("exec", output=debug_output)\
-        .add("-d")\
-        .add("git-keeper-server")\
-        .add("python3 -m smtpd -n -c DebuggingServer > /home/keeper/email.txt")
 
 def stop_docker_gkeepserver(debug_output = False):
     """
