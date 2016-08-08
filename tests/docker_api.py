@@ -26,15 +26,16 @@ from urllib.parse import urlparse
 class DockerAPI:
 
     def __init__(self):
-
         # We will use an unverified certificate, which would
         # normally print a warning.
         urllib3.disable_warnings(category=InsecureRequestWarning)
 
+        # FIXME this fails quietly if docker is not running.
+
         # FIXME this assumes MAC/PC verion of Docker
         # FIXME this is a near-duplication to code in DockerCommand
         # we need to determine the host IP and the port number
-        # as well as the base address of the TLS certificate
+        # as well as the base directory of the TLS certificate
         command = 'docker-machine env'
         with Popen(command, shell=True, stdout=PIPE, stderr=PIPE,\
                    universal_newlines=True) as proc:

@@ -12,11 +12,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import smtplib
 
-from tests.testing_environment import TestingEnvironment
-
-testing_env = TestingEnvironment(debug_output=True)
-
-input("\n\nServer running.  Hit return to stop it.")
-
-testing_env.take_down()
+s = smtplib.SMTP('gkmailer')
+s.sendmail('from@email.com', ['to@email.com'], 'message body')
+s.quit()

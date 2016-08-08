@@ -1,9 +1,23 @@
+# Copyright 2016 Nathan Sommer and Ben Coleman
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from tests.docker_command import DockerCommand
 import os
 
 
-def start_docker_gitkeepclient(debug_output = False):
+def start_docker_gitkeepclient(temp_client_home_dir, debug_output = False):
 
     this_file_dir = os.path.dirname(os.path.realpath(__file__))
     parent_dir = os.path.abspath(os.path.join(this_file_dir, os.pardir))
@@ -25,12 +39,9 @@ def start_docker_gitkeepclient(debug_output = False):
         .add("--ip=172.18.0.15")\
         .add("--hostname gkclient")\
         .add("--link git-keeper-server:gkserver")\
-        .add("-v " + this_file_dir + "/client_files/ssh:/home/prof/.ssh")\
-        .add("-v " + this_file_dir + "/client_files/config:/home/prof/.config")\
-        .add("-v " + this_file_dir + "/client_files/gitconfig:/home/prof/.gitconfig")\
-        .add("-v " + this_file_dir + "/client_files/test_assign:/home/prof/test_assign")\
-        .add("-v " + parent_dir + "/git-keeper-core:/home/prof/git-keeper-core")\
-        .add("-v " + parent_dir + "/git-keeper-client:/home/prof/git-keeper-client")\
+        .add("-v " + temp_client_home_dir + ":/home")\
+        .add("-v " + parent_dir + "/git-keeper-core:/git-keeper-core")\
+        .add("-v " + parent_dir + "/git-keeper-client:/git-keeper-client")\
         .add("git-keeper-client")\
         .run()
 
@@ -39,7 +50,7 @@ def start_docker_gitkeepclient(debug_output = False):
 
     core_install_exit_code = DockerCommand('exec', output=debug_output)\
         .add('-i')\
-        .add('git-keeper-client bash -c "cd /home/prof/git-keeper-core && python3 setup.py install"')\
+        .add('git-keeper-client bash -c "cd /git-keeper-core && python3 setup.py install"')\
         .run()
 
     if core_install_exit_code != 0:
@@ -47,7 +58,7 @@ def start_docker_gitkeepclient(debug_output = False):
 
     client_install_exit_code = DockerCommand('exec', output=debug_output)\
         .add('-i')\
-        .add('git-keeper-client bash -c "cd /home/prof/git-keeper-client && python3 setup.py install"')\
+        .add('git-keeper-client bash -c "cd /git-keeper-client && python3 setup.py install"')\
         .run()
 
     if client_install_exit_code != 0:

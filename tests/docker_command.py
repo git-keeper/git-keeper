@@ -1,3 +1,17 @@
+# Copyright 2016 Nathan Sommer and Ben Coleman
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from subprocess import Popen, PIPE, CalledProcessError, DEVNULL, STDOUT
 import os
@@ -104,7 +118,8 @@ class DockerCommand:
         if print_command:
             print(full_command)
 
-        # If we are producing output, create a single pipe to both stdout and stderr
+        # If we are producing output, create a single pipe to both
+        # stdout and stderr
         if self._output:
             with Popen(full_command, shell=True, stdout=PIPE, stderr=STDOUT) as proc:
                 # This loop will terminate when the command returns

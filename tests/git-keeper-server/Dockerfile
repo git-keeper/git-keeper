@@ -49,26 +49,17 @@ RUN apt-get install -y git
 # Create the gitkeeper group and the main gitkeeper account in that group
 RUN groupadd gitkeeper
 RUN useradd -ms /bin/bash keeper
-RUN usermod -a -G keeper keeper
+RUN usermod -aG keeper keeper
 # keeper must be in the docker group to be able to run docker commands
 RUN usermod -aG docker keeper
 RUN echo "keeper ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 RUN echo 'keeper:g1tk33p3r' | chpasswd
 
-# Create a dummy student account
-RUN useradd -ms /bin/bash student
-RUN echo 'student:student' | chpasswd
-
-RUN chown student:keeper /home/student
-RUN chmod 770 /home/student
-
 ADD ./ssh_server /etc/ssh
 RUN chmod 600 /etc/ssh/*_key
 
-# Since we are adding the /etc/ssh folder, we already did this in those local files
-# Disallow ssh connections unless they are RSA/DSA
-#RUN sed -e '/ssh_host_ecdsa_key/ s/^#*/#/' -i /etc/ssh/sshd_config
-#RUN sed -e '/ssh_host_ed25519_key/ s/^#*/#/' -i /etc/ssh/sshd_config
+# For debugging
+RUN apt-get install nano
 
 # This will run the docker command and then all the sshd command to run
 ENTRYPOINT ["wrapdocker"]
