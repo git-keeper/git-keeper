@@ -25,7 +25,7 @@ setup(
     entry_points={
         'console_scripts': ['gkeep=gkeepclient.gkeep:main'],
     },
-    install_requires=['git-keeper-core', 'paramiko'],
+    install_requires=['git-keeper-core', 'paramiko', 'argcomplete'],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest']
+    tests_require=['pytest'],
 )

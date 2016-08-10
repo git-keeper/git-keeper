@@ -22,5 +22,5 @@ setup(
     packages=['gkeepcore'],
     install_requires=['paramiko'],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest']
+    tests_require=['pytest'],
 )

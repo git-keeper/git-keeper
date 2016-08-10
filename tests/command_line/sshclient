@@ -1,0 +1,61 @@
+#!/bin/bash
+<<<<<<< HEAD
+
+# This is a convenience script to connect to a running server running through
+# docker.  The docker daemon will forward a connect to the container's port 22
+# when you connect to the docker daemon IP on a mapped port.
+#
+# This script uses docker commands to look up the ip of the docker deamon and the
+# mapped port number.  These are passed to an expect script that connects as
+# keeper with the password g1tk33p3r.
+
+./helper.exp `docker-machine ip` `docker port git-keeper-client 22 | cut -c 9-` prof prof
+=======
+# CLIENT - Use this script to start the git-keeper-client in interactive mode
+# This should be run *after* the server is running
+# FIXME can we enforce that?
+
+# The following switches ensure we get a static ip and hostname
+#
+#     -net gknet --ip=172.18.0.15 --hostname=gkclient
+#
+# This assumes the gknet was created with:
+#
+#     docker network create --subnet=172.18.0.0/16 gknet
+#
+# The subnet and ip must match up
+# See: http://stackoverflow.com/questions/27937185/assign-static-ip-to-docker-container
+# The following switch will put an entry in /etc/hosts for gkserver
+#  (which was run with similar )
+#
+#     --link=gk:gkserver
+#
+# See: https://docs.docker.com/v1.8/articles/networking/#communication-between-containers
+# The following switch mounts a docker volume as the home directory for the
+# prof user (this user is built into the container)
+#
+# -v /Users/coleman/Projects/Docker/git-keeper-client/prof:/home/prof
+#
+# This home directory contains:
+#  .ssh - RSA key that is in authorized_keys on the server.  This allows login
+#         without password
+#  .config/grader - a configuration file that points to the server
+#  .gitconfig - configuration of email and name
+#  git-keeper - source code for the program
+#  test_assign - a properly configured assignment
+#
+# The following switches runs the bash shell as the prof user and start us in ~prof
+# -- user prof --workdir=/home/prof
+#
+cwd=$(pwd)
+parentdir="$(dirname "$cwd")"
+
+docker run -it --net git-keeper --ip=172.18.0.15 --hostname=gkclient \
+  --link=git-keeper-server:gkserver \
+  -v $parentdir/client_files/ssh:/home/prof/.ssh \
+  -v $parentdir/client_files/config:/home/prof/.config\
+  -v $parentdir/client_files/gitconfig:/home/prof/.gitconfig\
+  -v $parentdir/client_files/test_assign:/home/prof/test_assign\
+  --user prof --workdir=/home/prof \
+  git-keeper-client
+>>>>>>> fc4d22c04e99b444fa54c6c945067d8b314c8a52
