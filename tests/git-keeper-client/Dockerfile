@@ -23,6 +23,9 @@ RUN apt-get install -y libffi-dev
 RUN apt-get install -y libssl-dev
 RUN pip3 install paramiko
 
+# Useful for debugging
+RUN apt-get install nano
+
 RUN apt-get install -y git
 
 RUN useradd -ms /bin/bash prof

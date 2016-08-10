@@ -57,9 +57,6 @@ class TestingEnvironment:
         # copy ssh keys and known_host file
         shutil.copytree('server_files/ssh', temp_server_home_dir + '/keeper/.ssh')
 
-        # FIXME used for testing.  Remove before commit.
-        shutil.copy('server_files/send.py', temp_server_home_dir + 'send.py')
-
         start_docker_gkeepserver(temp_server_home_dir, debug_output=self._debug_output)
 
         self.temp_client_home = TemporaryDirectory(dir=os.getcwd())
@@ -74,9 +71,9 @@ class TestingEnvironment:
 
         start_docker_gitkeepclient(temp_client_home_dir, debug_output=self._debug_output)
 
-        self.temp_email = TemporaryDirectory(dir=os.getcwd())
+        #self.temp_email = TemporaryDirectory(dir=os.getcwd())
 
-        start_docker_mail_server(self.temp_email.name, self._debug_output)
+        #start_docker_mail_server(self.temp_email.name, self._debug_output)
 
     def _copydir(self, from_dir, to_dir):
         for name in os.listdir(from_dir):
@@ -92,20 +89,20 @@ class TestingEnvironment:
     def get_client_home_dir(self):
         return self.temp_client_home.name
 
-    def get_email_dir(self):
-        return self.temp_email.name
+    #def get_email_dir(self):
+    #    return self.temp_email.name
 
     def take_down(self):
         # bring the client down first because server stops the network
         if self.docker_api.is_running('git-keeper-client'):
             stop_docker_gkeepclient(self._debug_output)
 
-        if self.docker_api.is_running('git-keeper-mailer'):
-            stop_docker_mail_server()
+        #if self.docker_api.is_running('git-keeper-mailer'):
+        #    stop_docker_mail_server()
 
         if self.docker_api.is_running('git-keeper-server'):
             stop_docker_gkeepserver(self._debug_output)
 
         self.temp_server_home.cleanup()
         self.temp_client_home.cleanup()
-        self.temp_email.cleanup()
+        #self.temp_email.cleanup()

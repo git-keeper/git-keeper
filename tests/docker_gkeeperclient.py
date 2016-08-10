@@ -42,6 +42,7 @@ def start_docker_gitkeepclient(temp_client_home_dir, debug_output = False):
         .add("-v " + temp_client_home_dir + ":/home")\
         .add("-v " + parent_dir + "/git-keeper-core:/git-keeper-core")\
         .add("-v " + parent_dir + "/git-keeper-client:/git-keeper-client")\
+        .add("-v " + parent_dir + "/git-keeper-server:/git-keeper-server")\
         .add("git-keeper-client")\
         .run()
 
@@ -63,6 +64,14 @@ def start_docker_gitkeepclient(temp_client_home_dir, debug_output = False):
 
     if client_install_exit_code != 0:
         raise RuntimeError("Non-zero exit code when installing git-keeper-client")
+
+    server_install_exit_code = DockerCommand('exec', output=debug_output)\
+        .add('-i')\
+        .add('git-keeper-client bash -c "cd /git-keeper-server && python3 setup.py install"')\
+        .run()
+
+    if server_install_exit_code != 0:
+        raise RuntimeError("Non-zero exit code when installing git-keeper-server")
 
 
 def stop_docker_gkeepclient(debug_output = False):
