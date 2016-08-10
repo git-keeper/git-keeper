@@ -23,7 +23,7 @@ setup(
         'Topic :: Education :: Testing',
         'Topic :: Education'
     ],
-    packages=['gkeepserver'],
+    packages=['gkeepserver', 'gkeepserver.event_handlers'],
     entry_points={
         'console_scripts': ['gkeepd=gkeepserver.gkeepd:main'],
     },
@@ -32,5 +32,5 @@ setup(
     },
     install_requires=['git-keeper-core', 'paramiko', 'pyinotify'],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest']
+    tests_require=['pytest'],
 )
