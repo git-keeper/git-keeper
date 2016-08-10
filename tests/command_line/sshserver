@@ -8,8 +8,4 @@
 # mapped port number.  These are passed to an expect script that connects as
 # keeper with the password g1tk33p3r.
 
-<<<<<<< HEAD
 ./helper.exp `docker-machine ip` `docker port git-keeper-server 22 | cut -c 9-` keeper g1tk33p3r
-=======
-./helper.exp `docker-machine ip` `docker port git-keeper-server 22 | cut -c 9-`
->>>>>>> fc4d22c04e99b444fa54c6c945067d8b314c8a52
