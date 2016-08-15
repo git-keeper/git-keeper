@@ -16,6 +16,9 @@
 
 from subprocess import Popen, PIPE, CalledProcessError, DEVNULL, STDOUT
 import os
+import dateutil
+import datetime
+from dateutil.parser import parse
 
 
 class DockerCommand:
@@ -131,3 +134,53 @@ class DockerCommand:
         else:
             with Popen(full_command, shell=True, stdout=DEVNULL, stderr=DEVNULL) as proc:
                 return proc.wait()
+
+    def trap_run(self, print_command=False):
+        """
+        Run the command and trap all output.
+
+        :return: an array of strings, one per output line
+        """
+
+        full_command = 'docker ' + self._command + self._arguments
+
+        if print_command:
+            print(full_command)
+
+        output = []
+
+        with Popen(full_command, shell=True, stdout=PIPE, stderr=STDOUT) as proc:
+            # This loop will terminate when the command returns.  There is only
+            # one line of output for this command, so it will capture the date
+            # on the first line
+            for line in proc.stdout:
+                output.append(line.decode().strip())
+
+        return output
+
+
+def is_modified(container_name, dockerfile, debug_output=False):
+    """
+    Determine if a docker container needs to be rebuilt based on the
+    creation date of the container and the modification date of the Dockerfile
+    :param container_name: the name of the container to compare
+    :param dockerfile: the full path of the Dockerfile to compare
+    :return: True if the container needs to be rebuilt
+    """
+
+    # Determine the time the container was created
+    output = DockerCommand('inspect', output=debug_output)\
+        .add('-f \'{{ .Created }}\'')\
+        .add(container_name)\
+        .trap_run()
+
+    create_date = parse(output[0]).astimezone(dateutil.tz.tzlocal())
+
+    # Determine the time the Dockerfile was modifed
+    timestamp = os.path.getmtime(dockerfile)
+    mod_date = datetime.datetime.fromtimestamp(timestamp)
+
+    # We have to put this in the same timezone as the creation date
+    mod_date = mod_date.replace(tzinfo=dateutil.tz.tzlocal())
+
+    return mod_date > create_date

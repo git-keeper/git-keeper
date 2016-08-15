@@ -27,6 +27,7 @@ RUN pip3 install paramiko
 RUN apt-get install nano
 
 RUN apt-get install -y git
+RUN apt-get install -y expect
 
 RUN useradd -ms /bin/bash prof
 RUN echo 'prof:prof' | chpasswd

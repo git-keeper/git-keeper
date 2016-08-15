@@ -28,7 +28,6 @@ RUN chmod +x /usr/local/bin/wrapdocker
 # Define additional metadata for our image.
 VOLUME /var/lib/docker
 
-
 RUN apt-get install -y openssh-server
 RUN mkdir /var/run/sshd
 
@@ -38,7 +37,7 @@ RUN apt-get install -y python3-pip
 RUN apt-get install -y libffi-dev
 RUN apt-get install -y libssl-dev
 RUN pip3 install paramiko
-RUN pip3 install pyinotify
+#RUN pip3 install pyinotify
 
 # It's not installed by default any more!
 RUN apt-get install -y sudo
@@ -61,8 +60,14 @@ RUN chmod 600 /etc/ssh/*_key
 # For debugging
 RUN apt-get install nano
 
+RUN mkdir /email
+
+ADD ./mysmtpd.py /usr/bin
+RUN chmod +x /usr/bin/mysmtpd.py
+
+
 # This will run the docker command and then all the sshd command to run
 ENTRYPOINT ["wrapdocker"]
 
-EXPOSE 22
+EXPOSE 22 25
 CMD ["/usr/sbin/sshd", "-D"]
