@@ -14,11 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from tests.docker_command import DockerCommand
+from tests.docker_command import DockerCommand, is_modified
 import os
 
 
-def start_docker_gkeepserver(server_home_dir, debug_output = False):
+def start_docker_gkeepserver(server_home_dir, email_dir,
+                             debug_output = False):
     """
     Start the git-keeper server in a Docker container.  This will rebuild
     the image for the container, create a docker network for the container,
@@ -37,15 +38,16 @@ def start_docker_gkeepserver(server_home_dir, debug_output = False):
     this_file_dir = os.path.dirname(os.path.realpath(__file__))
     parent_dir = os.path.abspath(os.path.join(this_file_dir, os.pardir))
 
+    if is_modified('git-keeper-server', 'git-keeper-server/Dockerfile',
+                   debug_output=debug_output):
+        # make sure the containers are built
+        build_exit_code = DockerCommand("build", output=debug_output)\
+            .add("-t git-keeper-server")\
+            .add(this_file_dir + "/git-keeper-server")\
+            .run()
 
-    # make sure the containers are built
-    build_exit_code = DockerCommand("build", output=debug_output)\
-        .add("-t git-keeper-server")\
-        .add(this_file_dir + "/git-keeper-server")\
-        .run()
-
-    if build_exit_code != 0:
-        raise RuntimeError("Non-zero exit code on docker build.")
+        if build_exit_code != 0:
+            raise RuntimeError("Non-zero exit code on docker build.")
 
     # make sure the network has been created
     # If the network was already created this will produce an error message,
@@ -77,9 +79,10 @@ def start_docker_gkeepserver(server_home_dir, debug_output = False):
         .add("--ip=172.18.0.42")\
         .add("--hostname=gkserver")\
         .add("--link git-keeper-mailer:gkmailer")\
-        .add("-v " + server_home_dir + ":/home")\
+        .add("-v " + server_home_dir + ":/home/keeper")\
         .add("-v " + parent_dir + "/git-keeper-core:/git-keeper-core")\
         .add("-v " + parent_dir + "/git-keeper-server:/git-keeper-server")\
+        .add("-v " + email_dir + ":/email")\
         .add("git-keeper-server")\
         .run()
 
@@ -102,12 +105,19 @@ def start_docker_gkeepserver(server_home_dir, debug_output = False):
     if server_install_exit_code != 0:
         raise RuntimeError("Non-zero exit code when installing git-keeper-server")
 
+    DockerCommand("exec", output=debug_output)\
+        .add("-d")\
+        .add('git-keeper-server')\
+        .add('/usr/bin/mysmtpd.py 25 /email/')\
+        .run()
+
     # Start the server
     # The exit code will be 0 because the docker command succeeds.  This does not
     # mean the server came up successfully.  FIXME is there anything we can do
     # to see the status?
     DockerCommand("exec", output=debug_output)\
         .add("-d")\
+        .add("-u keeper")\
         .add("git-keeper-server")\
         .add("gkeepd")\
         .run()
