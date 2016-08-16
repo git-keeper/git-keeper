@@ -20,7 +20,7 @@ files on the server.
 See the gkeepcore.log_file module for more information.
 """
 
-from gkeepserver.log_polling import LogFileException, LogFileReader
+from gkeepcore.log_file import LogFileException, LogFileReader
 from .server_interface import server_interface, ServerInterfaceError
 
 
