@@ -153,12 +153,8 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
 
     logger.log_info('Creating user {0}'.format(username))
 
-    if user_type == UserType.faculty:
-        shell = 'bash'
-    elif user_type == UserType.student:
-        shell = 'git-shell'
-    else:
-        shell = None
+    # for now everyone gets bash, students may eventually get git-shell
+    shell = 'bash'
 
     sudo_add_user(username, additional_groups, shell)
 
@@ -172,8 +168,7 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
 
         create_faculty_dirs(username)
 
-    elif user_type == UserType.student:
-        create_git_shell_commands(username, ['passwd'])
+    # if we start using git-shell for students, call create_git_shell_commands() here
 
     # email the credentials to the user if an email address was provided
     if email_address is not None:
