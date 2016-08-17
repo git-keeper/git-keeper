@@ -92,7 +92,7 @@ def main():
     try:
         check_system()
     except CheckSystemError as e:
-        logger.log_error(e)
+        logger.log_error(str(e))
         logger.log_info('Shutting down')
         logger.shutdown()
         sys.exit(1)
