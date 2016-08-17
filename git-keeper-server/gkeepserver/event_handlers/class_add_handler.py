@@ -117,9 +117,11 @@ class ClassAddHandler(EventHandler):
         # create new student accounts
         for student in new_students:
             try:
+                groups = [config.student_group]
                 create_user(student.username, UserType.student,
                             student.first_name, student.last_name,
-                            email_address=student.email_address)
+                            email_address=student.email_address,
+                            additional_groups=groups)
             except GkeepException as e:
                 error = 'Error adding user {0}: {1}'.format(student.username,
                                                             e)
