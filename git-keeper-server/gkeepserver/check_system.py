@@ -121,6 +121,9 @@ def check_keeper_paths_and_permissions():
         # we can create it as an empty file
         touch(config.log_snapshot_file_path)
 
+    if not os.path.isfile(config.gitconfig_file_path):
+        write_gitconfig()
+
     required_modes = {
         config.home_dir: '750',
         config.log_file_path: '600',
@@ -134,6 +137,24 @@ def check_keeper_paths_and_permissions():
                                       'changing it now'
                                       .format(path, required_mode))
             chmod(path, required_mode)
+
+
+def write_gitconfig():
+    """
+    Write .gitconfig so that the keeper user can commit to repositories
+    """
+
+    file_text = ('[user]\n\temail = {0}\n\tname = {1}\n'
+                 .format(config.from_address, config.from_name))
+
+    try:
+        with open(config.gitconfig_file_path, 'w') as f:
+            f.write(file_text)
+    except OSError as e:
+        error = 'Error writing {0}: {1}'.format(config.gitconfig_file_path, e)
+        raise CheckSystemError(error)
+
+    gkeepd_logger.log_info('Created {0}'.format(config.gitconfig_file_path))
 
 
 def setup_faculty(faculty: Faculty):
