@@ -70,11 +70,14 @@ class TestingEnvironment:
         """
         # check for the client first because the server stops the network
         if self.docker_api.is_running('git-keeper-client'):
+            print('Stoping exisiting client...')
             stop_docker_gkeepclient(self._debug_output)
 
         if self.docker_api.is_running('git-keeper-server'):
+            print('Stopping exisiting server...')
             stop_docker_gkeepserver(self._debug_output)
 
+        print('Preparing server volumes...')
         self.temp_server_home = TemporaryDirectory(prefix='tmp_server', dir=os.getcwd())
         temp_server_home_dir = self.temp_server_home.name
 
@@ -101,20 +104,23 @@ class TestingEnvironment:
         self.temp_email = TemporaryDirectory(prefix='tmp_mail', dir=os.getcwd())
         temp_email_dir = self.temp_email.name
 
+        print('Starting server container...')
         start_docker_gkeepserver(temp_server_home_dir, temp_email_dir,
                                  debug_output=self._debug_output)
 
+        print('Preparing client volumes...')
         self.temp_client_home = TemporaryDirectory(prefix='tmp_client', dir=os.getcwd())
         temp_client_home_dir = self.temp_client_home.name
 
         if client_home_dir is not None:
-            self._copydir(client_home_dir, temp_client_home_dir)
+            self._copydir(client_home_dir, temp_client_home_dir + '/prof')
 
         shutil.copytree('client_files/ssh', temp_client_home_dir + '/prof/.ssh')
         shutil.copytree('client_files/config', temp_client_home_dir + '/prof/.config')
         shutil.copy('client_files/gitconfig', temp_client_home_dir + '/prof/.gitconfig')
         shutil.copy('client_files/set-keys', temp_client_home_dir + '/prof/set-keys')
 
+        print('Starting client container...')
         start_docker_gitkeepclient(temp_client_home_dir, debug_output=self._debug_output)
 
         # To set up the ssh key for prof@gkclient we need to know the pw
@@ -164,13 +170,17 @@ class TestingEnvironment:
         directories.
         :return:
         """
+
+        print('Stopping client container...')
         # bring the client down first because server stops the network
         if self.docker_api.is_running('git-keeper-client'):
             stop_docker_gkeepclient(self._debug_output)
 
+        print('Stopping server container...')
         if self.docker_api.is_running('git-keeper-server'):
             stop_docker_gkeepserver(self._debug_output)
 
+        print('Cleaning up volumes...')
         self.temp_server_home.cleanup()
         self.temp_client_home.cleanup()
         self.temp_email.cleanup()

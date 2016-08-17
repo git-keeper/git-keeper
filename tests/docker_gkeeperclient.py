@@ -32,6 +32,7 @@ def start_docker_gitkeepclient(temp_client_home_dir, debug_output = False):
 
     if is_modified('git-keeper-client', 'git-keeper-client/Dockerfile',
                    debug_output=debug_output):
+        print('  Building Docker container.  This may take a while...')
         # make sure the containers are built
         build_exit_code = DockerCommand("build", output=debug_output)\
             .add("-t git-keeper-client")\
@@ -41,6 +42,7 @@ def start_docker_gitkeepclient(temp_client_home_dir, debug_output = False):
         if build_exit_code != 0:
             raise RuntimeError("Non-zero exit code on docker build.")
 
+    print('  Starting container...')
     run_exit_code = DockerCommand("run", output=debug_output)\
         .add("-d")\
         .add("-P")\
@@ -59,6 +61,7 @@ def start_docker_gitkeepclient(temp_client_home_dir, debug_output = False):
     if run_exit_code != 0:
         raise RuntimeError("Non-zero exit code when starting server.")
 
+    print('  Installing git-keeper-core...')
     core_install_exit_code = DockerCommand('exec', output=debug_output)\
         .add('-i')\
         .add('git-keeper-client bash -c "cd /git-keeper-core && python3 setup.py install"')\
@@ -67,6 +70,7 @@ def start_docker_gitkeepclient(temp_client_home_dir, debug_output = False):
     if core_install_exit_code != 0:
         raise RuntimeError("Non-zero exit code when installing git-keeper-core")
 
+    print('  Installing git-keeper-client...')
     client_install_exit_code = DockerCommand('exec', output=debug_output)\
         .add('-i')\
         .add('git-keeper-client bash -c "cd /git-keeper-client && python3 setup.py install"')\
@@ -75,6 +79,7 @@ def start_docker_gitkeepclient(temp_client_home_dir, debug_output = False):
     if client_install_exit_code != 0:
         raise RuntimeError("Non-zero exit code when installing git-keeper-client")
 
+    print('  Installing git-keeper-server...')
     server_install_exit_code = DockerCommand('exec', output=debug_output)\
         .add('-i')\
         .add('git-keeper-client bash -c "cd /git-keeper-server && python3 setup.py install"')\
