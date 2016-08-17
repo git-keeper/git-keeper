@@ -280,9 +280,8 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
 
     # path to the student's bare repository for this assignment
     assignment_repo_path = \
-        student_assignment_repo_path(student.username, faculty_username,
-                                     assignment_dir.class_name,
-                                     assignment_dir.assignment_name)
+        student_assignment_repo_path(faculty_username, assignment_dir.class_name,
+                                     assignment_dir.assignment_name, home_dir)
 
     # the repo should not already exist
     if os.path.isdir(assignment_repo_path):
@@ -303,7 +302,7 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
     try:
         cp(assignment_dir.base_code_repo_path, assignment_repo_path,
            recursive=True, sudo=True)
-    except OSError as e:
+    except GkeepException as e:
         error = ('error copying {0} to {1}: {2}'
                  .format(assignment_dir.base_code_repo_path,
                          assignment_repo_path, str(e)))
