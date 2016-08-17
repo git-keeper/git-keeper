@@ -27,8 +27,9 @@ calling check_system()
 import csv
 import os
 
-from gkeepcore.faculty import Faculty, FacultyError
+from gkeepcore.faculty import Faculty, FacultyError, faculty_from_csv_file
 from gkeepcore.gkeep_exception import GkeepException
+from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
                                        sudo_add_group, mode, chmod, touch,
                                        this_user, this_group)
@@ -102,14 +103,17 @@ def check_keeper_paths_and_permissions():
 
     # below are non-fatal conditions that can be corrected
 
-    if not group_exists(config.faculty_group):
-        gkeepd_logger.log_info('Group {0} does not exist, creating it now'
-                               .format(config.faculty_group))
+    # create the faculty and student groups if they don't exist
+    for group in (config.faculty_group, config.student_group):
+        gkeepd_logger.log_info(group)
+        if not group_exists(group):
+            gkeepd_logger.log_info('Group {0} does not exist, creating it now'
+                                   .format(group))
 
-        try:
-            sudo_add_group(config.faculty_group)
-        except CommandError as e:
-            raise CheckSystemError(e)
+            try:
+                sudo_add_group(group)
+            except CommandError as e:
+                raise CheckSystemError(e)
 
     if not os.path.isfile(config.log_snapshot_file_path):
         gkeepd_logger.log_info('{0} does not exist, creating it now'
@@ -155,18 +159,13 @@ def setup_faculty(faculty: Faculty):
 def check_faculty():
     """Read faculty.csv and add any new faculty members."""
 
-    faculty_list = []
-
     gkeepd_logger.log_debug('Reading faculty CSV file')
 
-    with open(config.faculty_csv_path) as f:
-        reader = csv.reader(f)
-
-        for row in reader:
-            try:
-                faculty_list.append(Faculty.from_csv_row(row))
-            except FacultyError:
-                raise CheckSystemError
+    try:
+        reader = LocalCSVReader(config.faculty_csv_path)
+        faculty_list = faculty_from_csv_file(reader)
+    except GkeepException as e:
+        raise CheckSystemError(e)
 
     for faculty in faculty_list:
         if not user_exists(faculty.username):
