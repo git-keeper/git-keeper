@@ -153,6 +153,9 @@ class ServerConfiguration:
     def _initialize_default_attributes(self):
         # Initialize attributes that have default values
 
+        # path to .gitconfig
+        self.gitconfig_file_path = os.path.join(self.home_dir, '.gitconfig')
+
         # logging
         self.log_file_path = os.path.join(self.home_dir, 'gkeepd.log')
 
