@@ -40,6 +40,7 @@ def start_docker_gkeepserver(server_home_dir, email_dir,
 
     if is_modified('git-keeper-server', 'git-keeper-server/Dockerfile',
                    debug_output=debug_output):
+        print('  Building Docker container.  This may take a while...')
         # make sure the containers are built
         build_exit_code = DockerCommand("build", output=debug_output)\
             .add("-t git-keeper-server")\
@@ -58,6 +59,7 @@ def start_docker_gkeepserver(server_home_dir, email_dir,
         .add("git-keeper")\
         .run()
 
+    print('  Starting container...')
     # Bring the server up
     # -d  - detach the container (run as deamon)
     # -P  - publish all ports (in our case, just 22)
@@ -89,6 +91,7 @@ def start_docker_gkeepserver(server_home_dir, email_dir,
     if run_exit_code != 0:
         raise RuntimeError("Non-zero exit code when starting server.")
 
+    print('  Installing git-keeper-core...')
     core_install_exit_code = DockerCommand('exec', output=debug_output)\
         .add('-i')\
         .add('git-keeper-server bash -c "cd /git-keeper-core && python3 setup.py install"')\
@@ -97,6 +100,7 @@ def start_docker_gkeepserver(server_home_dir, email_dir,
     if core_install_exit_code != 0:
         raise RuntimeError("Non-zero exit code when installing git-keeper-core")
 
+    print('  Installing git-keeper-server...')
     server_install_exit_code = DockerCommand('exec', output=debug_output)\
         .add('-i')\
         .add('git-keeper-server bash -c "cd /git-keeper-server && python3 setup.py install"')\
@@ -105,12 +109,14 @@ def start_docker_gkeepserver(server_home_dir, email_dir,
     if server_install_exit_code != 0:
         raise RuntimeError("Non-zero exit code when installing git-keeper-server")
 
+    print('  Starting mock email server...')
     DockerCommand("exec", output=debug_output)\
         .add("-d")\
         .add('git-keeper-server')\
         .add('/usr/bin/mysmtpd.py 25 /email/')\
         .run()
 
+    print('  Starting gkeepd...')
     # Start the server
     # The exit code will be 0 because the docker command succeeds.  This does not
     # mean the server came up successfully.  FIXME is there anything we can do
