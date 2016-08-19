@@ -134,3 +134,23 @@ def students_from_csv(reader: CSVReader) -> list:
             students.append(Student.from_csv_row(row))
 
     return students
+
+
+def student_from_username(username: str,
+                          csv_reader: CSVReader) -> Student:
+    """
+    Build a Student object for the student with the given username from the
+    given CSV reader.
+
+    Raises StudentError or CSVError if something goes wrong.
+
+    :param username: username of the student
+    :param csv_reader: CSVReader to get the student data from
+    :return: Student object with the given username
+    """
+
+    for student in students_from_csv(csv_reader):
+        if student.username == username:
+            return student
+
+    raise StudentError('{0} not found'.format(username))
