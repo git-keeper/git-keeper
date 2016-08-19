@@ -23,7 +23,8 @@ New submissions are pulled from the global new_submission_queue.
 
 from queue import Empty
 from threading import Thread
-
+from gkeepcore.gkeep_exception import GkeepException
+from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepserver.new_submission_queue import new_submission_queue
 
 
@@ -73,3 +74,7 @@ class SubmissionTestThread(Thread):
             # timeout seconds
             except Empty:
                 pass
+            except GkeepException as e:
+                logger.log_error('Error while running tests: {0}'
+                                 .format(str(e)))
+

@@ -13,24 +13,36 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from tests.docker_command import DockerCommand
+from tests.docker_command import DockerCommand, is_modified
 import os
 
 
 def start_docker_gitkeepclient(temp_client_home_dir, debug_output = False):
+    """
+    Start the docker container running the git-keeper-client.  This container
+    has a prof account for testing
+
+    :param temp_client_home_dir: local folder that is mounted as prof home
+    :param debug_output: whether to show verbose output
+    :return: None
+    """
 
     this_file_dir = os.path.dirname(os.path.realpath(__file__))
     parent_dir = os.path.abspath(os.path.join(this_file_dir, os.pardir))
 
-    # make sure the containers are built
-    build_exit_code = DockerCommand("build", output=debug_output)\
-        .add("-t git-keeper-client")\
-        .add(this_file_dir + "/git-keeper-client")\
-        .run()
+    if is_modified('git-keeper-client', 'git-keeper-client/Dockerfile',
+                   debug_output=debug_output):
+        print('  Building Docker container.  This may take a while...')
+        # make sure the containers are built
+        build_exit_code = DockerCommand("build", output=debug_output)\
+            .add("-t git-keeper-client")\
+            .add(this_file_dir + "/git-keeper-client")\
+            .run()
 
-    if build_exit_code != 0:
-        raise RuntimeError("Non-zero exit code on docker build.")
+        if build_exit_code != 0:
+            raise RuntimeError("Non-zero exit code on docker build.")
 
+    print('  Starting container...')
     run_exit_code = DockerCommand("run", output=debug_output)\
         .add("-d")\
         .add("-P")\
@@ -42,12 +54,14 @@ def start_docker_gitkeepclient(temp_client_home_dir, debug_output = False):
         .add("-v " + temp_client_home_dir + ":/home")\
         .add("-v " + parent_dir + "/git-keeper-core:/git-keeper-core")\
         .add("-v " + parent_dir + "/git-keeper-client:/git-keeper-client")\
+        .add("-v " + parent_dir + "/git-keeper-server:/git-keeper-server")\
         .add("git-keeper-client")\
         .run()
 
     if run_exit_code != 0:
         raise RuntimeError("Non-zero exit code when starting server.")
 
+    print('  Installing git-keeper-core...')
     core_install_exit_code = DockerCommand('exec', output=debug_output)\
         .add('-i')\
         .add('git-keeper-client bash -c "cd /git-keeper-core && python3 setup.py install"')\
@@ -56,6 +70,7 @@ def start_docker_gitkeepclient(temp_client_home_dir, debug_output = False):
     if core_install_exit_code != 0:
         raise RuntimeError("Non-zero exit code when installing git-keeper-core")
 
+    print('  Installing git-keeper-client...')
     client_install_exit_code = DockerCommand('exec', output=debug_output)\
         .add('-i')\
         .add('git-keeper-client bash -c "cd /git-keeper-client && python3 setup.py install"')\
@@ -64,8 +79,23 @@ def start_docker_gitkeepclient(temp_client_home_dir, debug_output = False):
     if client_install_exit_code != 0:
         raise RuntimeError("Non-zero exit code when installing git-keeper-client")
 
+    print('  Installing git-keeper-server...')
+    server_install_exit_code = DockerCommand('exec', output=debug_output)\
+        .add('-i')\
+        .add('git-keeper-client bash -c "cd /git-keeper-server && python3 setup.py install"')\
+        .run()
+
+    if server_install_exit_code != 0:
+        raise RuntimeError("Non-zero exit code when installing git-keeper-server")
+
 
 def stop_docker_gkeepclient(debug_output = False):
+    """
+    Stop the client container.
+
+    :param debug_output: whether to produce verbose output
+    :return: None
+    """
 
     # Stop client and remove its container
     stop_exit_code = DockerCommand("stop", output=debug_output)\
@@ -82,6 +112,14 @@ def stop_docker_gkeepclient(debug_output = False):
 
 
 def run_client_command(cmd, *args, debug_output=False):
+    """
+    Run an arbitrary command on the client.  This command is run as prof.
+
+    :param cmd: the command to run
+    :param args: arguments to the command
+    :param debug_output: whether to produce verbose output
+    :return: None
+    """
 
     the_args = " ".join(args)
 
@@ -91,5 +129,4 @@ def run_client_command(cmd, *args, debug_output=False):
         .add("--user prof")\
         .add("git-keeper-client")\
         .add(full_cmd)\
-        .run(print_command=True)
-
+        .run()

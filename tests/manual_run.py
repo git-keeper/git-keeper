@@ -14,9 +14,38 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from tests.testing_environment import TestingEnvironment
+"""
+This script will bring up a git-keeper server and a client machine.
 
-testing_env = TestingEnvironment(debug_output=True)
+The server:
+- is configured to create a prof account
+- traps email locally to the tmp_email* folder as individual files
+
+The client:
+- has a prof account with ssh keys already copies to the server
+
+The folder command_line contains:
+- sshclient: connect to the client machine as prof.
+- sshserver: connect to the server machine as keeper.
+
+
+From the client keys are established so you can ssh to
+- prof@gkserver
+- keeper@gkserver
+
+For convienence, the prof@gkserver password is displayed.  On the client,
+the prof password is 'prof'
+
+"""
+
+from tests.testing_environment import TestingEnvironment
+import os
+
+this_file_dir = os.path.dirname(os.path.realpath(__file__))
+
+testing_env = TestingEnvironment(debug_output=False,
+                                 client_home_dir=this_file_dir +
+                                                 "/client_files/testing")
 
 input("\n\nServer running.  Hit return to stop it.")
 
