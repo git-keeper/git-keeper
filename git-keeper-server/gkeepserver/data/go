@@ -1,0 +1,4 @@
+#!/usr/bash
+
+cd /temp/tests
+bash action.sh /temp/assignment
