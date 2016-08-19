@@ -7,16 +7,25 @@ FROM ubuntu
 
 # NOTE: all the following commands run as root
 
-RUN apt-get update
-
 # The following taken from the "Docker in Docker (dind)" Dockerfile
 # See https://github.com/jpetazzo/dind
-RUN apt-get install -qqy \
+RUN apt-get update && apt-get install -qqy \
     apt-transport-https \
     ca-certificates \
     curl \
     lxc \
-    iptables
+    iptables \
+    openssh-server \
+    python3 \
+    python3-pip \
+    libffi-dev \
+    libssl-dev \
+    sudo \
+    git \
+    nano \
+    screen
+
+RUN pip3 install paramiko
 
 # Install Docker from Docker Inc. repositories.
 RUN curl -sSL https://get.docker.com/ | sh
@@ -28,22 +37,7 @@ RUN chmod +x /usr/local/bin/wrapdocker
 # Define additional metadata for our image.
 VOLUME /var/lib/docker
 
-RUN apt-get install -y openssh-server
 RUN mkdir /var/run/sshd
-
-# Set up python and the necessary libraries
-RUN apt-get install python3
-RUN apt-get install -y python3-pip
-RUN apt-get install -y libffi-dev
-RUN apt-get install -y libssl-dev
-RUN pip3 install paramiko
-#RUN pip3 install pyinotify
-
-# It's not installed by default any more!
-RUN apt-get install -y sudo
-
-# Set up git - it is a git-based application, after all!
-RUN apt-get install -y git
 
 # Create the gitkeeper group and the main gitkeeper account in that group
 RUN groupadd gitkeeper
@@ -57,14 +51,10 @@ RUN echo 'keeper:g1tk33p3r' | chpasswd
 ADD ./ssh_server /etc/ssh
 RUN chmod 600 /etc/ssh/*_key
 
-# For debugging
-RUN apt-get install nano
-
 RUN mkdir /email
 
 ADD ./mysmtpd.py /usr/bin
 RUN chmod +x /usr/bin/mysmtpd.py
-
 
 # This will run the docker command and then all the sshd command to run
 ENTRYPOINT ["wrapdocker"]
