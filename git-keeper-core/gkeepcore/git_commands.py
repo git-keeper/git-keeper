@@ -17,7 +17,7 @@
 """Provides functions for running git commands."""
 
 
-from gkeepcore.shell_command import run_command_in_directory
+from gkeepcore.shell_command import run_command_in_directory, run_command
 
 
 def git_remote_add(repo_path, remote_name, url):
@@ -105,3 +105,17 @@ def git_push(repo_path, dest=None, branch='master', force=False):
         cmd += [dest, branch]
 
     run_command_in_directory(repo_path, cmd)
+
+
+def git_clone(source_repo_path, target_path):
+    """
+    Clone a local repo to a specific location
+
+    :param source_repo_path: the path to the (bare) source repo
+    :param target_path: the path where the git clone should be executed.
+    :return: None
+    """
+
+    cmd = ['git', 'clone', source_repo_path]
+
+    run_command_in_directory(target_path, cmd)
