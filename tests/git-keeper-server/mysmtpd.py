@@ -19,6 +19,7 @@ import smtpd
 import sys
 import asyncore
 import email
+from email.header import decode_header
 
 
 ########################################################################
@@ -79,6 +80,12 @@ class MySMTPD(smtpd.DebuggingServer):
         with open(self.directory + '/' + filename + '.txt', 'w') as f:
 
             msg = email.message_from_string(data)
+
+            f.write('From: ' + mailfrom + '\n')
+            # The subject line is encoded. Read the docs for email.header
+            # to understand the double [0]
+            f.write('Subject: ' + decode_header(msg['Subject'])[0][0].decode() +
+                    '\n\n')
 
             if msg.is_multipart():
                 for payload in msg.get_payload():
