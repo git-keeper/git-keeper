@@ -23,6 +23,15 @@ Event type: SUBMISSION
 from gkeepcore.path_utils import user_from_log_path, \
     parse_submission_repo_path
 from gkeepserver.event_handler import EventHandler, HandlerException
+from gkeepserver.submission import Submission
+from gkeepcore.path_utils import user_home_dir, class_student_csv_path, \
+    faculty_assignment_dir_path
+from gkeepcore.student import student_from_username
+from gkeepserver.assignments import AssignmentDirectory
+from gkeepserver.new_submission_queue import new_submission_queue
+from gkeepcore.local_csv_files import LocalCSVReader
+from gkeepserver.server_configuration import config
+from gkeepcore.faculty import faculty_from_username
 
 
 class SubmissionHandler(EventHandler):
@@ -31,7 +40,6 @@ class SubmissionHandler(EventHandler):
     def handle(self):
         """Take action after a student pushes a new submission."""
 
-        # FIXME - ensure everything exists, set things up, and run tests
         print('Handling submission:')
         print(' Student:   ', self._student_username)
         print(' Faculty:   ', self._faculty_username)
@@ -39,6 +47,36 @@ class SubmissionHandler(EventHandler):
         print(' Assignment:', self._assignment_name)
         print(' Repo path: ', self._submission_repo_path)
         print()
+
+        # We need to create a submission object to put in the
+        # new_submission_queue.  This requires a Student object and
+        # paths to student repo, tests (not a repo), and reports repo.
+
+        # The AssignmentDirectory object can provide the paths we need
+        faculty_home_dir = user_home_dir(self._faculty_username)
+
+        reader = LocalCSVReader(config.faculty_csv_path)
+        faculty = faculty_from_username(self._faculty_username, reader)
+        faculty_email = faculty.email_address
+
+        assignment_path = faculty_assignment_dir_path(self._class_name,
+                                                      self._assignment_name,
+                                                      faculty_home_dir)
+        assignment_directory = AssignmentDirectory(assignment_path)
+
+        tests_path = assignment_directory.tests_path
+        reports_repo_path = assignment_directory.reports_repo_path
+
+        reader = LocalCSVReader(class_student_csv_path(self._class_name,
+                                                       faculty_home_dir))
+
+        # We build the Student from the csv for the class
+        student = student_from_username(self._student_username, reader)
+
+        submission = Submission(student, self._submission_repo_path,
+                                tests_path, reports_repo_path, faculty_email)
+
+        new_submission_queue.put(submission)
 
     def __repr__(self) -> str:
         """
