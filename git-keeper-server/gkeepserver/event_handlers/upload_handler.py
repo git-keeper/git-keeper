@@ -137,6 +137,7 @@ class UploadHandler(EventHandler):
             # initialize reports repo
             mkdir(assignment_dir.reports_repo_path)
             git_init_bare(assignment_dir.reports_repo_path)
+            chmod(assignment_dir.reports_repo_path, '770', recursive=True)
 
             # create the base code repo
             create_base_code_repo(assignment_dir, upload_dir.base_code_path)
