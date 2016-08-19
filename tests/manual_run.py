@@ -39,8 +39,13 @@ the prof password is 'prof'
 """
 
 from tests.testing_environment import TestingEnvironment
+import os
 
-testing_env = TestingEnvironment()
+this_file_dir = os.path.dirname(os.path.realpath(__file__))
+
+testing_env = TestingEnvironment(debug_output=False,
+                                 client_home_dir=this_file_dir +
+                                                 "/client_files/testing")
 
 input("\n\nServer running.  Hit return to stop it.")
 

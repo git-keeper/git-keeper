@@ -125,8 +125,15 @@ def start_docker_gkeepserver(server_home_dir, email_dir,
         .add("-d")\
         .add("-u keeper")\
         .add("git-keeper-server")\
-        .add("gkeepd")\
+        .add("screen -d -m gkeepd")\
         .run()
+
+    # This is a SLOW way to provide the docker container for running action.sh
+    #print('  Pulling test environment container')
+    #DockerCommand("exec", output=debug_output)\
+    #    .add("git-keeper-server")\
+    #    .add("docker pull coleman/git-keeper-test-env")\
+    #    .run()
 
 
 def stop_docker_gkeepserver(debug_output = False):

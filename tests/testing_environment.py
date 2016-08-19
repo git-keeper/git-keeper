@@ -113,7 +113,8 @@ class TestingEnvironment:
         temp_client_home_dir = self.temp_client_home.name
 
         if client_home_dir is not None:
-            self._copydir(client_home_dir, temp_client_home_dir + '/prof')
+            shutil.copytree(client_home_dir, temp_client_home_dir + '/prof')
+            #self._copydir(client_home_dir, temp_client_home_dir + '/prof')
 
         shutil.copytree('client_files/ssh', temp_client_home_dir + '/prof/.ssh')
         shutil.copytree('client_files/config', temp_client_home_dir + '/prof/.config')
