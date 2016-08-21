@@ -45,6 +45,7 @@ from queue import Queue, Empty
 from threading import Thread
 from time import time, sleep
 
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepserver.server_email import Email, EmailException
 
@@ -154,9 +155,9 @@ class EmailSenderThread(Thread):
         try:
             email.send()
             logger.log_info('Sent email to {0}'.format(email.to_address))
-        except EmailException as e:
-            logger.log_error('Failed to send email to {0}'
-                             .format(email.to_address))
+        except GkeepException as e:
+            logger.log_error('Failed to send email to {0}: {1}'
+                             .format(email.to_address, e))
 
 
 # module-level instance for global email sending
