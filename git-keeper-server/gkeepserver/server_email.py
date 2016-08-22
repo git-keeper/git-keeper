@@ -32,6 +32,7 @@ from email.mime.text import MIMEText
 from smtplib import SMTP
 
 from gkeepcore.gkeep_exception import GkeepException
+from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.server_configuration import config
 
 
@@ -164,6 +165,8 @@ class Email:
             server.sendmail(config.from_address, self.to_address,
                             self.message_string)
             server.quit()
+
+            gkeepd_logger.log_info('Sent email to {0}'.format(self.to_address))
 
         except OSError as e:
             raise EmailException('Error sending email: {0}'.format(e))
