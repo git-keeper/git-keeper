@@ -138,7 +138,20 @@ def is_non_bare_repo(repo_path):
     return os.path.isdir(git_path)
 
 
-def git_clone(remote_repo_url, local_repo_path):
+def git_clone(source_repo_path, target_path):
+    """
+    Clone a local repo to a specific location
+    :param source_repo_path: the path to the (bare) source repo
+    :param target_path: the path where the git clone should be executed.
+    :return: None
+    """
+
+    cmd = ['git', 'clone', source_repo_path]
+
+    run_command_in_directory(target_path, cmd)
+
+
+def git_clone_remote(remote_repo_url, local_repo_path):
     """
     Clone a remote repository.
 

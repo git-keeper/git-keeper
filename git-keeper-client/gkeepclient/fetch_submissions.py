@@ -29,8 +29,8 @@ from gkeepclient.server_interface import server_interface
 from gkeepclient.server_response_poller import ServerResponsePoller, \
     ServerResponseType
 from gkeepclient.text_ui import confirmation
-from gkeepcore.git_commands import git_clone, is_non_bare_repo, git_head_hash, \
-    git_pull
+from gkeepcore.git_commands import is_non_bare_repo, git_head_hash, \
+    git_pull, git_clone_remote
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import student_assignment_repo_path
 
@@ -48,7 +48,7 @@ def clone_repo(local_repo_path, remote_url):
     sys.stdout.flush()
 
     try:
-        git_clone(remote_url, local_repo_path)
+        git_clone_remote(remote_url, local_repo_path)
         print('success!')
     except GkeepException as e:
         print('error cloning')
