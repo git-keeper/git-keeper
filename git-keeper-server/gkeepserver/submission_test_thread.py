@@ -74,7 +74,6 @@ class SubmissionTestThread(Thread):
             # timeout seconds
             except Empty:
                 pass
-            except GkeepException as e:
+            except Exception as e:
                 logger.log_error('Error while running tests: {0}'
                                  .format(str(e)))
-

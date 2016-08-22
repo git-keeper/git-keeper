@@ -136,6 +136,9 @@ class EmailSenderThread(Thread):
                         logger.log_warning(warning)
             except Empty:
                 pass
+            except Exception as e:
+                logger.log_error('Error in email sender thread: {0}'
+                                 .format(e))
 
     def _send_email_with_rate_limiting(self, email: Email):
         # Send the email. Sleep first if need be.
@@ -155,7 +158,7 @@ class EmailSenderThread(Thread):
         try:
             email.send()
             logger.log_info('Sent email to {0}'.format(email.to_address))
-        except GkeepException as e:
+        except Exception as e:
             logger.log_error('Failed to send email to {0}: {1}'
                              .format(email.to_address, e))
 
