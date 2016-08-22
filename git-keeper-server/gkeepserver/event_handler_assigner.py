@@ -90,7 +90,11 @@ class EventHandlerAssignerThread(Thread):
         # Do not call this method directly. Call start() instead.
 
         while not self._shutdown_flag:
-            self._examine_all_new_events()
+            try:
+                self._examine_all_new_events()
+            except Exception as e:
+                gkeepd_logger.log_error('Error examining events: {0}'
+                                        .format(e))
 
     def _examine_all_new_events(self):
         # Examine all new log events that are in the queue

@@ -128,6 +128,10 @@ class PublishHandler(EventHandler):
                                   warning)
             gkeepd_logger.log_warning(warning)
 
+        gkeepd_logger.log_debug('Set up assignment {0} for {1}'
+                                .format(assignment_dir.assignment_name,
+                                        student.username))
+
     def __repr__(self):
         """
         Create a string representation of the handler for printing and logging

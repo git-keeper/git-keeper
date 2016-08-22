@@ -172,7 +172,11 @@ class LogPollingThread(Thread):
         # calling start()
 
         while not self._shutdown_flag:
-            self._poll()
+            try:
+                self._poll()
+            except Exception as e:
+                self._logger.log_error('Error polling logs: {0}'
+                                       .format(e))
 
     def _load_snapshot(self):
         # Called from initialize() and should not be called again.
