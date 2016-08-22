@@ -185,8 +185,11 @@ def add_fetch_subparser(subparsers):
     add_class_name_argument(subparser)
     subparser.add_argument('assignment_name', type=str,
                            metavar='<assignment name>',
-                           help='name of the assignment (optional)',
-                           nargs='?')
+                           help='name of the assignment, or "all"')
+    subparser.add_argument('destination_path', type=str,
+                           metavar='<destination>',
+                           help=('directory in which to fetch the assignment '
+                                 '(optional)'), nargs='?')
 
 
 def add_query_subparser(subparsers):
@@ -291,7 +294,8 @@ def main():
                               parsed_args.assignment_name)
         elif action_name == 'fetch':
             fetch_submissions(parsed_args.class_name,
-                              parsed_args.assignment_name)
+                              parsed_args.assignment_name,
+                              parsed_args.destination_path)
         elif action_name == 'query':
             run_query(parsed_args.query_type)
     except GkeepException as e:

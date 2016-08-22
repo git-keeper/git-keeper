@@ -241,13 +241,15 @@ def refresh_info():
 @config_parsed
 @server_interface_connected
 @class_exists
-def fetch_submissions(class_name: str, assignment_name: str):
+def fetch_submissions(class_name: str, assignment_name: str,
+                      destination_path: str):
     """
     Fetch student submissions for a class.
 
     :param class_name: name of the class to fetch assignments from
     :param assignment_name: name of an assignment to fetch, or None to fetch
      all assignments for the class
+    :param destination_path: directory in which to fetch the assignment
     """
 
     # ask the server to refresh the hashes for assignment repositories
@@ -255,13 +257,23 @@ def fetch_submissions(class_name: str, assignment_name: str):
 
     info = server_interface.get_info()
 
-    class_path = os.path.join(config.submissions_path, class_name)
+    if destination_path is None:
+        if config.submissions_path is None:
+            error = ('You must provide a destination path, or define the '
+                     'submissions_path parameter in the [local] section of '
+                     'client.cfg')
+            raise GkeepException(error)
 
-    create_dir_if_non_existent(config.submissions_path, confirm=True)
-    create_dir_if_non_existent(class_path)
+        destination_path = os.path.join(config.submissions_path,
+                                        class_name)
+    else:
+        destination_path = os.path.expanduser(destination_path)
+        destination_path = os.path.abspath(destination_path)
+
+    create_dir_if_non_existent(destination_path, confirm=True)
 
     # build list of assignments to fetch
-    if assignment_name is None:
+    if assignment_name == 'all':
         assignments = list(info[class_name]['assignments'].keys())
     else:
         if assignment_name not in info[class_name]['assignments']:
@@ -274,5 +286,4 @@ def fetch_submissions(class_name: str, assignment_name: str):
     # fetch the submissions
     for assignment_name in assignments:
         fetch_assignment_submissions(class_name, assignment_name,
-                                     class_path, info)
-
+                                     destination_path, info)
