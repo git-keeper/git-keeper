@@ -26,6 +26,7 @@ from gkeepcore.path_utils import user_from_log_path, student_class_dir_path, \
 from gkeepcore.shell_command import CommandError
 from gkeepcore.student import students_from_csv, StudentError
 from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, chmod
+from gkeepcore.valid_names import validate_class_name
 from gkeepserver.create_user import create_user, UserType
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
@@ -48,6 +49,7 @@ class ClassAddHandler(EventHandler):
         """
 
         try:
+            validate_class_name(self._class_name)
             reader = LocalCSVReader(self._uploaded_csv_path)
             students = students_from_csv(reader)
 
@@ -55,7 +57,7 @@ class ClassAddHandler(EventHandler):
             self._add_students_class_dirs(students)
 
             self._log_to_faculty('CLASS_ADD_SUCCESS', self._class_name)
-        except (CSVError, StudentError, HandlerException) as e:
+        except Exception as e:
             self._log_error_to_faculty(str(e))
             gkeepd_logger.log_warning('Class add failed: {0}'.format(e))
 
