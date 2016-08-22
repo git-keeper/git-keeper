@@ -70,8 +70,13 @@ class SubmissionHandler(EventHandler):
         reader = LocalCSVReader(class_student_csv_path(self._class_name,
                                                        faculty_home_dir))
 
-        # We build the Student from the csv for the class
-        student = student_from_username(self._student_username, reader)
+        # if the student is the facutly testing the assignment, use the
+        # faculty as the student
+        if self._student_username == self._faculty_username:
+            student = faculty
+        # otherwise build the Student from the csv for the class
+        else:
+            student = student_from_username(self._student_username, reader)
 
         submission = Submission(student, self._submission_repo_path,
                                 tests_path, reports_repo_path, faculty_email)
