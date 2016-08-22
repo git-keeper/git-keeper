@@ -189,16 +189,16 @@ class ClientConfiguration:
     def _set_local_options(self):
         # Initialize all attributes related to the local client machine
 
-        self._ensure_section_is_present('local')
+        self.submissions_path = None
 
-        try:
+        if 'local' not in self._parser.sections():
+            return
+
+        if self._parser.has_option('local', 'submissions_path'):
             self.submissions_path = self._parser.get('local',
                                                      'submissions_path')
-        except configparser.NoOptionError as e:
-            raise ClientConfigurationError(e.message)
-
-        self.submissions_path = os.path.expanduser(self.submissions_path)
-        self.submissions_path = os.path.abspath(self.submissions_path)
+            self.submissions_path = os.path.expanduser(self.submissions_path)
+            self.submissions_path = os.path.abspath(self.submissions_path)
 
 
 # Module-level configuration instance. Someone must call parse() on this
