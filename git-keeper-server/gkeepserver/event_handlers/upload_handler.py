@@ -30,6 +30,7 @@ from gkeepcore.path_utils import user_from_log_path, \
 from gkeepcore.shell_command import CommandError
 from gkeepcore.system_commands import chmod, sudo_chown, rm, mkdir
 from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
+from gkeepcore.valid_names import validate_assignment_name
 from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, create_base_code_repo, copy_email_txt_file, \
     copy_tests_dir, setup_student_assignment, StudentAssignmentError
@@ -68,6 +69,7 @@ class UploadHandler(EventHandler):
         assignment_dir = AssignmentDirectory(assignment_path, check=False)
 
         try:
+            validate_assignment_name(assignment_dir.assignment_name)
             self._setup_assignment_dir(assignment_dir)
             self._setup_faculty_test_assignment(assignment_dir)
             log_gkeepd_to_faculty(self._faculty_username, 'UPLOAD_SUCCESS',
@@ -76,7 +78,7 @@ class UploadHandler(EventHandler):
                                                     self._assignment_name,
                                                     self._class_name)
             gkeepd_logger.log_info(info)
-        except HandlerException as e:
+        except Exception as e:
             error = '{0} {1}'.format(self._upload_path, str(e))
             log_gkeepd_to_faculty(self._faculty_username, 'UPLOAD_ERROR',
                                   error)

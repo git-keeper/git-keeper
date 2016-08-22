@@ -20,6 +20,8 @@
 import os
 import sys
 
+from gkeepcore.valid_names import validate_class_name, validate_assignment_name
+
 from gkeepclient.assignment_uploader import AssignmentUploader
 from gkeepclient.client_configuration import config
 from gkeepclient.client_function_decorators import config_parsed, \
@@ -43,6 +45,8 @@ def class_add(class_name: str, csv_file_path: str):
     :param class_name: name of the class
     :param csv_file_path: path to the CSV file of students
     """
+
+    validate_class_name(class_name)
 
     if not os.path.isfile(csv_file_path):
         raise GkeepException('{0} does not exist'.format(csv_file_path))
@@ -275,6 +279,8 @@ def upload_assignment(class_name: str, upload_dir_path: str):
     except GkeepException as e:
         error = 'Error in {0}: {1}'.format(upload_dir_path, str(e))
         raise GkeepException(error)
+
+    validate_assignment_name(upload_dir.assignment_name)
 
     print('uploading', upload_dir.assignment_name, 'in', class_name)
 
