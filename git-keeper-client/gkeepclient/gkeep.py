@@ -18,12 +18,18 @@
 
 # PYTHON_ARGCOMPLETE_OK
 
+"""
+Provides the main entry point for the gkeep client. Parses command line
+arguments and calls the appropriate function.
+"""
+
 import sys
 from argparse import ArgumentParser
 
 from argcomplete import autocomplete
 
-from gkeepclient.actions import class_add, class_modify, delete_assignment, \
+from gkeepclient.fetch_submissions import fetch_submissions
+from gkeepclient.server_actions import class_add, class_modify, delete_assignment, \
  publish_assignment, update_assignment, upload_assignment
 from gkeepclient.queries import list_classes, list_assignments, list_students
 from gkeepcore.gkeep_exception import GkeepException
@@ -35,12 +41,17 @@ class GraderParser(ArgumentParser):
     displayed when the user has not used a command correctly.
     """
     def error(self, message):
+        """
+        Print the error message, a usage message, and then exit the program
+
+        :param message: error message
+        """
         print('Error: {0}\n'.format(message), file=sys.stderr)
         self.print_help()
         sys.exit(2)
 
 
-def add_class_name(subparser):
+def add_class_name_argument(subparser):
     """
     Add a class_name argument to a subparser.
 
@@ -51,6 +62,41 @@ def add_class_name(subparser):
                            help='name of the class')
 
 
+def add_assignment_name_argument(subparser):
+    """
+    Add an assignment_name argument to a subparser.
+
+    :param subparser: the subparser to add the argument to
+    """
+
+    subparser.add_argument('assignment_name', type=str,
+                           metavar='<assignment name>',
+                           help='name of the assignment')
+
+
+def add_assignment_path_argument(subparser):
+    """
+    Add an assignment_path argument to a subparser.
+
+    :param subparser: the subparser to add the argument to
+    """
+
+    subparser.add_argument('assignment_path', type=str,
+                           metavar='<assignment directory>',
+                           help='directory containing the assignment')
+
+
+def add_csv_file_path_argument(subparser):
+    """
+    Add a csv_file_path argument to a subparser.
+
+    :param subparser: the subparser to add the argument to
+    """
+
+    subparser.add_argument('csv_file_path', type=str, metavar='<csv filename>',
+                           help='name of the CSV file containing students')
+
+
 def add_add_subparser(subparsers):
     """
     Add a subparser for action 'add', which adds a class.
@@ -59,9 +105,8 @@ def add_add_subparser(subparsers):
     """
 
     subparser = subparsers.add_parser('add', help='add a class')
-    add_class_name(subparser)
-    subparser.add_argument('csv_file_path', type=str, metavar='<csv filename>',
-                           help='name of the CSV file containing students')
+    add_class_name_argument(subparser)
+    add_csv_file_path_argument(subparser)
 
 
 def add_modify_subparser(subparsers):
@@ -73,9 +118,8 @@ def add_modify_subparser(subparsers):
 
     subparser = subparsers.add_parser('modify',
                                       help='modify the enrollment for a class')
-    add_class_name(subparser)
-    subparser.add_argument('csv_file_path', type=str, metavar='<csv filename>',
-                           help='name of the CSV file containing students')
+    add_class_name_argument(subparser)
+    add_csv_file_path_argument(subparser)
 
 
 def add_upload_subparser(subparsers):
@@ -86,9 +130,8 @@ def add_upload_subparser(subparsers):
     """
 
     subparser = subparsers.add_parser('upload', help='upload an assignment')
-    add_class_name(subparser)
-    subparser.add_argument('assignment_path', metavar='<assignment directory>',
-                           help='directory containing the assignment')
+    add_class_name_argument(subparser)
+    add_assignment_path_argument(subparser)
 
 
 def add_publish_subparser(subparsers):
@@ -99,9 +142,8 @@ def add_publish_subparser(subparsers):
     """
 
     subparser = subparsers.add_parser('publish', help='publish an assignment')
-    add_class_name(subparser)
-    subparser.add_argument('assignment_name', metavar='<assignment name>',
-                           help='name of the assignment')
+    add_class_name_argument(subparser)
+    add_assignment_name_argument(subparser)
 
 
 def add_update_subparser(subparsers):
@@ -112,9 +154,8 @@ def add_update_subparser(subparsers):
     """
 
     subparser = subparsers.add_parser('update', help='update an assignment')
-    add_class_name(subparser)
-    subparser.add_argument('assignment_path', metavar='<assignment directory>',
-                           help='directory containing the assignment')
+    add_class_name_argument(subparser)
+    add_assignment_path_argument(subparser)
     subparser.add_argument('item', metavar='<update item>',
                            help='item to update: base_code, email, tests, '
                                 'or all')
@@ -128,12 +169,33 @@ def add_delete_subparser(subparsers):
     """
 
     subparser = subparsers.add_parser('delete', help='delete an assignment')
-    add_class_name(subparser)
-    subparser.add_argument('assignment_name', metavar='<assignment name>',
-                           help='name of the assignment')
+    add_class_name_argument(subparser)
+    add_assignment_name_argument(subparser)
+
+
+def add_fetch_subparser(subparsers):
+    """
+    Add a subparser for action 'fetch', which fetches student submissions.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('fetch',
+                                      help='fetch student submissions')
+    add_class_name_argument(subparser)
+    subparser.add_argument('assignment_name', type=str,
+                           metavar='<assignment name>',
+                           help='name of the assignment (optional)',
+                           nargs='?')
 
 
 def add_query_subparser(subparsers):
+    """
+    Add a subparser for action 'query', which queries the server.
+
+    :param subparsers: subparsers to add to
+    """
+
     subparser = subparsers.add_parser('query', help='query the server')
     subparser.add_argument('query_type', metavar='<query type>',
                            help='classes, assignments, or students',
@@ -160,6 +222,7 @@ def initialize_action_parser() -> GraderParser:
     add_update_subparser(subparsers)
     add_publish_subparser(subparsers)
     add_delete_subparser(subparsers)
+    add_fetch_subparser(subparsers)
     add_query_subparser(subparsers)
 
     return parser
@@ -194,8 +257,7 @@ def main():
     # Allow for auto-complete
     autocomplete(parser)
 
-    # If no arguments are given when teacher_interface is called,
-    # just display the help message and exit
+    # If no arguments are given just display the help message and exit
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
@@ -226,6 +288,9 @@ def main():
                                parsed_args.assignment_name)
         elif action_name == 'delete':
             delete_assignment(parsed_args.class_name,
+                              parsed_args.assignment_name)
+        elif action_name == 'fetch':
+            fetch_submissions(parsed_args.class_name,
                               parsed_args.assignment_name)
         elif action_name == 'query':
             run_query(parsed_args.query_type)

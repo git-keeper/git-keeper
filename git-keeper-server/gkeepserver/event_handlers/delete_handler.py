@@ -115,7 +115,7 @@ class DeleteHandler(EventHandler):
                           self._assignment_name))
         return string
 
-    def _parse(self):
+    def _parse_payload(self):
         """
         Extract the faculty username, class name, and assignment name from the
         log event.
