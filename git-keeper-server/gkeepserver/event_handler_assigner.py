@@ -144,7 +144,6 @@ class EventHandlerAssignerThread(Thread):
         # get the handler class from the dictionary
         handler_class = self._event_handlers_by_type[log_event.event_type]
         # construct the handler from whatever class was selected
-        handler = handler_class(log_path, log_event.timestamp,
-                                log_event.payload)
+        handler = handler_class(log_path, log_event)
 
         return handler

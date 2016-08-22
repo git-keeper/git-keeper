@@ -47,6 +47,7 @@ Example usage::
 """
 
 import csv
+import json
 import os
 from shlex import quote
 from time import time
@@ -59,7 +60,8 @@ from gkeepcore.log_file import log_append_command
 from gkeepcore.path_utils import user_log_path, gkeepd_to_faculty_log_path, \
     faculty_upload_dir_path, faculty_assignment_dir_path,\
     faculty_class_dir_path, assignment_published_file_path, \
-    faculty_classes_dir_path, class_student_csv_path
+    faculty_classes_dir_path, class_student_csv_path, \
+    faculty_info_file_path
 from gkeepcore.student import Student
 
 
@@ -90,7 +92,21 @@ class ServerInterface:
         self._event_log_path = None
 
     def is_connected(self):
+        """
+        Determine if we're connected to the server.
+
+        :return: True if connected, False otherwise
+        """
         return self._ssh_client is not None
+
+    def my_home_dir(self):
+        """
+        Get the home directory path on the server for the faculty member
+        running the client.
+
+        :return: home directory path on the server
+        """
+        return self._home_dir
 
     def connect(self):
         """
@@ -519,7 +535,13 @@ class ServerInterface:
 
         return assignments
 
-    def get_students(self, class_name: str):
+    def get_students(self, class_name: str) -> list:
+        """
+        Get a list of Student objects from a class.
+
+        :param class_name: name of the class
+        :return: list of Student objects
+        """
         students = []
 
         csv_path = class_student_csv_path(class_name, self._home_dir)
@@ -535,6 +557,24 @@ class ServerInterface:
 
         return students
 
+    def get_info(self) -> dict:
+        """
+        Get the dictionary of info from the server.
+
+        :return: dictionary of info
+        """
+
+        info_path = faculty_info_file_path(self._home_dir)
+
+        info_json = self.read_file_bytes(info_path)
+
+        try:
+            info_json = info_json.decode()
+            info = json.loads(info_json)
+        except (ValueError, UnicodeDecodeError):
+            raise ServerInterfaceError('Error loading info from JSON')
+
+        return info
 
 
 # Module-level interface instance. Someone must call connect() on this before

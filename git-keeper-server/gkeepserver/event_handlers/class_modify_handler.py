@@ -169,7 +169,7 @@ class ClassModifyHandler(EventHandler):
         string = 'Modify class event: {0}'.format(self._payload)
         return string
 
-    def _parse(self):
+    def _parse_payload(self):
         """
         Extracts attributes from the log line.
 

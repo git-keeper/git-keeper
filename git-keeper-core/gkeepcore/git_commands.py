@@ -15,7 +15,7 @@
 
 
 """Provides functions for running git commands."""
-
+import os
 
 from gkeepcore.shell_command import run_command_in_directory, run_command
 
@@ -85,7 +85,7 @@ def git_commit(repo_path, message):
     run_command_in_directory(repo_path, cmd)
 
 
-def git_push(repo_path, dest=None, branch='master', force=False):
+def git_push(repo_path, dest=None, branch='master', force=False, sudo=False):
     """
     Push a repository to its upstream remote, or to a specific destination.
 
@@ -95,6 +95,7 @@ def git_push(repo_path, dest=None, branch='master', force=False):
     :param dest: optional destination to push to
     :param branch: optional branch, if dest is specified
     :param force: set to True to force a push (be careful!)
+    :param sudo: if true command is run as root
     """
     cmd = ['git', 'push']
 
@@ -104,18 +105,59 @@ def git_push(repo_path, dest=None, branch='master', force=False):
     if dest is not None:
         cmd += [dest, branch]
 
+    run_command_in_directory(repo_path, cmd, sudo=sudo)
+
+
+def git_pull(repo_path, remote_url=None):
+    """
+    Pull from a remote repository.
+
+    :param repo_path: path to the local repository
+    :param remote_url: URL to pull from, None to pull from upstream remote
+    """
+
+    cmd = ['git', 'pull']
+
+    if remote_url is not None:
+        cmd.append(remote_url)
+
     run_command_in_directory(repo_path, cmd)
 
 
-def git_clone(source_repo_path, target_path):
+def is_non_bare_repo(repo_path):
     """
-    Clone a local repo to a specific location
+    Determine if a directory is a non-bare git repository by checking for the
+    existance of a .git folder.
 
-    :param source_repo_path: the path to the (bare) source repo
-    :param target_path: the path where the git clone should be executed.
-    :return: None
+    :param repo_path: path to the repository
+    :return: True if the repository contains a .git folder, False otherwise
     """
 
-    cmd = ['git', 'clone', source_repo_path]
+    git_path = os.path.join(repo_path, '.git')
 
-    run_command_in_directory(target_path, cmd)
+    return os.path.isdir(git_path)
+
+
+def git_clone(remote_repo_url, local_repo_path):
+    """
+    Clone a remote repository.
+
+    :param remote_repo_url: URL of the remote repository
+    :param local_repo_path: path to the new local repository
+    """
+
+    cmd = ['git', 'clone', remote_repo_url, local_repo_path]
+    run_command(cmd)
+
+
+def git_head_hash(repo_path):
+    """
+    Get the hash of the HEAD of a git repository.
+
+    :param repo_path: path to the repository
+    :return: commit hash of HEAD
+    """
+
+    cmd = ['git', 'rev-parse', 'HEAD']
+
+    return run_command_in_directory(repo_path, cmd).rstrip()
