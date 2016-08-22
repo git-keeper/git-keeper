@@ -14,10 +14,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+"""Provides functions that request action from the server."""
+
+
 import os
 import sys
 
 from gkeepclient.assignment_uploader import AssignmentUploader
+from gkeepclient.client_configuration import config
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_does_not_exist, class_exists, \
     assignment_exists, assignment_not_published
