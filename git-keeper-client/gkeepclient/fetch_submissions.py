@@ -213,7 +213,7 @@ def create_dir_if_non_existent(dir_path, confirm=False):
     """
     if not os.path.isdir(dir_path):
         if confirm:
-            prompt = '{0} does not exist. Create it now?'
+            prompt = '{0} does not exist. Create it now?'.format(dir_path)
             if not confirmation(prompt):
                 raise GkeepException('Cannot fetch submissions')
         try:
