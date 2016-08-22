@@ -266,6 +266,9 @@ def fetch_submissions(class_name: str, assignment_name: str,
 
         destination_path = os.path.join(config.submissions_path,
                                         class_name)
+    else:
+        destination_path = os.path.expanduser(destination_path)
+        destination_path = os.path.abspath(destination_path)
 
     create_dir_if_non_existent(destination_path, confirm=True)
 
