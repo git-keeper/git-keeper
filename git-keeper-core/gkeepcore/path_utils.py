@@ -224,6 +224,17 @@ def faculty_class_dir_path(class_name: str, home_dir: str):
     return os.path.join(faculty_classes_dir_path(home_dir), class_name)
 
 
+def faculty_info_file_path(home_dir: str):
+    """
+    Build the path to a faculty member's info.json file
+
+    :param home_dir: home directory of the faculty member
+    :return: path to the info file
+    """
+
+    return os.path.join(home_dir, 'info.json')
+
+
 def assignment_published_file_path(class_name: str, assignment_name: str,
                                    home_dir: str):
     """
