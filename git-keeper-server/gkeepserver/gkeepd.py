@@ -91,7 +91,7 @@ def main():
     # issues including new faculty members
     try:
         check_system()
-    except CheckSystemError as e:
+    except Exception as e:
         logger.log_error(str(e))
         logger.log_info('Shutting down')
         logger.shutdown()
