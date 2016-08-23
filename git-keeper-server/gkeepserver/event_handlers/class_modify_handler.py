@@ -148,6 +148,10 @@ class ClassModifyHandler(EventHandler):
         # add all assignments
         for assignment_dir in get_class_assignment_dirs(self._faculty_username,
                                                         self._class_name):
+            # do not setup the assignment if it is not yet published
+            if not assignment_dir.is_published():
+                continue
+
             try:
                 setup_student_assignment(assignment_dir, student,
                                          self._faculty_username)
