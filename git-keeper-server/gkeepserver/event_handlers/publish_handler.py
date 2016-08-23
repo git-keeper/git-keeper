@@ -193,4 +193,3 @@ class PublishHandler(EventHandler):
         except ValueError:
             raise HandlerException('Invalid payload for PUBLISH: {0}'
                                    .format(self._payload))
-

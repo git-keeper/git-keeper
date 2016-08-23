@@ -108,7 +108,7 @@ class LogPollingThread(Thread):
 
     def initialize(self, new_log_event_queue: Queue, reader_class,
                    snapshot_file_path: str, logger: GkeepdLoggerThread,
-                   polling_interval=1):
+                   polling_interval=0.5):
         """
         Initialize the attributes.
 

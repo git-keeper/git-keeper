@@ -20,6 +20,7 @@ import os
 from enum import Enum
 from shutil import which
 
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_home_dir, user_log_path, \
     gkeepd_to_faculty_log_path
 from gkeepcore.system_commands import (sudo_add_user, sudo_set_password, chmod,
@@ -151,6 +152,11 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
      to
     """
 
+    if username == config.faculty_group or username == config.student_group:
+        error = ('{0} is not a valid username. A username may not have the '
+                 'same name as the faculty or student user groups')
+        raise GkeepException(error)
+
     logger.log_info('Creating user {0}'.format(username))
 
     # for now everyone gets bash, students may eventually get git-shell
@@ -168,7 +174,8 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
 
         create_faculty_dirs(username)
 
-    # if we start using git-shell for students, call create_git_shell_commands() here
+    # if we start using git-shell for students, call
+    # create_git_shell_commands() here
 
     # email the credentials to the user if an email address was provided
     if email_address is not None:

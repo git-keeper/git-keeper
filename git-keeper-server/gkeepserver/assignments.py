@@ -264,11 +264,14 @@ def remove_student_assignment(assignment_dir: AssignmentDirectory,
     :param faculty_username: username of the faculty who owns the class
     """
 
+    student_home_dir = user_home_dir(student.username)
+
     # path to the student's bare repository for this assignment
     assignment_repo_path = \
-        student_assignment_repo_path(student.username, faculty_username,
+        student_assignment_repo_path(faculty_username,
                                      assignment_dir.class_name,
-                                     assignment_dir.assignment_name)
+                                     assignment_dir.assignment_name,
+                                     student_home_dir)
 
     # the repo should exist
     if not os.path.isdir(assignment_repo_path):
