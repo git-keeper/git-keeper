@@ -89,7 +89,8 @@ def sudo_chown(path, user, group, recursive=False):
     :param path: path to the file or directory
     :param user: new user owner
     :param group: new group owner
-    :param recursive: if True will apply to all files and directories under path
+    :param recursive: if True will apply to all files and directories under
+     path
     """
 
     if recursive:
@@ -283,10 +284,10 @@ def touch(path, sudo=False):
 def mv(source_path, dest_path, sudo=False):
     """
     Move or rename a file or directory.
-     
+
     If the destination is a directory that exists, the source will be moved
     into that directory.
-     
+
     :param source_path: the original path to the file or directory
     :param dest_path: the new path or an existing directory to move the file
      into

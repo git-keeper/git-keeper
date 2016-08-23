@@ -84,21 +84,31 @@ class DeleteHandler(EventHandler):
 
         home_dir = user_home_dir(self._faculty_username)
 
+        assignment_name = assignment_dir.assignment_name
+
         reader = LocalCSVReader(class_student_csv_path(self._class_name,
                                                        home_dir))
-        students = students_from_csv(reader)
+        students_with_assignment = []
 
         faculty = \
             faculty_from_username(self._faculty_username,
                                   LocalCSVReader(config.faculty_csv_path))
 
+        students_with_assignment.append(faculty)
+
+        if assignment_dir.is_published():
+            for student in students_from_csv(reader):
+                students_with_assignment.append(student)
+
         # delete each student's repository and the faculty test repository
-        for student in students + [faculty]:
+        for student in students_with_assignment:
             try:
                 remove_student_assignment(assignment_dir, student,
                                           self._faculty_username)
-            except GkeepException:
-                pass
+            except GkeepException as e:
+                gkeepd_logger.log_warning('Could not remove {0} for {1}: {2}'
+                                          .format(assignment_name,
+                                                  student.username, e))
 
         # delete the assignment directory
         rm(assignment_dir.path, recursive=True, sudo=True)

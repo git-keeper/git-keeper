@@ -26,9 +26,10 @@ from tempfile import TemporaryDirectory
 from gkeepcore.student import Student
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepcore.git_commands import git_clone, git_add_all, git_commit, git_push
-from gkeepcore.system_commands import cp
-from gkeepcore.shell_command import run_command, run_command_in_directory, CommandError
+from gkeepcore.system_commands import cp, sudo_chown
+from gkeepcore.shell_command import run_command_in_directory
 from gkeepserver.email_sender_thread import email_sender
+from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email
 from gkeepcore.path_utils import parse_submission_repo_path
 
@@ -44,10 +45,12 @@ class Submission:
 
         :param student: Student object containing information about the student
         :param student_repo_path: path to the student's assignment repository
-        :param tests_repo_path: path to the repository containing tests for the
+        :param tests_path: path to the directory containing tests for the
          assignment
         :param reports_repo_path: path to the repository where test reports are
          stored
+        :param faculty_email: email address of the faculty that owns the
+         assignment
         """
 
         self.student = student
@@ -75,42 +78,58 @@ class Submission:
 
         # copy the tests - this creates a test folder inside the temp dir...
         cp(self.tests_path, temp_path, recursive=True)
+        temp_tests_path = os.path.join(temp_path, 'tests')
+
+        faculty_username, class_name, assignment_name = \
+            parse_submission_repo_path(self.student_repo_path)
+
+        temp_assignment_path = os.path.join(temp_path, assignment_name)
 
         # execute action.sh and capture the output
         try:
-            assignment_name = parse_submission_repo_path(self.student_repo_path)[2]
-            cmd = ['bash', 'action.sh', temp_path + '/' + assignment_name]
-            body = run_command_in_directory(temp_path + '/tests/' , cmd)
+            cmd = ['bash', config.run_action_sh_file_path,
+                   temp_assignment_path]
+            body = run_command_in_directory(temp_tests_path, cmd)
 
             # The following version of running action.sh uses docker
-            #cmd = 'docker run -it -v '
-            #cmd += temp_path
-            #cmd += ':/temp coleman/git-keeper-test-env bash go'
-            #body = run_command(cmd)
+            # cmd = 'docker run -it -v '
+            # cmd += temp_path
+            # cmd += ':/temp coleman/git-keeper-test-env bash go'
+            # body = run_command(cmd)
 
             # send output as email
-            subject = assignment_name + ' submission test results'
-            email_sender.enqueue(Email(self.student.email_address, subject, body))
+            subject = ('[{0}] {1} submission test results'
+                       .format(class_name, assignment_name))
+            email_sender.enqueue(Email(self.student.email_address, subject,
+                                       body))
 
-            # put the report file into the reports repo
-            git_clone(self.reports_repo_path, temp_path)
+            if self.student.username != faculty_username:
+                # put the report file into the reports repo
+                git_clone(self.reports_repo_path, temp_path)
 
-            report_path = temp_path + '/reports/' + self.student.username
-            os.makedirs(report_path, exist_ok=True)
+                temp_reports_repo_path = os.path.join(temp_path, 'reports')
 
-            report_filename = 'report-{0}.txt'.format(strftime('%Y-%m-%d-%H:%M:%S-%Z'))
-            report_file_path = report_path + '/' + report_filename
+                first_last_username = self.student.get_last_first_username()
 
-            with open(report_file_path, 'w') as f:
-                f.write(body)
+                student_report_dir_path = os.path.join(temp_reports_repo_path,
+                                                       first_last_username)
+                os.makedirs(student_report_dir_path, exist_ok=True)
 
-            reports_repo_path = temp_path + '/reports'
+                timestamp = strftime('%Y-%m-%d-%H:%M:%S-%Z')
+                report_filename = 'report-{0}.txt'.format(timestamp)
+                report_file_path = os.path.join(student_report_dir_path,
+                                                report_filename)
 
-            git_add_all(reports_repo_path)
-            git_commit(reports_repo_path, 'report submission')
-            git_push(reports_repo_path, dest='origin')
+                with open(report_file_path, 'w') as f:
+                    f.write(body)
 
-        except (OSError, IOError, CommandError) as e:
+                git_add_all(temp_reports_repo_path)
+                git_commit(temp_reports_repo_path, 'report submission')
+                git_push(temp_reports_repo_path, dest='origin', sudo=True)
+
+                sudo_chown(self.reports_repo_path, faculty_username,
+                           config.keeper_group, recursive=True)
+        except Exception as e:
             report_failure(assignment_name, self.student,
                            self.faculty_email, str(e))
 
@@ -120,10 +139,11 @@ class Submission:
 
 def report_failure(assignment, student, faculty_email, message):
 
-    s_subject = '{0}: Failed to process submission - contact instructor'.format(assignment)
+    s_subject = ('{0}: Failed to process submission - contact instructor'
+                 .format(assignment))
     s_body = ['Your submission was received, but something went wrong.',
-            'This is likely your instructor\'s fault, not yours.',
-            'Please contact your instructor about this error!']
+              'This is likely your instructor\'s fault, not yours.',
+              'Please contact your instructor about this error!']
 
     email_sender.enqueue(Email(student.email_address, s_subject, s_body))
 
@@ -135,5 +155,3 @@ def report_failure(assignment, student, faculty_email, message):
               message]
 
     email_sender.enqueue(Email(faculty_email, f_subject, f_body))
-
-

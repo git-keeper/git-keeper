@@ -51,7 +51,7 @@ def clone_repo(local_repo_path, remote_url):
         git_clone_remote(remote_url, local_repo_path)
         print('success!')
     except GkeepException as e:
-        print('error cloning')
+        print('error cloning: {0}'.format(e))
 
 
 def pull_repo_if_updated(local_repo_path, remote_url, remote_head_hash):
@@ -73,8 +73,8 @@ def pull_repo_if_updated(local_repo_path, remote_url, remote_head_hash):
     try:
         local_head_hash = git_head_hash(local_repo_path)
     except GkeepException as e:
-        print('Error reading local git repository {0}'
-              .format(local_repo_path))
+        print('Error reading local git repository {0}: {1}'
+              .format(local_repo_path, e))
         return
 
     # no need to pull if the hashes are the same
@@ -190,13 +190,17 @@ def fetch_assignment_submissions(class_name: str, assignment_name: str,
     else:
         clone_repo(assignment_reports_path, remote_git_url)
 
+    class_assignments_info = info[class_name]['assignments']
+    class_students_info = info[class_name]['students']
+    assignment_info = class_assignments_info[assignment_name]
+    students_repos_info = assignment_info['students_repos']
+
     # fetch each student's submission
     for username in info[class_name]['students']:
-        remote_head_hash = \
-            info[class_name]['assignments'][assignment_name]['students_repos'][username]['hash']
+        remote_head_hash = students_repos_info[username]['hash']
 
         last_first_username = \
-            info[class_name]['students'][username]['last_first_username']
+            class_students_info[username]['last_first_username']
 
         fetch_student_submission(class_name, assignment_name,
                                  assignment_submissions_path, remote_head_hash,
