@@ -29,8 +29,8 @@ from argparse import ArgumentParser
 from argcomplete import autocomplete
 
 from gkeepclient.fetch_submissions import fetch_submissions
-from gkeepclient.server_actions import class_add, class_modify, delete_assignment, \
- publish_assignment, update_assignment, upload_assignment
+from gkeepclient.server_actions import class_add, class_modify, \
+    delete_assignment, publish_assignment, update_assignment, upload_assignment
 from gkeepclient.queries import list_classes, list_assignments, list_students
 from gkeepcore.gkeep_exception import GkeepException
 

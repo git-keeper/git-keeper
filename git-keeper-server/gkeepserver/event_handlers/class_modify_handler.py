@@ -125,7 +125,7 @@ class ClassModifyHandler(EventHandler):
                             student.first_name, student.last_name,
                             email_address=student.email_address,
                             additional_groups=groups)
-            except GkeepException as e:
+            except Exception as e:
                 error = 'Error adding user {0}: {1}'.format(student.username,
                                                             e)
                 raise HandlerException(error)
@@ -139,9 +139,10 @@ class ClassModifyHandler(EventHandler):
             mkdir(class_dir_path, sudo=True)
             sudo_chown(class_dir_path, student.username,
                        config.keeper_group)
-        except CommandError as e:
+        except Exception as e:
             warning = ('Error creating student class directory for {0} '
-                       'in class {1}'.format(student, self._class_name))
+                       'in class {1}: {2}'.format(student, self._class_name,
+                                                  e))
             self._log_warning_to_faculty(warning)
             gkeepd_logger.log_warning(warning)
 

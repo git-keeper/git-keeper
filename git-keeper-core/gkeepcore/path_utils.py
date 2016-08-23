@@ -275,7 +275,7 @@ def log_path_from_username(username: str) -> str:
     :param username: the user who owns the log
     :return: the path to the log
     """
-    
+
     filename = '{0}.log'.format(username)
     home_dir = user_home_dir(username)
 

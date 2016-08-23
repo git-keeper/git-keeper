@@ -50,8 +50,8 @@ class EventHandler(metaclass=abc.ABCMeta):
     handle() should verify that the information is valid and then do what is
     necessary to handle the event.
 
-    handle() will be called in the main thread, while _parse_payload will be called in
-    the log event parsing thread.
+    handle() will be called in the main thread, while _parse_payload will be
+    called in the log event parsing thread.
 
     The event type is not a parameter for the constructor, because each event
     type has its own EventHandler subclass.

@@ -75,5 +75,4 @@ class SubmissionTestThread(Thread):
             except Empty:
                 pass
             except Exception as e:
-                logger.log_error('Error while running tests: {0}'
-                                 .format(str(e)))
+                logger.log_error('Error while running tests: {0}'.format(e))

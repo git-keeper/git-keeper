@@ -101,7 +101,7 @@ class ServerConfiguration:
     See the module docstring for usage.
 
     """
-    
+
     def __init__(self):
         """
         Create the object and set home_dir and username.
@@ -155,6 +155,10 @@ class ServerConfiguration:
 
         # path to .gitconfig
         self.gitconfig_file_path = os.path.join(self.home_dir, '.gitconfig')
+
+        # path to run_action.sh
+        self.run_action_sh_file_path = os.path.join(self.home_dir,
+                                                    'run_action.sh')
 
         # logging
         self.log_file_path = os.path.join(self.home_dir, 'gkeepd.log')
