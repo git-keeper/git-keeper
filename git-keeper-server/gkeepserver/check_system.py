@@ -27,6 +27,9 @@ calling check_system()
 import csv
 import os
 
+from pkg_resources import resource_exists, resource_string, ResolutionError, \
+    ExtractionError
+
 from gkeepcore.faculty import Faculty, FacultyError, faculty_from_csv_file
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
@@ -75,6 +78,7 @@ def check_keeper_paths_and_permissions():
         * the faculty group does not exist
         * the faculty log directory does not exist
         * the log snapshot file does not exist
+        * run_action.sh does not exist
         * permissions are wrong on the following files/directories:
             * keeper user's home directory: 750
             * gkeepd.log: 600,
@@ -124,6 +128,9 @@ def check_keeper_paths_and_permissions():
     if not os.path.isfile(config.gitconfig_file_path):
         write_gitconfig()
 
+    if not os.path.isfile(config.run_action_sh_file_path):
+        write_run_action_sh()
+
     required_modes = {
         config.home_dir: '750',
         config.log_file_path: '600',
@@ -155,6 +162,28 @@ def write_gitconfig():
         raise CheckSystemError(error)
 
     gkeepd_logger.log_info('Created {0}'.format(config.gitconfig_file_path))
+
+
+def write_run_action_sh():
+    """Write the contents of data/run_action.sh to the proper file."""
+
+    if not resource_exists('gkeepserver', 'data/run_action.sh'):
+        raise CheckSystemError('run_action.sh does not exist in the package')
+
+    try:
+        script_text = resource_string('gkeepserver', 'data/run_action.sh')
+        script_text = script_text.decode()
+    except Exception as e:
+        raise CheckSystemError('error reading run_action.sh data: {0}'
+                               .format(e))
+
+    try:
+        with open(config.run_action_sh_file_path, 'w') as f:
+            f.write(script_text)
+    except OSError as e:
+        error = 'error writing {0}: {1}'.format(config.run_action_sh_file_path,
+                                                e)
+        raise CheckSystemError(error)
 
 
 def setup_faculty(faculty: Faculty):

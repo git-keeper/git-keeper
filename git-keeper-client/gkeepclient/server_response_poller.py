@@ -87,7 +87,7 @@ class ServerResponsePoller:
         # poll for the server's response
         while True:
             while not self._reader.has_new_lines():
-                sleep(0.5)
+                sleep(0.1)
                 if time() > poll_start_time + self._timeout:
                     yield ServerResponse(ServerResponseType.TIMEOUT)
                     return

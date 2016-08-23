@@ -110,7 +110,8 @@ class RefreshInfoHandler(EventHandler):
                                                     class_name)
 
         for assignment_dir in assignment_dirs:
-            self._refresh_assignment_info(assignment_dir, students)
+            if assignment_dir.is_published():
+                self._refresh_assignment_info(assignment_dir, students)
 
     def _refresh_assignment_info(self, assignment_dir: AssignmentDirectory,
                                  students):

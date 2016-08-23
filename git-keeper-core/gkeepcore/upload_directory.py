@@ -91,4 +91,3 @@ class UploadDirectory:
         for file_path in (self.email_path, self.action_sh_path):
             if not os.path.isfile(file_path):
                 raise UploadDirectoryError(file_path)
-

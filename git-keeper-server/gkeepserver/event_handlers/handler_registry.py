@@ -14,8 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""Provides a dictionary which maps event type strings to event handler
-classes. Pass event_handlers_by_type to a EventHandlerAssignerThread constructor."""
+"""
+Provides a dictionary which maps event type strings to event handler
+classes. Pass event_handlers_by_type to a EventHandlerAssignerThread
+constructor.
+"""
 
 from gkeepserver.event_handlers.class_add_handler import ClassAddHandler
 from gkeepserver.event_handlers.class_modify_handler import ClassModifyHandler
