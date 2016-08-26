@@ -365,7 +365,7 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
         raise StudentAssignmentError(error)
 
     # clone URL followed by email.txt contents
-    email_body = 'Clone URL:\n{0}\n\n'.format(clone_url, email_body)
+    email_body = 'Clone URL:\n{0}\n\n{1}'.format(clone_url, email_body)
 
     # build the email
     try:
