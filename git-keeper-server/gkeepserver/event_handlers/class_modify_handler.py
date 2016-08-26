@@ -59,6 +59,9 @@ class ClassModifyHandler(EventHandler):
             new_students_reader = LocalCSVReader(self._uploaded_csv_path)
             new_students_by_username = {}
             for student in students_from_csv(new_students_reader):
+                if student.username == self._faculty_username:
+                    raise HandlerException('You cannot add yourself to your '
+                                           'own class')
                 new_students_by_username[student.username] = student
 
             old_students_path = class_student_csv_path(self._class_name,
@@ -73,7 +76,7 @@ class ClassModifyHandler(EventHandler):
                                      new_students_by_username)
 
             self._log_to_faculty('CLASS_MODIFY_SUCCESS', self._class_name)
-        except (CSVError, StudentError, HandlerException) as e:
+        except Exception as e:
             self._log_error_to_faculty(str(e))
             gkeepd_logger.log_warning('Class modify failed: {0}'.format(e))
 

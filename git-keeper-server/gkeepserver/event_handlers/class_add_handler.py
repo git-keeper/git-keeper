@@ -53,6 +53,11 @@ class ClassAddHandler(EventHandler):
             reader = LocalCSVReader(self._uploaded_csv_path)
             students = students_from_csv(reader)
 
+            for student in students:
+                if student.username == self._faculty_username:
+                    raise HandlerException('You cannot add yourself to your '
+                                           'own class')
+
             self._copy_csv_to_class_dir()
             self._add_students_class_dirs(students)
 
