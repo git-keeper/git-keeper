@@ -52,7 +52,7 @@ import os
 from shlex import quote
 from time import time
 
-from paramiko import SSHClient, SSHException
+from paramiko import SSHClient, AutoAddPolicy, SSHException
 
 from gkeepclient.client_configuration import config
 from gkeepcore.gkeep_exception import GkeepException
@@ -123,6 +123,7 @@ class ServerInterface:
         try:
             self._ssh_client = SSHClient()
             self._ssh_client.load_system_host_keys()
+            self._ssh_client.set_missing_host_key_policy(AutoAddPolicy())
             self._ssh_client.connect(hostname=config.server_host,
                                      username=config.server_username,
                                      port=config.server_ssh_port)
