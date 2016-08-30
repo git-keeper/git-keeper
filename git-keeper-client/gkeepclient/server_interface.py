@@ -514,7 +514,7 @@ class ServerInterface:
 
         return classes
 
-    def get_assignments(self, class_name: str):
+    def get_assignment_names(self, class_name: str):
         """
         Get a list of the names of assignments for a class.
 
@@ -526,15 +526,48 @@ class ServerInterface:
 
         directory_items = self.list_directory(class_path)
 
-        assignments = []
+        assignment_names = []
 
         for item in sorted(directory_items):
             item_path = os.path.join(class_path, item)
 
             if self.is_directory(item_path):
-                assignments.append(item)
+                assignment_names.append(item)
 
-        return assignments
+        return assignment_names
+
+    def get_assignment_info(self, class_name: str) -> list:
+        """
+        Get a list of the names of assignments for a class, and whether or not
+        each assignment is published.
+
+        Each entry in the list is a tuple containing (name, published) where
+        published is a boolean value which is True if the assignment is
+        published and False if it is not.
+
+        :param class_name: name of the class
+        :return: list of assignment information
+        """
+
+        class_path = faculty_class_dir_path(class_name, self._home_dir)
+
+        directory_items = self.list_directory(class_path)
+
+        assignments_info = []
+
+        for item in sorted(directory_items):
+            item_path = os.path.join(class_path, item)
+
+            if self.is_directory(item_path):
+                published_flag_path = \
+                    assignment_published_file_path(class_name, item,
+                                                   self._home_dir)
+
+                published = self.is_file(published_flag_path)
+
+                assignments_info.append((item, published))
+
+        return assignments_info
 
     def get_students(self, class_name: str) -> list:
         """
