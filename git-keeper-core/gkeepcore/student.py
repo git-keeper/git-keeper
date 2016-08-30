@@ -89,7 +89,7 @@ class Student:
         :return: string representation of the object
         """
 
-        return '{0}, {1} ({2}) <{3}>'.format(self.first_name, self.last_name,
+        return '{0}, {1} ({2}) <{3}>'.format(self.last_name, self.first_name,
                                              self.username, self.email_address)
 
     def get_last_first_username(self) -> str:
