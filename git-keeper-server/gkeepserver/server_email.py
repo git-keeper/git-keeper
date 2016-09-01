@@ -63,7 +63,7 @@ class Email:
         """
 
         self._send_attempts = 0
-        self._max_send_attempts = 5
+        self._max_send_attempts = 10
         self.last_send_error = ''
 
         self.to_address = to_address
