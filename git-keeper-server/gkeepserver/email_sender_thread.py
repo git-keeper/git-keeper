@@ -128,12 +128,12 @@ class EmailSenderThread(Thread):
                 while True:
                     email = self._email_queue.get(block=True, timeout=0.1)
 
-                    if isinstance(email, Email):
-                        self._send_email_with_rate_limiting(email)
-                    else:
+                    if not isinstance(email, Email):
                         warning = ('Item enqueued for emailing that is not an '
                                    'email: {0}'.format(email))
                         logger.log_warning(warning)
+                    else:
+                        self._send_email_with_rate_limiting(email)
             except Empty:
                 pass
             except Exception as e:
@@ -157,10 +157,15 @@ class EmailSenderThread(Thread):
 
         try:
             email.send()
-            logger.log_info('Sent email to {0}'.format(email.to_address))
+            logger.log_info('Sent email: {0}'.format(email))
         except Exception as e:
-            logger.log_error('Failed to send email to {0}: {1}'
-                             .format(email.to_address, e))
+            if not email.max_send_attempts_reached():
+                logger.log_warning('Email sending failed, will retry')
+                self._email_queue.put(email)
+            else:
+                error = ('Failed to send email ({0}) after several '
+                         'attempts: {1}'.format(email, e))
+                logger.log_error(error)
 
 
 # module-level instance for global email sending
