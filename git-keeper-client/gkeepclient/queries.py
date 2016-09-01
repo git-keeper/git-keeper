@@ -45,8 +45,15 @@ def list_assignments():
     for class_name in server_interface.get_classes():
         print(class_name, ':', sep='')
 
-        for assignment_name in server_interface.get_assignments(class_name):
-            print(assignment_name)
+        assignments_info = server_interface.get_assignment_info(class_name)
+
+        for assignment_name, published in assignments_info:
+            if published:
+                published_prefix = 'P'
+            else:
+                published_prefix = 'U'
+
+            print(published_prefix, assignment_name)
 
         print()
 
