@@ -62,6 +62,10 @@ class Email:
          characters it will be truncated
         """
 
+        self._send_attempts = 0
+        self._max_send_attempts = 10
+        self.last_send_error = ''
+
         self.to_address = to_address
 
         self._subject = subject
@@ -96,6 +100,11 @@ class Email:
                            'missing, contact your instructor.\r\n')
 
         self._build_mime_message(files_to_attach)
+
+    def __repr__(self):
+        repr_string = 'To: {0}, Subject: {1}'.format(self.to_address,
+                                                     self._subject)
+        return repr_string
 
     def _build_mime_message(self, files_to_attach):
         # Create the final message by building up a MIMEMultipart object and
@@ -139,6 +148,17 @@ class Email:
         # the final message is stored as a single string
         self.message_string = message.as_string()
 
+    def max_send_attempts_reached(self) -> bool:
+        """
+        Determine whether or not we've already tried to send this email the
+        maximum number of times.
+
+        :return: True if we have reached the send attempt limit, False
+         otherwise
+        """
+
+        return self._send_attempts >= self._max_send_attempts
+
     def send(self):
         """
         Send the email right now.
@@ -151,19 +171,17 @@ class Email:
 
         """
 
-        try:
-            server = SMTP(config.smtp_server, config.smtp_port)
-            server.ehlo()
+        self._send_attempts += 1
 
-            if config.use_tls:
-                server.starttls()
+        server = SMTP(config.smtp_server, config.smtp_port)
+        server.ehlo()
 
-            if config.email_username and config.email_password:
-                server.login(config.email_username, config.email_password)
+        if config.use_tls:
+            server.starttls()
 
-            server.sendmail(config.from_address, self.to_address,
-                            self.message_string)
-            server.quit()
+        if config.email_username and config.email_password:
+            server.login(config.email_username, config.email_password)
 
-        except OSError as e:
-            raise EmailException('Error sending email: {0}'.format(e))
+        server.sendmail(config.from_address, self.to_address,
+                        self.message_string)
+        server.quit()
