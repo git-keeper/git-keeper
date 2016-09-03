@@ -163,7 +163,7 @@ def assignment_exists(func):
         """
         if not server_interface.assignment_exists(class_name, assignment_name):
             error = ('Assignment {0} does not exist in class {1}'
-                     .format(class_name, assignment_name))
+                     .format(assignment_name, class_name))
             raise GkeepException(error)
 
         return func(class_name, assignment_name, *args, **kwargs)
