@@ -197,7 +197,7 @@ def assignment_does_not_exist(func):
         """
         if server_interface.assignment_exists(class_name, assignment_name):
             error = ('Assignment {0} already exists in class {1}'
-                     .format(class_name, assignment_name))
+                     .format(assignment_name, class_name))
             raise GkeepException(error)
 
         return func(class_name, assignment_name, *args, **kwargs)
@@ -230,7 +230,7 @@ def assignment_published(func):
         if not server_interface.assignment_published(class_name,
                                                      assignment_name):
             error = ('Assignment {0} in class {1} is not published'
-                     .format(class_name, assignment_name))
+                     .format(assignment_name, class_name))
             raise GkeepException(error)
 
         return func(class_name, assignment_name, *args, **kwargs)
@@ -263,7 +263,7 @@ def assignment_not_published(func):
         if server_interface.assignment_published(class_name,
                                                  assignment_name):
             error = ('Assignment {0} in class {1} is already published'
-                     .format(class_name, assignment_name))
+                     .format(assignment_name, class_name))
             raise GkeepException(error)
 
         return func(class_name, assignment_name, *args, **kwargs)
