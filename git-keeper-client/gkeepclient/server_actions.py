@@ -26,7 +26,7 @@ from gkeepclient.assignment_uploader import AssignmentUploader
 from gkeepclient.client_configuration import config
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_does_not_exist, class_exists, \
-    assignment_exists, assignment_not_published
+    assignment_exists, assignment_not_published, assignment_does_not_exist
 from gkeepclient.server_interface import server_interface
 from gkeepclient.server_response_poller import communicate_event
 from gkeepcore.gkeep_exception import GkeepException
@@ -176,6 +176,7 @@ def publish_assignment(class_name: str, assignment_name: str):
 @config_parsed
 @server_interface_connected
 @class_exists
+@assignment_exists
 def update_assignment(class_name: str, upload_dir_path: str,
                       items=('base_code', 'email', 'tests'),
                       response_timeout=20):
@@ -249,6 +250,7 @@ def update_assignment(class_name: str, upload_dir_path: str,
 @config_parsed
 @server_interface_connected
 @class_exists
+@assignment_does_not_exist
 def upload_assignment(class_name: str, upload_dir_path: str):
     """
     Upload an assignment to the server.
