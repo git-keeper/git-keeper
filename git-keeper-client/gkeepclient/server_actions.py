@@ -176,7 +176,6 @@ def publish_assignment(class_name: str, assignment_name: str):
 @config_parsed
 @server_interface_connected
 @class_exists
-@assignment_exists
 def update_assignment(class_name: str, upload_dir_path: str,
                       items=('base_code', 'email', 'tests'),
                       response_timeout=20):
@@ -212,6 +211,12 @@ def update_assignment(class_name: str, upload_dir_path: str,
         upload_dir = UploadDirectory(upload_dir_path)
     except GkeepException as e:
         error = 'Error in {0}: {1}'.format(upload_dir_path, str(e))
+        raise GkeepException(error)
+
+    if not server_interface.assignment_exists(class_name,
+                                              upload_dir.assignment_name):
+        error = ('Assignment {0} does not exist in class {1}'
+                 .format(upload_dir.assignment_name, class_name))
         raise GkeepException(error)
 
     is_published =\
@@ -250,7 +255,6 @@ def update_assignment(class_name: str, upload_dir_path: str,
 @config_parsed
 @server_interface_connected
 @class_exists
-@assignment_does_not_exist
 def upload_assignment(class_name: str, upload_dir_path: str):
     """
     Upload an assignment to the server.
@@ -283,6 +287,12 @@ def upload_assignment(class_name: str, upload_dir_path: str):
         raise GkeepException(error)
 
     validate_assignment_name(upload_dir.assignment_name)
+
+    if server_interface.assignment_exists(class_name,
+                                          upload_dir.assignment_name):
+        error = ('Assignment {0} already exists in class {1}'
+                 .format(upload_dir.assignment_name, class_name))
+        raise GkeepException(error)
 
     print('uploading', upload_dir.assignment_name, 'in', class_name)
 
