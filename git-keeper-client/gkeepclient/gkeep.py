@@ -30,7 +30,8 @@ from argcomplete import autocomplete
 
 from gkeepclient.fetch_submissions import fetch_submissions
 from gkeepclient.server_actions import class_add, class_modify, \
-    delete_assignment, publish_assignment, update_assignment, upload_assignment
+    delete_assignment, publish_assignment, update_assignment, upload_assignment, \
+    trigger_tests
 from gkeepclient.queries import list_classes, list_assignments, list_students
 from gkeepcore.gkeep_exception import GkeepException
 
@@ -205,6 +206,24 @@ def add_query_subparser(subparsers):
                            choices=['classes', 'assignments', 'students'])
 
 
+def add_trigger_subparser(subparsers):
+    """
+    Add a subparser for action 'trigger', which triggers tests to be run for
+    an assignment
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('trigger', help='trigger tests')
+    add_class_name_argument(subparser)
+    add_assignment_name_argument(subparser)
+    subparser.add_argument('student_usernames',
+                           metavar='<student username>',
+                           nargs='*',
+                           help='optional, trigger tests for only these '
+                                'students')
+
+
 def initialize_action_parser() -> GraderParser:
     """
     Initialize a GraderParser object.
@@ -227,6 +246,7 @@ def initialize_action_parser() -> GraderParser:
     add_delete_subparser(subparsers)
     add_fetch_subparser(subparsers)
     add_query_subparser(subparsers)
+    add_trigger_subparser(subparsers)
 
     return parser
 
@@ -298,6 +318,9 @@ def main():
                               parsed_args.destination_path)
         elif action_name == 'query':
             run_query(parsed_args.query_type)
+        elif action_name == 'trigger':
+            trigger_tests(parsed_args.class_name, parsed_args.assignment_name,
+                          parsed_args.student_usernames)
     except GkeepException as e:
         sys.exit(e)
 
