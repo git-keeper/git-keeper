@@ -26,7 +26,8 @@ from gkeepclient.assignment_uploader import AssignmentUploader
 from gkeepclient.client_configuration import config
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_does_not_exist, class_exists, \
-    assignment_exists, assignment_not_published, assignment_does_not_exist
+    assignment_exists, assignment_not_published, assignment_does_not_exist, \
+    assignment_published
 from gkeepclient.server_interface import server_interface
 from gkeepclient.server_response_poller import communicate_event
 from gkeepcore.gkeep_exception import GkeepException
@@ -171,6 +172,52 @@ def publish_assignment(class_name: str, assignment_name: str):
                       error_message='Error publishing assignment:',
                       timeout_message='Server response timeout. '
                                       'Publish status unknown.')
+
+
+@config_parsed
+@server_interface_connected
+@class_exists
+@assignment_exists
+@assignment_published
+def trigger_tests(class_name: str, assignment_name: str,
+                  student_usernames: list, response_timeout=20):
+    """
+    Trigger tests to be run on the server.
+
+    The server will run tests on the assignment for all the students in the
+    student_usernames list, or all students if student_usernames is empty
+
+    :param class_name: name of the class the assignment belongs to
+    :param assignment_name: name of the assignment
+    :param student_usernames: list of student usernames for whom tests should
+    be run, or an empty list for all students
+    :param response_timeout: seconds to wait for server response
+    """
+
+    class_students = server_interface.get_students(class_name)
+
+    class_student_usernames = [s.username for s in class_students]
+
+    if len(student_usernames) == 0:
+        student_usernames = class_student_usernames
+    else:
+        for username in student_usernames:
+            if username not in class_student_usernames:
+                error = ('No student {0} in {1}'.format(username, class_name))
+                raise GkeepException(error)
+
+    print('Triggering tests for', assignment_name, 'in class', class_name)
+
+    payload = '{0} {1}'.format(class_name, assignment_name)
+
+    for username in student_usernames:
+        payload += ' {0}'.format(username)
+
+    communicate_event('TRIGGER', payload, response_timeout=response_timeout,
+                      success_message='Tests triggered successfully',
+                      error_message='Error triggering tests:',
+                      timeout_message='Server response timeout. '
+                                      'Triggering status unknown')
 
 
 @config_parsed

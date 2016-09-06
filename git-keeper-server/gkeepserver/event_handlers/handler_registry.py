@@ -27,6 +27,7 @@ from gkeepserver.event_handlers.publish_handler import PublishHandler
 from gkeepserver.event_handlers.refresh_info_handler import \
     RefreshInfoHandler
 from gkeepserver.event_handlers.submission_handler import SubmissionHandler
+from gkeepserver.event_handlers.trigger_handler import TriggerHandler
 from gkeepserver.event_handlers.update_handler import UpdateHandler
 from gkeepserver.event_handlers.upload_handler import UploadHandler
 
@@ -39,5 +40,6 @@ event_handlers_by_type = {
     'UPDATE': UpdateHandler,
     'PUBLISH': PublishHandler,
     'DELETE': DeleteHandler,
-    'REFRESH_INFO': RefreshInfoHandler
+    'REFRESH_INFO': RefreshInfoHandler,
+    'TRIGGER': TriggerHandler,
 }
