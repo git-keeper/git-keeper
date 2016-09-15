@@ -126,13 +126,16 @@ class ServerInterface:
             self._ssh_client.set_missing_host_key_policy(AutoAddPolicy())
             self._ssh_client.connect(hostname=config.server_host,
                                      username=config.server_username,
-                                     port=config.server_ssh_port)
+                                     port=config.server_ssh_port,
+                                     timeout=5)
             self._sftp_client = self._ssh_client.open_sftp()
 
             self._home_dir = self.user_home_dir(config.server_username)
             self._event_log_path = self.me_to_gkeepd_log_path()
-        except (SSHException, ConnectionRefusedError) as e:
-            raise ServerInterfaceError(e)
+        except Exception as e:
+            error = ('Error connecting to {0}: {1}'.format(config.server_host,
+                                                           e))
+            raise ServerInterfaceError(error)
 
     def run_command(self, command) -> str:
         """
@@ -161,10 +164,13 @@ class ServerInterface:
             output = f.read()
 
             exit_status = channel.recv_exit_status()
-            if exit_status != 0:
-                raise ServerCommandExitFailure(output.decode('utf-8'))
-        except SSHException as e:
-            raise ServerInterfaceError(e)
+        except Exception as e:
+            error = ('Error running command "{0}" on the server: {1}'
+                     .format(command, e))
+            raise ServerInterfaceError(error)
+
+        if exit_status != 0:
+            raise ServerCommandExitFailure(output.decode('utf-8'))
 
         # output is bytes, we want a utf-8 string
         return output.decode('utf-8')
@@ -181,7 +187,7 @@ class ServerInterface:
 
         try:
             directory_listing = self._sftp_client.listdir(path)
-        except SSHException as e:
+        except Exception as e:
             raise ServerInterfaceError(e)
 
         return directory_listing
@@ -245,7 +251,7 @@ class ServerInterface:
 
         try:
             self._sftp_client.put(local_path, remote_path)
-        except SSHException as e:
+        except Exception as e:
             raise ServerInterfaceError(e)
 
     def create_directory(self, remote_path):
@@ -300,7 +306,7 @@ class ServerInterface:
                     remote_path = local_path.replace(source_path, dest_path, 1)
                     self.copy_file(local_path, remote_path)
 
-        except SSHException as e:
+        except Exception as e:
             raise ServerInterfaceError(e)
 
     def file_byte_count(self, file_path: str) -> int:
@@ -315,7 +321,7 @@ class ServerInterface:
 
         try:
             count = self._sftp_client.stat(file_path).st_size
-        except SSHException as e:
+        except Exception as e:
             raise ServerInterfaceError(e)
 
         return count
@@ -331,7 +337,7 @@ class ServerInterface:
         try:
             with self._sftp_client.open(file_path, 'a') as f:
                 print(string, file=f)
-        except SSHException as e:
+        except Exception as e:
             raise ServerInterfaceError(e)
 
     def log_event(self, event_type: str, payload: str):
@@ -359,7 +365,7 @@ class ServerInterface:
             with self._sftp_client.open(file_path) as f:
                 f.seek(seek_position)
                 data = f.read()
-        except SSHException as e:
+        except Exception as e:
             raise ServerInterfaceError(e)
 
         return data
@@ -389,7 +395,7 @@ class ServerInterface:
         try:
             with self._sftp_client.open(file_path) as f:
                 rows = list(csv.reader(f))
-        except (csv.Error, SSHException) as e:
+        except Exception as e:
             raise ServerInterfaceError(e)
 
         return rows
@@ -605,8 +611,9 @@ class ServerInterface:
         try:
             info_json = info_json.decode()
             info = json.loads(info_json)
-        except (ValueError, UnicodeDecodeError):
-            raise ServerInterfaceError('Error loading info from JSON')
+        except Exception as e:
+            raise ServerInterfaceError('Error loading info from JSON: {0}'
+                                       .format(e))
 
         return info
 
