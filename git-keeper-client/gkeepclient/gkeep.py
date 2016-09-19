@@ -321,7 +321,7 @@ def main():
         elif action_name == 'trigger':
             trigger_tests(parsed_args.class_name, parsed_args.assignment_name,
                           parsed_args.student_usernames)
-    except GkeepException as e:
+    except Exception as e:
         sys.exit(e)
 
 
