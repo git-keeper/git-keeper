@@ -23,6 +23,7 @@ import os
 from time import strftime
 from tempfile import TemporaryDirectory
 
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.student import Student
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepcore.git_commands import git_clone, git_add_all, git_commit, git_push
@@ -70,14 +71,28 @@ class Submission:
 
         logger.log_debug('Running tests on {0}'.format(self.student_repo_path))
 
-        working_dir = TemporaryDirectory()
+        try:
+            working_dir = TemporaryDirectory()
+        except Exception as e:
+            error = 'Error creating temporary directory: {0}'.format(e)
+            raise GkeepException(error)
+
         temp_path = working_dir.name
 
-        # check out the student repo in the temp dir
-        git_clone(self.student_repo_path, temp_path)
+        try:
+            # check out the student repo in the temp dir
+            git_clone(self.student_repo_path, temp_path)
+        except Exception as e:
+            error = 'Error cloning student repository: {0}'.format(e)
+            raise GkeepException(error)
 
-        # copy the tests - this creates a test folder inside the temp dir...
-        cp(self.tests_path, temp_path, recursive=True)
+        try:
+            # copy the tests - this creates a test folder inside the temp dir
+            cp(self.tests_path, temp_path, recursive=True)
+        except Exception as e:
+            error = 'Error copying tests: {0}'.format(e)
+            raise GkeepException(error)
+
         temp_tests_path = os.path.join(temp_path, 'tests')
 
         faculty_username, class_name, assignment_name = \

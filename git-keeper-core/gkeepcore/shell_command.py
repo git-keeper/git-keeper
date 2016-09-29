@@ -68,8 +68,16 @@ def run_command(command, sudo=False, stderr=STDOUT) -> str:
         else:
             output = check_output(command, stderr=stderr, shell=False)
     except CalledProcessError as e:
+        if isinstance(command, list):
+            command_str = ' '.join(command)
+        else:
+            command_str = command
+
+        error = ('Error running command ({0}): {1}'
+                 .format(command_str, e.output.decode('utf-8')))
+
         # the CommandError exception will contain the output as a string
-        raise CommandError(e.output.decode('utf-8'))
+        raise CommandError(error)
 
     # convert the output from bytes to a string when returning
     return output.decode('utf-8')
@@ -93,11 +101,18 @@ class ChangeDirectoryContext:
         self._new_wd = path
 
     def __enter__(self):
-        os.chdir(self._new_wd)
+        try:
+            os.chdir(self._new_wd)
+        except Exception as e:
+            error = 'Error entering {0}: {1}'.format(self._new_wd, e)
+            raise GkeepException(error)
 
     def __exit__(self, *args):
-        os.chdir(self._old_wd)
-
+        try:
+            os.chdir(self._old_wd)
+        except Exception as e:
+            error = 'Error changing back to {0}: {1}'.format(self._old_wd, e)
+            raise GkeepException(error)
 
 def run_command_in_directory(path, command, sudo=False, stderr=STDOUT):
     """
