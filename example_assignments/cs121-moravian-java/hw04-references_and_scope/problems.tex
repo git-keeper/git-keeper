@@ -1,0 +1,109 @@
+\documentclass[11pt]{article}
+\usepackage{bjc}
+
+\begin{document}
+
+\centerline{\Large\bf CSCI 121: Computer Science II}
+
+\vspace{.1in}
+
+\centerline{\large\bf Homework 4}
+
+\vspace{.25in}
+
+Answer the following questions. You may turn in a handwritten hard copy or
+email me your answers.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Consider this class:
+
+\begin{verbatim}
+    public class Dog {
+      private String name;
+    
+      public Dog(String dogName) {
+          name = dogName;
+      }
+    
+      public String getName() {
+          return name;
+      }
+    }
+\end{verbatim}
+
+  In the following snippet of code, assume that \texttt{d1} and
+  \texttt{d2} are references to \texttt{Dog} objects. The syntax of the
+  code is valid. What is wrong with the semantics? How would you change
+  it so that it behaves as intended?
+
+\begin{verbatim}
+if (d1 == d2) {
+  System.out.println("These two dogs have the same name!");
+}
+\end{verbatim}
+
+\newpage
+
+\item
+  Where in memory are objects stored?
+
+\vfill
+
+\item
+  Where in memory are local variables stored?
+
+\vfill
+
+\item
+  When does an object cease to exist?
+
+\vfill
+
+\item
+  When does a local variable cease to exist?
+
+\vfill
+
+\newpage
+
+\item
+  What is wrong with the semantics of this class?
+
+\begin{verbatim}
+public class Cat {
+  private String name;
+  private int age;
+
+  public Cat(String catName, int catAge) {
+    String name = catName;
+    int age = catAge;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public int getAge() {
+    return age;
+  }
+}
+\end{verbatim}
+
+\vfill
+
+\item
+  Using the faulty \texttt{Cat} class from the previous question, what
+  will this snippet of code print?
+
+\begin{verbatim}
+Cat cat = new Cat("Catherine", 6);
+System.out.println(cat.getName());
+\end{verbatim}
+
+\vfill
+
+\end{enumerate}
+
+\end{document}

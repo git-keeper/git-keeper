@@ -1,0 +1,4 @@
+Complete both programs and push your work back to the grader.
+
+The programs are tested separately, so I advise working on the first program
+until its tests pass, and then work on the second.

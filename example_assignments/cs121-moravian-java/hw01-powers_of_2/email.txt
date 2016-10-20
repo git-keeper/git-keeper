@@ -1,0 +1,5 @@
+See the file PowersOf2.java in the src folder of the assignment for instructions. The instructions are in a comment at the top of the file. IntelliJ will open the file with the comment collapsed, so you will have to expand the comment by clicking the plus sign to see the instructions.
+
+Submit this assignment the same way you submitted this week's lab.
+
+If you are in the Thursday lab, you will probably want to wait until after lab to start this assignment so that you are sure your computer is set up correctly.

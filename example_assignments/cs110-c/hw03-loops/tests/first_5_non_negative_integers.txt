@@ -1,0 +1,5 @@
+How many non-negative integers? 0
+1
+2
+3
+4
