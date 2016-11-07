@@ -195,7 +195,7 @@ class ClassAddHandler(EventHandler):
         """
         Log a CLASS_ADD_ERROR message to the gkeepd.log for the faculty.
 
-        :param error: the error message
+        :param error: the error_message message
         """
 
         self._log_to_faculty('CLASS_ADD_ERROR', error)

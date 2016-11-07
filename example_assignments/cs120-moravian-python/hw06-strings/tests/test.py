@@ -20,14 +20,14 @@ def main():
         output = subprocess.check_output(command, shell=True,
                                          stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError:
-        print('There was an error running your program.')
+        print('There was an error_message running your program.')
         print_tests_passed(correct_count, total_count)
         sys.exit()
 
     output = output.decode().split('\n')
 
     if len(output) == 0:
-        print('There was an error running your program.')
+        print('There was an error_message running your program.')
         print_tests_passed(correct_count, total_count)
         sys.exit()
 

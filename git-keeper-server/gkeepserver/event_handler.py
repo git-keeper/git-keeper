@@ -107,14 +107,14 @@ class EventHandler(metaclass=abc.ABCMeta):
         log_gkeepd_to_faculty(self._faculty_username, event_type, payload)
 
     def _report_error(self, payload=''):
-        # Report error to the faculty through a log
+        # Report error_message to the faculty through a log
 
         event_type = self._event_type + '_ERROR'
 
         log_gkeepd_to_faculty(self._faculty_username, event_type, payload)
 
     def _report_warning(self, payload=''):
-        # Report error to the faculty through a log
+        # Report error_message to the faculty through a log
 
         event_type = self._event_type + '_WARNING'
 

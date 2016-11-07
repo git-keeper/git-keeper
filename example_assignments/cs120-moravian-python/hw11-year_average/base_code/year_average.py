@@ -4,7 +4,7 @@
 #
 # If the user enters a year for which there is no data, your program should
 # notify the user that there are no countries with data from that year but not
-# try to calculate the average (since division by zero results in an error).
+# try to calculate the average (since division by zero results in an error_message).
 #
 # Example run with a year that has data:
 #

@@ -111,7 +111,7 @@ class EventHandlerAssignerThread(Thread):
             # get() throws an Empty exception when the queue is empty
             pass
         except Exception as e:
-            error = 'Unexpected error in log event assigner: {0}'.format(e)
+            error = 'Unexpected error_message in log event assigner: {0}'.format(e)
             gkeepd_logger.log_error(error)
 
     def _examine_new_event(self, log_path: str, log_event: LogEvent):

@@ -22,7 +22,7 @@ def run_tests(py_file, input_filename):
         output = subprocess.check_output(command, shell=True,
                                          stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError:
-        print('There was an error running your program.')
+        print('There was an error_message running your program.')
         sys.exit()
         
     output = output.decode()
@@ -43,7 +43,7 @@ def run_tests(py_file, input_filename):
         errors += 1
 
     if errors == 1:
-        print('1 error\n')
+        print('1 error_message\n')
     else:
         print('{0} errors\n'.format(errors))
     

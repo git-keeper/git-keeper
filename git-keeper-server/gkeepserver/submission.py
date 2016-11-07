@@ -143,7 +143,7 @@ def report_failure(assignment, student, faculty_email, message):
                  .format(assignment))
     s_body = ['Your submission was received, but something went wrong.',
               'This is likely your instructor\'s fault, not yours.',
-              'Please contact your instructor about this error!']
+              'Please contact your instructor about this error_message!']
 
     email_sender.enqueue(Email(student.email_address, s_subject, s_body))
 

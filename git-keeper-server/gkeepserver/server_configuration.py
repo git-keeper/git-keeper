@@ -85,7 +85,7 @@ from gkeepserver.gkeepd_logger import LogLevel
 class ServerConfigurationError(GkeepException):
     """
     Raised if anything goes wrong parsing the configuration file, which should
-    always be treated as a fatal error.
+    always be treated as a fatal error_message.
     """
     pass
 

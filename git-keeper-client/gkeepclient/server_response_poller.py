@@ -76,7 +76,7 @@ class ServerResponsePoller:
 
     def response_generator(self):
         """
-        Yield responses until success, error, or timeout.
+        Yield responses until success, error_message, or timeout.
 
         Numerous warnings may be yielded.
 

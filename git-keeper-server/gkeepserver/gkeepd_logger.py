@@ -207,7 +207,7 @@ class GkeepdLoggerThread(Thread):
 
     def log_error(self, text: str):
         """
-        Log an error message.
+        Log an error_message message.
 
         :param text: text to log
         :return:

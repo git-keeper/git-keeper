@@ -69,7 +69,7 @@ from gkeepcore.gkeep_exception import GkeepException
 class ClientConfigurationError(GkeepException):
     """
     Raised if anything goes wrong parsing the configuration file, which should
-    always be treated as a fatal error.
+    always be treated as a fatal error_message.
     """
     pass
 

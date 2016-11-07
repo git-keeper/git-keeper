@@ -228,7 +228,7 @@ def create_base_code_repo(assignment_dir: AssignmentDirectory,
         write_post_receive_script(post_receive_script_path)
         chmod(post_receive_script_path, '750')
     except GkeepException as e:
-        error = 'error building base code repository: {0}'.format(str(e))
+        error = 'error_message building base code repository: {0}'.format(str(e))
         raise AssignmentDirectoryError(error)
 
 
@@ -322,7 +322,7 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
             mkdir(class_path, sudo=True)
             sudo_chown(class_path, student.username, config.keeper_group)
         except OSError as e:
-            error = 'error creating {0}: {1}'.format(assignment_repo_path,
+            error = 'error_message creating {0}: {1}'.format(assignment_repo_path,
                                                      str(e))
             raise StudentAssignmentError(error)
 
@@ -331,7 +331,7 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
         cp(assignment_dir.base_code_repo_path, assignment_repo_path,
            recursive=True, sudo=True)
     except GkeepException as e:
-        error = ('error copying {0} to {1}: {2}'
+        error = ('error_message copying {0} to {1}: {2}'
                  .format(assignment_dir.base_code_repo_path,
                          assignment_repo_path, str(e)))
         raise StudentAssignmentError(error)
@@ -342,7 +342,7 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
         sudo_chown(assignment_repo_path, student.username,
                    config.keeper_group, recursive=True)
     except CommandError as e:
-        error = ('error setting permissions on {0}: {1}'
+        error = ('error_message setting permissions on {0}: {1}'
                  .format(assignment_repo_path, str(e)))
         raise StudentAssignmentError(error)
 
@@ -360,7 +360,7 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
         with open(assignment_dir.email_path) as f:
             email_body = f.read()
     except OSError as e:
-        error = 'error reading {0}: {1}'.format(assignment_dir.email_path,
+        error = 'error_message reading {0}: {1}'.format(assignment_dir.email_path,
                                                 str(e))
         raise StudentAssignmentError(error)
 
@@ -394,11 +394,11 @@ def write_post_receive_script(dest_path: str):
         script_text = resource_string('gkeepserver', 'data/post-receive')
         script_text = script_text.decode()
     except (ResolutionError, ExtractionError, UnicodeDecodeError):
-        raise StudentAssignmentError('error reading post-receive script data')
+        raise StudentAssignmentError('error_message reading post-receive script data')
 
     try:
         with open(dest_path, 'w') as f:
             f.write(script_text)
     except OSError as e:
-        error = 'error writing {0}: {1}'.format(dest_path, str(e))
+        error = 'error_message writing {0}: {1}'.format(dest_path, str(e))
         raise StudentAssignmentError(error)

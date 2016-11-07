@@ -51,7 +51,7 @@ def clone_repo(local_repo_path, remote_url):
         git_clone_remote(remote_url, local_repo_path)
         print('success!')
     except GkeepException as e:
-        print('error cloning: {0}'.format(e))
+        print('error_message cloning: {0}'.format(e))
 
 
 def pull_repo_if_updated(local_repo_path, remote_url, remote_head_hash):
