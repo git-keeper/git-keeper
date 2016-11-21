@@ -9,7 +9,6 @@ from gkeepcore.action_runner import ActionRunner
 
 # These files must exist in the student's repository
 student_files = ['triangle.h', 'triangle.c']
-student_dir = "/Users/Vajpeyi/Documents/git-keeper/example_assignments/cs110-c/hw12-triangle_tests/solution"
 
 # Error messages for timeouts or exceeding memory limits
 timeout_error = 'Testing took too long. Maybe you have an infinite loop?'

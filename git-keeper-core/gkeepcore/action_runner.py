@@ -59,7 +59,7 @@ class FilesExist(ActionsBase):
     # make sure either error_message or warning is set, otherwise throw other
     # kind of exception, default warning is needed, pass in the non essential
     # files list
-    def __init__(self, student_dir, required_files, non_vital_files,
+    def __init__(self, student_dir, required_files, non_vital_files= None,
                  error='Fatal Error! {0} does not exist!',
                  warning='Warning: {0} does not exist' ):
         """
@@ -74,14 +74,19 @@ class FilesExist(ActionsBase):
         :param warning: non fatal warning message
         :return:
         """
-        self.student_files = os.listdir(student_dir)
 
+
+
+        self.student_files = []
+        self.student_dir = student_dir
         self.required_files = required_files
         self.nonessential_files = non_vital_files
-
         self.errorString = []
         self.error = error
         self.warning = warning
+
+        #print("dir:", self.student_dir,"\nreq files:", self.required_files,
+              "\nnonessential:", self.nonessential_files)
 
         # Checking if the error_message/warning message is correctly written
         try:
@@ -96,6 +101,20 @@ class FilesExist(ActionsBase):
 
         :return:
         """
+
+        print(">>> enter files exist")
+
+        # Check if directory exists and if it does copies file names
+        try:
+            self.student_files = os.listdir(self.student_dir)
+        except OSError as err:
+            raise ErrorException ("OS error: {0}".format(err))
+        if (len(self.student_files)) == 0:
+            raise ErrorException("{0} is empty".format(self.student_dir))
+
+        print("IN Files Exist:")
+        print(self.student_files)
+
         # Checks if required files are in the student files
         for fileName in self.required_files:
             if fileName not in self.student_files:
@@ -190,12 +209,14 @@ class CopyFiles(ActionsBase):
 
         :return:
         """
-
+        
         source = self.student_dir
 
         try:
             for f in self.required_files:
                 shutil.copy((os.path.join(source, f)), self.test_dir)
+                print(os.listdir(os.getcwd()))
+                print("HI")
         except Exception as e:
             self.error = ("There was an error_message copying required "
                           "files: {0}").format(e)
@@ -285,26 +306,46 @@ provided.
 TODO: optional parameters to define behavior on a match or mismatch
     """
 
-    def __init__(self, pattern, desired_result, filename, directory=None):
+    def __init__(self, pattern, desired_result, filename,
+                 sucess_message, fail_message, directory=None):
         self.filename = filename
-        self.pattern = re.compile(pattern)
+        self.pattern =  pattern # probably dont need to do: re.compile(pattern)
         self.directory = directory
         if directory is None:
             self.directory = os.getcwd()
-
         if desired_result == "Match":
             self.match_expected = True
             self.mismatch_expeted = False
         elif desired_result == "Mismatch":
             self.match_expected = False
             self.mismatch_expeted = True
-        else:
+        else: #this should never happen!
             self.match_expected = False
             self.mismatch_expeted = False
+        self.success_message = sucess_message
+        self.fail_message = fail_message
+
 
     def run(self):
 
-        search_results = ""
+
+        file= open (self.filename, "r")
+        data=file.read()
+        match = re.search(self.pattern, data)
+
+        if (self.mismatch_expeted and match is None) or \
+                (self.match_expected and match is not None):
+            # there is  no mismatch/a match  which is what is expected!
+            print (self.success_message)
+        elif (self.mismatch_expeted and match is not None) or \
+                (self.match_expected and match is None):
+            # EITHER: Did not want to see something in output, but found it
+            # OR: wanted to see something in output, but cannot find it
+            # Thus this is an error
+            print(self.fail_message.format(pattern=self.pattern, output=data))
+
+
+
 
 
         # do a search through the entire document rather than line by line
@@ -314,9 +355,14 @@ TODO: optional parameters to define behavior on a match or mismatch
         # returns a match object, otherwise none.
 
 
-        for i, line in enumerate(open(self.filename)):
-            for match in re.finditer(self.pattern, line):
-                search_results += ('Found on line %s: %s .\n'% (i+1,match.groups()))
+
+        # MATCH :
+        # Scan through string looking for the first location where the
+        # regular expression pattern produces a match, and return a corresponding
+        # MatchObject instance. Return None if no position in the string matches
+        # the pattern; note that this is different from finding a zero-length
+        # match at some point in the string.
+
 
 
 # if it does match, say nothing
@@ -329,12 +375,13 @@ TODO: optional parameters to define behavior on a match or mismatch
             # info on structure in Wiki
 
 
-            #Edit search, more testing 
+            #Edit search, more testing
 
 
 
 
 
+'''
 
         if self.mismatch_expeted and not MATCH:
             if search_results == "":
@@ -354,9 +401,7 @@ TODO: optional parameters to define behavior on a match or mismatch
 
 
 "blah {out} and {file}".format(out = self.out)
-
-
-
+'''
 
 
 class ActionRunner(ActionsBase):
