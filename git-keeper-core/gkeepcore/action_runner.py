@@ -9,17 +9,11 @@ from gkeepcore.shell_command import run_command
 
 class ErrorException(Exception):
     pass
-
-
 # print warning right as soon as they come
 class WarningException(Exception):
     pass
-
-
 class ActionConstructorException(Exception):
     pass
-
-
 class FatalActionException(Exception):
     pass
 
@@ -75,8 +69,6 @@ class FilesExist(ActionsBase):
         :return:
         """
 
-
-
         self.student_files = []
         self.student_dir = student_dir
         self.required_files = required_files
@@ -85,8 +77,8 @@ class FilesExist(ActionsBase):
         self.error = error
         self.warning = warning
 
-        #print("dir:", self.student_dir,"\nreq files:", self.required_files,
-              "\nnonessential:", self.nonessential_files)
+        # print("dir:", self.student_dir,"\nreq files:", self.required_files,
+        #       "\nnonessential:", self.nonessential_files)
 
         # Checking if the error_message/warning message is correctly written
         try:
@@ -102,18 +94,15 @@ class FilesExist(ActionsBase):
         :return:
         """
 
-        print(">>> enter files exist")
+        print(">>> enter files_exist.run()")
 
         # Check if directory exists and if it does copies file names
         try:
             self.student_files = os.listdir(self.student_dir)
         except OSError as err:
-            raise ErrorException ("OS error: {0}".format(err))
+            raise ErrorException("OS error: {0}".format(err))
         if (len(self.student_files)) == 0:
             raise ErrorException("{0} is empty".format(self.student_dir))
-
-        print("IN Files Exist:")
-        print(self.student_files)
 
         # Checks if required files are in the student files
         for fileName in self.required_files:
@@ -122,18 +111,21 @@ class FilesExist(ActionsBase):
                     raise ErrorException (self.error.format(fileName))
 
         # Checks if non-essential files are in the student files
-        for fileName in self.nonessential_files:
-            if fileName not in self.student_files:
-                if self.error is not None:
-                    # replace "" with the error_message message
-                    raise ErrorException(self.warning.format(fileName))
+        if self.nonessential_files is not None:
+            for fileName in self.nonessential_files:
+                if fileName not in self.student_files:
+                    if self.error is not None:
+                        # replace "" with the error_message message
+                        raise ErrorException(self.warning.format(fileName))
+
+        print("<<< exit files_exist.run()")
 
 
 class RunCommand(ActionsBase):
 
     def __init__(self, command, output, bad_output, error_is_fatal,
                  error_message='Your code doesnt compile correctly with my '
-                               'tests:\n\n{0}'):
+                               'tests:\n{output}\n'):
         """
 
         :param command:
@@ -141,6 +133,7 @@ class RunCommand(ActionsBase):
         :param error_message:
         :return:
         """
+
         self.command = command
         if type(output) == str:
             self.output_filename = output
@@ -158,13 +151,18 @@ class RunCommand(ActionsBase):
 
         :return: "Bad" or "Good" depending on if tests failed or not
         """
-        error_occured = False
+
+        print(">>> enter RunCommand[", self.command,"].run()")
+
+        error_occurred = False
+
 
         try:
             self.student_output = run_command(self.command)
         except Exception as e:  # occurs if non zero returned from above
             self.student_output = str(e)  # even stores errors that occured
-            error_occured = True
+            error_occurred = True
+
 
         if self.print_output:
             print(self.student_output)
@@ -175,12 +173,18 @@ class RunCommand(ActionsBase):
             text_file.close()
 
         # check if program output matches the RE
-        bad_output = re.match(self.bad_output_RE, self.student_output)
-        if bad_output != "":
-            print(self.error_message)
+        if self.bad_output_RE is not None:
+            bad_output = re.match(self.bad_output_RE, self.student_output)
+            if bad_output is not None:
+                raise ErrorException("The bad output RE does not match the"
+                                     "Student's Output: {0}").format(
+                                                            self.error_message)
 
-        if self.error_is_fatal and error_occured:
-            raise FatalActionException
+        if self.error_is_fatal and error_occurred:
+            raise FatalActionException(self.error_message.format(output= self.student_output))
+
+
+        print("<<< exit RunCommand[", self.command, '].run()')
 
 
 class CopyFiles(ActionsBase):
@@ -197,8 +201,8 @@ class CopyFiles(ActionsBase):
         :param dest_dir:
         :return:
         """
-        self.required_files = list(required_files)
-        self.optional_files = list(optional_files)
+        self.required_files = (required_files)
+        self.optional_files = (optional_files)
         self.student_dir = student_dir  # default is the current working dir
         self.test_dir = dest_dir
         self.error = ""
@@ -209,16 +213,24 @@ class CopyFiles(ActionsBase):
 
         :return:
         """
-        
+
+        print(">>> enter copy_files.run()")
         source = self.student_dir
+
+        # print(self.required_files)
+        # print(self.test_dir)
+        # if not os.path.exists(self.test_dir):
+        #     os.makedirs(self.test_dir)
+        #
+        # try:
 
         try:
             for f in self.required_files:
                 shutil.copy((os.path.join(source, f)), self.test_dir)
-                print(os.listdir(os.getcwd()))
-                print("HI")
+                #print(os.listdir(os.getcwd()))
+
         except Exception as e:
-            self.error = ("There was an error_message copying required "
+            self.error = ("There was an error copying required "
                           "files: {0}").format(e)
             raise ErrorException(self.error)
 
@@ -230,6 +242,8 @@ class CopyFiles(ActionsBase):
             self.warning = "There was a warning copying optional files: {0}".format(e)
             raise WarningException(self.warning)
             pass
+
+        print("<<< exit copy_files.run()")
 
 
 class Diff(ActionsBase):
@@ -291,7 +305,6 @@ same_message: Message to print if the files' contents are the same
                 return
         else:
             print(self.same_message)
-
 
 
 class Search(ActionsBase):
@@ -500,8 +513,7 @@ class ActionRunner(ActionsBase):
         self.actionList.append(FilesExist(self.submission_dir, required_files,
                                           optional_files, error, warning))
 
-    def copy_files(self, required_files, optional_files=None,
-                   dest=os.getcwd()):
+    def copy_files(self, required_files, optional_files=None, dest=os.getcwd()):
         """
         Copy files from submission_dir to the the destination (by default the
         current working dir)
@@ -516,12 +528,15 @@ class ActionRunner(ActionsBase):
 
         :return: void
         """
-        self.actionList.append(CopyFiles(self.submission_dir, required_files,
-                                         optional_files, dest))
 
-    def run_command(self,  command, output=True, bad_output=None,
+        self.actionList.append(CopyFiles(required_files,
+                                         optional_files,
+                                         self.submission_dir,
+                                         dest))
+
+    def run_command(self,  command, output=False, bad_output=None,
                     error_is_fatal=True,
-                    error_message='Error running tests:\n\n{0}'):
+                    error_message='Error running tests:\n\n{output}'):
         """
          Run a shell command
 
@@ -555,19 +570,18 @@ class ActionRunner(ActionsBase):
         :return: None
         """
 
-        print("Actions:")
-        print(self.actionList)
 
         success = True
         try:
             for action in self.actionList:
-                action.run
-                print("An action was run")
+                action.run()
+                print( action, " finished running\n")
 
         # This occurs if an action fails fatally - still continue program,
-        except FatalActionException:
+        except FatalActionException as error:
             success = False
-            pass
+            print(error) # We want to exit and send the student a message
+
 
         # Occurs if there is is an error running the action
         except Exception as e:

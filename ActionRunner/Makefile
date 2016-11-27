@@ -12,16 +12,3 @@ triangle.o: triangle.h triangle.c
 
 clean:
 	rm -f triangle_tests *.o
-
-
-pyramids_tests: pyramid.o pyramid_tests.o
-	$(CC) $(CFLAGS) pyramid.o pyramid_tests.o -o pyramid_tests
-
-pyramids_tests.o: triangle_tests.c triangle.h
-	$(CC) $(CFLAGS) -c triangle_tests.c
-
-triangle.o: triangle.h triangle.c
-	$(CC) $(CFLAGS) -c triangle.c
-
-clean:
-	rm -f triangle_tests *.o
