@@ -36,14 +36,3 @@ void test_num(char* p, int expected)
 }
 
 
-
-void test_is_triangle(double side_a, double side_b, double side_c,
-                      int expected) {
-    int result = is_triangle(side_a, side_b, side_c);
-
-    if(result != expected) {
-        printf("Expected %d when calling is_triangle(%lf, %lf, %lf), got %d\n",
-               expected, side_a, side_b, side_c, result);
-    }
-}
-

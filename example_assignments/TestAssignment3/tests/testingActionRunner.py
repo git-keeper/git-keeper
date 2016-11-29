@@ -1,6 +1,10 @@
+''''
+test exit 0, exit non zero
+test
+'''
+
+
 from gkeepcore.action_runner import ActionRunner
-
-
 
 
 # These files must exist in the student's repository
@@ -16,7 +20,7 @@ runner = ActionRunner(timeout=10, timeout_error=timeout_error,
 
 # Add an action to check that the student files exist. If any do not exist, an
 # error_message will be printed with the name of the file substituted for {0}
-runner.files_exist(student_files, error='{0 does not exist.')
+runner.files_exist(student_files, error='{0} does not exist.')
 
 # Action to copy the student's files into the test directory
 runner.copy_files(student_files)

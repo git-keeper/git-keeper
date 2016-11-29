@@ -26,7 +26,8 @@ runner.files_exist(student_files, error='{0} does not exist.')
 runner.copy_files(student_files)
 
 # Actino to build everything
-runner.run_command('make', error='Your code does not compile correctly with my tests:\n\n{0}')
+runner.run_command('make', error='Your code does not compile correctly with '
+                                 'my tests:\n\n{output}')
 
 # For these tests, any output is bad output, so if we match any characters in
 # the output it's an error_message.
