@@ -16,7 +16,7 @@ runner = ActionRunner(timeout=10, timeout_error=timeout_error,
 
 # Add an action to check that the student files exist. If any do not exist, an
 # error_message will be printed with the name of the file substituted for {0}
-runner.files_exist(student_files, error='{0 does not exist.')
+runner.files_exist(student_files, error='{0} does not exist.')
 
 # Action to copy the student's files into the test directory
 runner.copy_files(student_files)
@@ -24,7 +24,7 @@ runner.copy_files(student_files)
 # Actino to build everything
 runner.run_command('make', error_message='Your code does not compile '
                                          'correctly with my tests:\n\n{'
-                                         'output}')
+                                         '0}')
 
 # For these tests, any output is bad output, so if we match any characters in
 # the output it's an error_message.

@@ -10,10 +10,16 @@ from gkeepcore.shell_command import run_command
 class ErrorException(Exception):
     pass
 # print warning right as soon as they come
+
+
 class WarningException(Exception):
     pass
+
+
 class ActionConstructorException(Exception):
     pass
+
+
 class FatalActionException(Exception):
     pass
 
@@ -53,9 +59,9 @@ class FilesExist(ActionsBase):
     # make sure either error_message or warning is set, otherwise throw other
     # kind of exception, default warning is needed, pass in the non essential
     # files list
-    def __init__(self, student_dir, required_files, non_vital_files= None,
+    def __init__(self, student_dir, required_files, non_vital_files=None,
                  error='Fatal Error! {0} does not exist!',
-                 warning='Warning: {0} does not exist' ):
+                 warning='Warning: {0} does not exist'):
         """
         Creates class instance of files exist, which checks if the required
         files exist in the students submission
@@ -83,10 +89,15 @@ class FilesExist(ActionsBase):
         # Checking if the error_message/warning message is correctly written
         try:
             self.error.format("")
+        except ValueError:
+            raise ActionConstructorException("Malformed error_message: "
+                                             "{0}".format(self.error))
+
+        try:
             self.warning.format("")
         except ValueError:
-            raise ActionConstructorException("Malformed error_message message: {0}".format(self.error))
-            raise ActionConstructorException("Malformed error_message message: {0}".format(self.warning))
+            raise ActionConstructorException("Malformed error_message message:"
+                                             "{0}".format(self.warning))
 
     def run(self):
         """
@@ -94,7 +105,7 @@ class FilesExist(ActionsBase):
         :return:
         """
 
-        print(">>> enter files_exist.run()")
+        #print(">>> enter files_exist.run()")
 
         # Check if directory exists and if it does copies file names
         try:
@@ -108,7 +119,7 @@ class FilesExist(ActionsBase):
         for fileName in self.required_files:
             if fileName not in self.student_files:
                 if self.error is not None:
-                    raise ErrorException (self.error.format(fileName))
+                    raise ErrorException(self.error.format(fileName))
 
         # Checks if non-essential files are in the student files
         if self.nonessential_files is not None:
@@ -118,14 +129,14 @@ class FilesExist(ActionsBase):
                         # replace "" with the error_message message
                         raise ErrorException(self.warning.format(fileName))
 
-        print("<<< exit files_exist.run()")
+       # print("<<< exit files_exist.run()")
 
 
 class RunCommand(ActionsBase):
 
     def __init__(self, command, output, bad_output, error_is_fatal,
                  error_message='Your code doesnt compile correctly with my '
-                               'tests:\n{output}\n'):
+                               'tests:\n{0}\n'):
         """
 
         :param command:
@@ -146,23 +157,28 @@ class RunCommand(ActionsBase):
         self.error_is_fatal = error_is_fatal
         self.student_output = ""
 
+        # Checking if the error_message/warning message is correctly written
+        try:
+            self.error_message.format("")
+        except ValueError:
+            raise ActionConstructorException("Malformed error_message: "
+                                             "{0}".format(self.error_message))
+
     def run(self):
         """
 
         :return: "Bad" or "Good" depending on if tests failed or not
         """
 
-        print(">>> enter RunCommand[", self.command,"].run()")
+       # print(">>> enter RunCommand[", self.command, "].run()")
 
         error_occurred = False
-
 
         try:
             self.student_output = run_command(self.command)
         except Exception as e:  # occurs if non zero returned from above
             self.student_output = str(e)  # even stores errors that occured
             error_occurred = True
-
 
         if self.print_output:
             print(self.student_output)
@@ -181,10 +197,10 @@ class RunCommand(ActionsBase):
                                                             self.error_message)
 
         if self.error_is_fatal and error_occurred:
-            raise FatalActionException(self.error_message.format(output= self.student_output))
+            raise FatalActionException(self.error_message.format(
+                                                         self.student_output))
 
-
-        print("<<< exit RunCommand[", self.command, '].run()')
+     #   print("<<< exit RunCommand[", self.command, '].run()')
 
 
 class CopyFiles(ActionsBase):
@@ -214,7 +230,7 @@ class CopyFiles(ActionsBase):
         :return:
         """
 
-        print(">>> enter copy_files.run()")
+     #   print(">>> enter copy_files.run()")
         source = self.student_dir
 
         # print(self.required_files)
@@ -243,7 +259,7 @@ class CopyFiles(ActionsBase):
             raise WarningException(self.warning)
             pass
 
-        print("<<< exit copy_files.run()")
+      #  print("<<< exit copy_files.run()")
 
 
 class Diff(ActionsBase):
@@ -319,8 +335,11 @@ provided.
 TODO: optional parameters to define behavior on a match or mismatch
     """
 
+
     def __init__(self, pattern, desired_result, filename,
                  sucess_message, fail_message, directory=None):
+
+
         self.filename = filename
         self.pattern =  pattern # probably dont need to do: re.compile(pattern)
         self.directory = directory
@@ -339,8 +358,8 @@ TODO: optional parameters to define behavior on a match or mismatch
         self.fail_message = fail_message
 
 
-    def run(self):
 
+    def run(self):
 
         file= open (self.filename, "r")
         data=file.read()
@@ -438,6 +457,7 @@ class ActionRunner(ActionsBase):
                  memlimit_error="Memory limit exceeded",
                  working_dir=os.getcwd(),
                  submission_dir=sys.argv[1]):
+
         """
        The ActionRunner constructor has no required parameters. It has the
        following optional parameters:
@@ -510,6 +530,7 @@ class ActionRunner(ActionsBase):
 
         :return: void
         """
+
         self.actionList.append(FilesExist(self.submission_dir, required_files,
                                           optional_files, error, warning))
 
@@ -536,7 +557,7 @@ class ActionRunner(ActionsBase):
 
     def run_command(self,  command, output=False, bad_output=None,
                     error_is_fatal=True,
-                    error_message='Error running tests:\n\n{output}'):
+                    error_message='Error running tests:\n\n{0}'):
         """
          Run a shell command
 
@@ -575,7 +596,7 @@ class ActionRunner(ActionsBase):
         try:
             for action in self.actionList:
                 action.run()
-                print( action, " finished running\n")
+               # print( action, " finished running\n")
 
         # This occurs if an action fails fatally - still continue program,
         except FatalActionException as error:
