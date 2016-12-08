@@ -609,7 +609,7 @@ class ActionRunner(ActionsBase):
             error = "There was an error: {0}".format(e)
             print(error)
             # We want to exit and send the student a message
-            exit(1)
+            exit(0)
 
         if success:
             print(success_message)
