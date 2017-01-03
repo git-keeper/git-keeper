@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -227,21 +227,6 @@ def create_dir_if_non_existent(dir_path, confirm=False):
             raise GkeepException(error)
 
 
-def refresh_info():
-    """Request that the server refresh the info stored in info.json"""
-    poller = ServerResponsePoller('REFRESH_INFO', timeout=20)
-
-    server_interface.log_event('REFRESH_INFO', config.server_username)
-
-    for response in poller.response_generator():
-        if response.response_type == ServerResponseType.ERROR:
-            error = ('Error refreshing info:\n{0}'
-                     .format(response.message))
-            raise GkeepException(error)
-        elif response.response_type == ServerResponseType.WARNING:
-            print(response.message)
-
-
 @config_parsed
 def build_dest_path(destination_path, class_name):
     """
@@ -290,9 +275,6 @@ def fetch_submissions(class_name: str, assignment_name: str,
      all assignments for the class
     :param destination_path: directory in which to fetch the assignment
     """
-
-    # ask the server to refresh the hashes for assignment repositories
-    refresh_info()
 
     info = server_interface.get_info()
 

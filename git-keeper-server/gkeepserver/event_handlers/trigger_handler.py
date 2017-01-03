@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -102,6 +102,7 @@ class TriggerHandler(EventHandler):
             submission = Submission(student, submission_repo_path,
                                     assignment_dir.tests_path,
                                     assignment_dir.reports_repo_path,
+                                    self._faculty_username,
                                     faculty_email)
             new_submission_queue.put(submission)
 

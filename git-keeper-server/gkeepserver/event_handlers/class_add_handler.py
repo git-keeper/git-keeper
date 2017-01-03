@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ from gkeepserver.create_user import create_user, UserType
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
+from gkeepserver.info_refresh_thread import info_refresher
 from gkeepserver.server_configuration import config
 
 
@@ -60,6 +61,8 @@ class ClassAddHandler(EventHandler):
 
             self._copy_csv_to_class_dir()
             self._add_students_class_dirs(students)
+
+            info_refresher.enqueue(self._faculty_username)
 
             self._log_to_faculty('CLASS_ADD_SUCCESS', self._class_name)
         except Exception as e:

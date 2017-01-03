@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,11 +32,14 @@ from queue import Queue, Empty
 from signal import signal, SIGINT, SIGTERM
 from traceback import extract_tb
 
+from gkeepcore.faculty import faculty_from_csv_file
 from gkeepcore.gkeep_exception import GkeepException
+from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepserver.check_system import check_system, CheckSystemError
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
+from gkeepserver.info_refresh_thread import info_refresher
 from gkeepserver.local_log_file_reader import LocalLogFileReader
 from gkeepserver.event_handler_assigner import EventHandlerAssignerThread
 from gkeepserver.log_polling import log_poller
@@ -96,6 +99,15 @@ def main():
         logger.log_info('Shutting down')
         logger.shutdown()
         sys.exit(1)
+
+    # start the info refresher thread and refresh the info for each faculty
+    info_refresher.start()
+
+    reader = LocalCSVReader(config.faculty_csv_path)
+    faculty_list = faculty_from_csv_file(reader)
+
+    for faculty in faculty_list:
+        info_refresher.enqueue(faculty.username)
 
     # queues for thread communication
     new_log_event_queue = Queue()
@@ -164,6 +176,8 @@ def main():
 
     for thread in submission_test_threads:
         thread.shutdown()
+
+    info_refresher.shutdown()
 
     email_sender.shutdown()
 
