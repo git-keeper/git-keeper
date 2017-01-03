@@ -28,7 +28,7 @@ from argparse import ArgumentParser
 
 from argcomplete import autocomplete
 
-from gkeepclient.fetch_submissions import fetch_submissions
+from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
 from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, upload_assignment, \
     trigger_tests
@@ -313,9 +313,11 @@ def main():
             delete_assignment(parsed_args.class_name,
                               parsed_args.assignment_name)
         elif action_name == 'fetch':
+            dest_path = build_dest_path(parsed_args.destination_path,
+                                        parsed_args.class_name)
             fetch_submissions(parsed_args.class_name,
                               parsed_args.assignment_name,
-                              parsed_args.destination_path)
+                              dest_path)
         elif action_name == 'query':
             run_query(parsed_args.query_type)
         elif action_name == 'trigger':

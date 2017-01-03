@@ -243,6 +243,41 @@ def refresh_info():
 
 
 @config_parsed
+def build_dest_path(destination_path, class_name):
+    """
+    Build the path that submissions will be fetched to.
+
+    If destination_path is not None, then it will be expanded as necessary.
+
+    If destination_path is None and submissions_path is defined in the
+    configuration, then the destination path will be:
+       submissions_path/class_name
+
+    If destination_path is None and submissions_path is not defined in the
+    configuration, then the destination path will be the current working
+    directory.
+
+    :param destination_path: the path given on the command line, or None
+    :param class_name: name of the class to fetch
+    :return: the path to fetch into
+    """
+
+    if destination_path is None:
+        if config.submissions_path is None:
+            print('No destination path specified, fetching to the current '
+                  'working directory')
+            destination_path = os.getcwd()
+        else:
+            destination_path = os.path.join(config.submissions_path,
+                                            class_name)
+    else:
+        destination_path = os.path.expanduser(destination_path)
+        destination_path = os.path.abspath(destination_path)
+
+    return destination_path
+
+
+@config_parsed
 @server_interface_connected
 @class_exists
 def fetch_submissions(class_name: str, assignment_name: str,
@@ -260,19 +295,6 @@ def fetch_submissions(class_name: str, assignment_name: str,
     refresh_info()
 
     info = server_interface.get_info()
-
-    if destination_path is None:
-        if config.submissions_path is None:
-            error = ('You must provide a destination path, or define the '
-                     'submissions_path parameter in the [local] section of '
-                     'client.cfg')
-            raise GkeepException(error)
-
-        destination_path = os.path.join(config.submissions_path,
-                                        class_name)
-    else:
-        destination_path = os.path.expanduser(destination_path)
-        destination_path = os.path.abspath(destination_path)
 
     create_dir_if_non_existent(destination_path, confirm=True)
 
