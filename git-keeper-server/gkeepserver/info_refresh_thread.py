@@ -72,7 +72,6 @@ class InfoRefreshThread(Thread):
         :param faculty_username: the username of the faculty
         """
 
-        logger.log_debug('Oh look, a username: {0}'.format(faculty_username))
         self._username_queue.put(faculty_username)
 
     def shutdown(self):

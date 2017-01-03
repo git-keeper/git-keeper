@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@ calling check_system()
 import csv
 import os
 
+from gkeepcore.path_utils import faculty_info_path, user_home_dir
 from pkg_resources import resource_exists, resource_string, ResolutionError, \
     ExtractionError
 
@@ -109,7 +110,6 @@ def check_keeper_paths_and_permissions():
 
     # create the faculty and student groups if they don't exist
     for group in (config.faculty_group, config.student_group):
-        gkeepd_logger.log_info(group)
         if not group_exists(group):
             gkeepd_logger.log_info('Group {0} does not exist, creating it now'
                                    .format(group))

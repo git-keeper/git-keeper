@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -42,12 +42,15 @@ def list_assignments():
     class.
     """
 
-    for class_name in server_interface.get_classes():
+    info = server_interface.get_info()
+
+    for class_name in sorted(info.keys()):
         print(class_name, ':', sep='')
 
-        assignments_info = server_interface.get_assignment_info(class_name)
+        for assignment_name in sorted(info[class_name]['assignments'].keys()):
+            published = \
+                info[class_name]['assignments'][assignment_name]['published']
 
-        for assignment_name, published in assignments_info:
             if published:
                 published_prefix = 'P'
             else:

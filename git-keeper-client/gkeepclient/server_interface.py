@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -60,8 +60,7 @@ from gkeepcore.log_file import log_append_command
 from gkeepcore.path_utils import user_log_path, gkeepd_to_faculty_log_path, \
     faculty_upload_dir_path, faculty_assignment_dir_path,\
     faculty_class_dir_path, assignment_published_file_path, \
-    faculty_classes_dir_path, class_student_csv_path, \
-    faculty_info_file_path
+    faculty_classes_dir_path, class_student_csv_path, faculty_info_path
 from gkeepcore.student import Student
 
 
@@ -604,12 +603,15 @@ class ServerInterface:
         :return: dictionary of info
         """
 
-        info_path = faculty_info_file_path(self._home_dir)
+        info_path = faculty_info_path(self._home_dir)
 
-        info_json = self.read_file_bytes(info_path)
+        # Get the contents of the last file in the directory, or an empty
+        # string if the directory is empty.
+        command = \
+            'echo | cat {0}/`ls {0} | tail -1`'.format(info_path).rstrip()
 
         try:
-            info_json = info_json.decode()
+            info_json = self.run_command(command)
             info = json.loads(info_json)
         except Exception as e:
             raise ServerInterfaceError('Error loading info from JSON: {0}'

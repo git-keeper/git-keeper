@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ from queue import Empty
 from threading import Thread
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
+from gkeepserver.info_refresh_thread import info_refresher
 from gkeepserver.new_submission_queue import new_submission_queue
 
 
@@ -70,6 +71,7 @@ class SubmissionTestThread(Thread):
                     submission = new_submission_queue.get(block=True,
                                                           timeout=0.1)
                     submission.run_tests()
+                    info_refresher.enqueue(submission.faculty_username)
             # get() raises Empty when there is nothing in the queue after
             # timeout seconds
             except Empty:

@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ from gkeepserver.assignments import AssignmentDirectory, \
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
+from gkeepserver.info_refresh_thread import info_refresher
 from gkeepserver.server_configuration import config
 
 
@@ -72,6 +73,9 @@ class UploadHandler(EventHandler):
             validate_assignment_name(assignment_dir.assignment_name)
             self._setup_assignment_dir(assignment_dir)
             self._setup_faculty_test_assignment(assignment_dir)
+
+            info_refresher.enqueue(self._faculty_username)
+
             log_gkeepd_to_faculty(self._faculty_username, 'UPLOAD_SUCCESS',
                                   self._upload_path)
             info = '{0} uploaded {1} to {2}'.format(self._faculty_username,

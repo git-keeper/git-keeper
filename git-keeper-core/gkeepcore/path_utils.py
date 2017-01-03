@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -224,15 +224,15 @@ def faculty_class_dir_path(class_name: str, home_dir: str):
     return os.path.join(faculty_classes_dir_path(home_dir), class_name)
 
 
-def faculty_info_file_path(home_dir: str):
+def faculty_info_path(home_dir: str):
     """
-    Build the path to a faculty member's info.json file
+    Build the path to a faculty member's info directory.
 
     :param home_dir: home directory of the faculty member
-    :return: path to the info file
+    :return: path to the info directory
     """
 
-    return os.path.join(home_dir, 'info.json')
+    return os.path.join(home_dir, 'info')
 
 
 def assignment_published_file_path(class_name: str, assignment_name: str,

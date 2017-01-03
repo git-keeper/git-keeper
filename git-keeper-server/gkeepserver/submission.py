@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ class Submission:
     Stores student submission information and allows test running.
     """
     def __init__(self, student: Student, student_repo_path, tests_path,
-                 reports_repo_path, faculty_email):
+                 reports_repo_path, faculty_username, faculty_email):
         """
         Simply assign the attributes.
 
@@ -57,6 +57,7 @@ class Submission:
         self.student_repo_path = student_repo_path
         self.tests_path = tests_path
         self.reports_repo_path = reports_repo_path
+        self.faculty_username = faculty_username
         self.faculty_email = faculty_email
 
     def run_tests(self):
