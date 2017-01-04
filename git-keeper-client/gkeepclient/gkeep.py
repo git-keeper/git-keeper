@@ -32,7 +32,8 @@ from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
 from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, upload_assignment, \
     trigger_tests
-from gkeepclient.queries import list_classes, list_assignments, list_students
+from gkeepclient.queries import list_classes, list_assignments, list_students, \
+    list_recent
 from gkeepcore.gkeep_exception import GkeepException
 
 
@@ -202,8 +203,13 @@ def add_query_subparser(subparsers):
 
     subparser = subparsers.add_parser('query', help='query the server')
     subparser.add_argument('query_type', metavar='<query type>',
-                           help='classes, assignments, or students',
-                           choices=['classes', 'assignments', 'students'])
+                           help='classes, assignments, recent, or students',
+                           choices=['classes', 'assignments', 'recent',
+                                    'students'])
+    subparser.add_argument('number_of_days', type=int,
+                           metavar='<number of days>',
+                           help='number of days considered recent (optional)',
+                           nargs='?')
 
 
 def add_trigger_subparser(subparsers):
@@ -251,18 +257,21 @@ def initialize_action_parser() -> GraderParser:
     return parser
 
 
-def run_query(query_type: str):
+def run_query(query_type: str, number_of_days: int):
     """
     Run the query specified by query_type.
 
     :param query_type: type of the query
     """
+
     if query_type == 'classes':
         list_classes()
     elif query_type == 'assignments':
         list_assignments()
     elif query_type == 'students':
         list_students()
+    elif query_type == 'recent':
+        list_recent(number_of_days)
 
 
 def main():
@@ -319,7 +328,7 @@ def main():
                               parsed_args.assignment_name,
                               dest_path)
         elif action_name == 'query':
-            run_query(parsed_args.query_type)
+            run_query(parsed_args.query_type, parsed_args.number_of_days)
         elif action_name == 'trigger':
             trigger_tests(parsed_args.class_name, parsed_args.assignment_name,
                           parsed_args.student_usernames)

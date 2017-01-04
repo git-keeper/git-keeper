@@ -15,9 +15,11 @@
 
 
 """Provides functions for running git commands."""
+
 import os
 
-from gkeepcore.shell_command import run_command_in_directory, run_command
+from gkeepcore.shell_command import run_command_in_directory, run_command, \
+    CommandError
 
 
 def git_remote_add(repo_path, remote_name, url):
@@ -174,3 +176,27 @@ def git_head_hash(repo_path):
     cmd = ['git', 'rev-parse', 'HEAD']
 
     return run_command_in_directory(repo_path, cmd).rstrip()
+
+
+def git_head_hash_date(repo_path):
+    """
+    Get the hash and last commit date of the HEAD of a git repository.
+
+    The date is in seconds from the epoch.
+
+    :param repo_path: path to the repository
+    :return: tuple containing the hash and the timestamp
+    """
+
+    cmd = ['git', 'log', '-1', '--format=%H %at']
+
+    output = run_command_in_directory(repo_path, cmd)
+    split_output = output.split()
+
+    if len(split_output) != 2:
+        raise CommandError(output)
+
+    repo_hash = split_output[0]
+    timestamp = int(split_output[1])
+
+    return repo_hash, timestamp
