@@ -175,6 +175,7 @@ class GkeepdLoggerThread(Thread):
             except CommandError as e:
                 # bad news. raising an exception would only kill the thread
                 print('ERROR LOGGING: {0}'.format(e))
+                print('Command that raised error: {0}'.format(command))
 
     def log_debug(self, text: str):
         """

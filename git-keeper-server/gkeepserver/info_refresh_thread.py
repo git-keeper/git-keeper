@@ -24,7 +24,7 @@ from tempfile import TemporaryDirectory
 from threading import Thread
 from time import time
 
-from gkeepcore.git_commands import git_head_hash
+from gkeepcore.git_commands import git_head_hash, git_head_hash_date
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_home_dir, student_assignment_repo_path, \
     faculty_info_path
@@ -118,6 +118,8 @@ class InfoRefreshThread(Thread):
                                  .format(e))
 
     def _refresh_info(self, faculty_username):
+        logger.log_info('Refreshing info for {0}'.format(faculty_username))
+
         # Refresh the info for a faculty member
         info = {}
 
@@ -243,7 +245,8 @@ class InfoRefreshThread(Thread):
                                              student_home_dir)
 
             try:
-                assignment_repo_hash = git_head_hash(assignment_repo_path)
+                assignment_repo_hash, last_commit_time = \
+                    git_head_hash_date(assignment_repo_path)
             except GkeepException as e:
                 warning = ('Could not get hash for {0}: {1}'
                            .format(assignment_repo_path, e))
@@ -251,8 +254,11 @@ class InfoRefreshThread(Thread):
                 continue
 
             student_info = {
+                'first': student.first_name,
+                'last': student.last_name,
                 'path': assignment_repo_path,
-                'hash': assignment_repo_hash
+                'hash': assignment_repo_hash,
+                'time': last_commit_time
             }
 
             students_info[student.username] = student_info

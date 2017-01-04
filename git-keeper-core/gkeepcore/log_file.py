@@ -206,6 +206,7 @@ def log_append_command(file_path: str, item_type: str, text: str):
     """
 
     text = text.replace('\n', '  ')
+    text = text.replace('"', '\\"')
 
     time_length = 15
     type_length = len(item_type.encode())

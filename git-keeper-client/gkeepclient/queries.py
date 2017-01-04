@@ -18,7 +18,7 @@
 Provides functions for querying the server for information and printing the
 query results.
 """
-
+from time import time, localtime, strftime
 
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected
@@ -75,3 +75,59 @@ def list_students():
             print(student)
 
         print()
+
+
+@config_parsed
+@server_interface_connected
+def list_recent(number_of_days):
+    """
+    Print recent submissions.
+
+    :param number_of_days: submissions past this number of days ago are not
+     recent
+    """
+
+    if number_of_days is None:
+        number_of_days = 1
+
+    print('Recent submissions:')
+    print()
+
+    info = server_interface.get_info()
+
+    for class_name in sorted(info.keys()):
+        class_name_printed = False
+
+        for assignment_name in sorted(info[class_name]['assignments'].keys()):
+            assignment_info = info[class_name]['assignments'][assignment_name]
+            students_info = assignment_info['students_repos']
+
+            if students_info is None:
+                continue
+
+            cutoff_time = time() - (60 * 60 * 24 * number_of_days)
+
+            recent = []
+
+            for username in students_info:
+                student_info = students_info[username]
+
+                if student_info['time'] >= cutoff_time:
+                    recent.append((student_info['time'], student_info['first'],
+                                   student_info['last']))
+
+            if len(recent) > 0:
+                recent.sort()
+
+                if not class_name_printed:
+                    print(class_name, ':', sep='')
+                    class_name_printed = True
+
+                print('  ', assignment_name, ':', sep='')
+
+                for timestamp, first_name, last_name in recent:
+                    human_timestamp = strftime('%Y-%m-%d %H:%M:%S',
+                                               localtime(timestamp))
+                    print('   ', human_timestamp, first_name, last_name)
+
+                print()
