@@ -19,6 +19,8 @@ Provides a class for representing a student and a function for building a
 list of students from a CSV file.
 """
 
+import string
+
 from gkeepcore.csv_files import CSVReader
 from gkeepcore.gkeep_exception import GkeepException
 
@@ -98,8 +100,8 @@ class Student:
 
             last_first_username
 
-        Spaces are stripped out of the names and all characters are converted
-        to lowercase.
+        Spaces and punctuation are stripped out of the names and all characters
+        are converted to lowercase.
 
         This can be used to create directories or filenames to store student
         data.
@@ -107,8 +109,14 @@ class Student:
         :return: a last_first_username string representation of a student
         """
 
-        lower_first_name = self.first_name.lower().replace(' ', '')
-        lower_last_name = self.last_name.lower().replace(' ', '')
+        def cleanup(s):
+            # convert s to lowercase and strip out all spaces and punctuation
+            s = s.lower().replace(' ', '')
+            s = s.translate(str.maketrans('', '', string.punctuation))
+            return s
+
+        lower_first_name = cleanup(self.first_name)
+        lower_last_name = cleanup(self.last_name)
 
         return '{0}_{1}_{2}'.format(lower_last_name, lower_first_name,
                                     self.username)
