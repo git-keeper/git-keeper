@@ -257,8 +257,8 @@ class InfoRefreshThread(Thread):
                 'first': student.first_name,
                 'last': student.last_name,
                 'path': assignment_repo_path,
-                'hash': hashes_and_times[-1][0],
-                'time': hashes_and_times[-1][1],
+                'hash': hashes_and_times[0][0],
+                'time': hashes_and_times[0][1],
                 'submission_count': len(hashes_and_times) - 1
             }
 
