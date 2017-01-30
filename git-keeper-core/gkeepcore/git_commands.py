@@ -200,3 +200,39 @@ def git_head_hash_date(repo_path):
     timestamp = int(split_output[1])
 
     return repo_hash, timestamp
+
+
+def git_hashes_and_times(repo_path):
+    """
+    Get the hashes and commit times of the commits to a git repository.
+
+    The times are integer seconds from the epoch.
+
+    The hashes are strings.
+
+    :param repo_path: path to the repository
+    :return: list containing (hash, time) tuples
+    """
+
+    cmd = ['git', 'log', '--format=%H %at']
+
+    output = run_command_in_directory(repo_path, cmd)
+    lines = output.splitlines()
+
+    hashes_and_times = []
+
+    for line in lines:
+        split_line = line.split()
+
+        if len(split_line) != 2:
+            raise CommandError(output)
+
+        repo_hash = split_line[0]
+        timestamp = int(split_line[1])
+
+        hashes_and_times.append((repo_hash, timestamp))
+
+    if len(hashes_and_times) == 0:
+        raise CommandError('No output')
+
+    return hashes_and_times

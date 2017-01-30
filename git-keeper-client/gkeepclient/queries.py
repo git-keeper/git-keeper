@@ -112,6 +112,10 @@ def list_recent(number_of_days):
             for username in students_info:
                 student_info = students_info[username]
 
+                if 'submission_count' in student_info and \
+                   student_info['submission_count'] == 0:
+                    continue
+
                 if student_info['time'] >= cutoff_time:
                     recent.append((student_info['time'], student_info['first'],
                                    student_info['last']))
