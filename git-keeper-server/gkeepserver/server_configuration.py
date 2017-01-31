@@ -93,7 +93,7 @@ class ServerConfigurationError(GkeepException):
 
 class ServerConfiguration:
     """
-    Allows parsing client.cfg and stores the configuration values as
+    Allows parsing server.cfg and stores the configuration values as
     attributes.
 
     It is not advisable to make instances of this class directly. Instead,
