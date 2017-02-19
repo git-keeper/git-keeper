@@ -66,6 +66,10 @@ class Student:
         if len(csv_row) != 3:
             raise StudentError('Not a valid student row: ' + str(csv_row))
 
+        # remove blank spaces
+        for i in range(len(csv_row)):
+            csv_row[i] = csv_row[i].strip()
+
         last_name, first_name, email_address = csv_row
 
         # FIXME - need to handle email address and username mapping
