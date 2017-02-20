@@ -66,6 +66,10 @@ class Faculty:
             raise FacultyError('Not a valid faculty row: {0}'
                                .format(str(csv_row)))
 
+        # remove blank spaces
+        for i in range(len(csv_row)):
+            csv_row[i] = csv_row[i].strip()
+
         last_name, first_name, email_address = csv_row
 
         # the faculty's username is their email address username
