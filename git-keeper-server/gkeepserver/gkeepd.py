@@ -35,7 +35,7 @@ from traceback import extract_tb
 from gkeepcore.faculty import faculty_from_csv_file
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
-from gkeepserver.check_system import check_system, CheckSystemError
+from gkeepserver.check_system import check_system
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger

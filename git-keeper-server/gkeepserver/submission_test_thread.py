@@ -23,7 +23,6 @@ New submissions are pulled from the global new_submission_queue.
 
 from queue import Empty
 from threading import Thread
-from gkeepcore.gkeep_exception import GkeepException
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepserver.info_refresh_thread import info_refresher
 from gkeepserver.new_submission_queue import new_submission_queue

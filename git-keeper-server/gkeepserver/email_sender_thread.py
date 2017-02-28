@@ -45,9 +45,8 @@ from queue import Queue, Empty
 from threading import Thread
 from time import time, sleep
 
-from gkeepcore.gkeep_exception import GkeepException
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
-from gkeepserver.server_email import Email, EmailException
+from gkeepserver.server_email import Email
 
 
 class EmailSenderThread(Thread):
