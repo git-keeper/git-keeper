@@ -18,13 +18,11 @@
 
 import os
 
-from gkeepcore.csv_files import CSVError
-from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, student_class_dir_path, \
     user_home_dir, faculty_class_dir_path, class_student_csv_path
 from gkeepcore.shell_command import CommandError
-from gkeepcore.student import students_from_csv, StudentError
+from gkeepcore.student import students_from_csv
 from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, chmod
 from gkeepcore.valid_names import validate_class_name
 from gkeepserver.create_user import create_user, UserType

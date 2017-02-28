@@ -24,14 +24,11 @@ calling check_system()
 
 """
 
-import csv
 import os
 
-from gkeepcore.path_utils import faculty_info_path, user_home_dir
-from pkg_resources import resource_exists, resource_string, ResolutionError, \
-    ExtractionError
+from pkg_resources import resource_exists, resource_string
 
-from gkeepcore.faculty import Faculty, FacultyError, faculty_from_csv_file
+from gkeepcore.faculty import Faculty, faculty_from_csv_file
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.system_commands import (CommandError, user_exists, group_exists,

@@ -17,11 +17,9 @@
 Provides a class for representing a faculty member.
 
 """
-import csv
 
 from gkeepcore.csv_files import CSVReader
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.local_csv_files import LocalCSVReader
 
 
 class FacultyError(GkeepException):

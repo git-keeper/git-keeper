@@ -25,8 +25,8 @@ from tempfile import TemporaryDirectory
 from gkeepcore.csv_files import CSVError
 from gkeepcore.git_commands import git_init, git_push, git_add_all, git_commit
 from gkeepcore.local_csv_files import LocalCSVReader
-from gkeepcore.path_utils import user_from_log_path, \
-    faculty_assignment_dir_path, user_home_dir, class_student_csv_path
+from gkeepcore.path_utils import faculty_assignment_dir_path, user_home_dir, \
+    class_student_csv_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.student import students_from_csv, StudentError, Student
 from gkeepcore.system_commands import touch, sudo_chown, mkdir
