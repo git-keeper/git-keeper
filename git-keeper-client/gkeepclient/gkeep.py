@@ -31,11 +31,10 @@ from argcomplete import autocomplete
 from gkeepclient.create_config import create_config
 from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
 from gkeepclient.server_actions import class_add, class_modify, \
-    delete_assignment, publish_assignment, update_assignment, upload_assignment, \
-    trigger_tests
-from gkeepclient.queries import list_classes, list_assignments, list_students, \
-    list_recent
-from gkeepcore.gkeep_exception import GkeepException
+    delete_assignment, publish_assignment, update_assignment, \
+    upload_assignment, trigger_tests
+from gkeepclient.queries import list_classes, list_assignments, \
+    list_students, list_recent
 
 
 class GraderParser(ArgumentParser):
@@ -241,7 +240,7 @@ def add_config_subparser(subparsers):
     """
 
     subparser = subparsers.add_parser('config',
-                                      help='create or overwrite configuration'
+                                      help='create or overwrite configuration '
                                            'file')
 
 
