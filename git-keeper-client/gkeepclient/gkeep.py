@@ -28,13 +28,13 @@ from argparse import ArgumentParser
 
 from argcomplete import autocomplete
 
+from gkeepclient.create_config import create_config
 from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
 from gkeepclient.server_actions import class_add, class_modify, \
-    delete_assignment, publish_assignment, update_assignment, upload_assignment, \
-    trigger_tests
-from gkeepclient.queries import list_classes, list_assignments, list_students, \
-    list_recent
-from gkeepcore.gkeep_exception import GkeepException
+    delete_assignment, publish_assignment, update_assignment, \
+    upload_assignment, trigger_tests
+from gkeepclient.queries import list_classes, list_assignments, \
+    list_students, list_recent
 
 
 class GraderParser(ArgumentParser):
@@ -230,6 +230,20 @@ def add_trigger_subparser(subparsers):
                                 'students')
 
 
+def add_config_subparser(subparsers):
+    """
+    Add a subparser for action 'config', which asks to create a new
+    configuration file
+    or to overwrite the existing one
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('config',
+                                      help='create or overwrite configuration '
+                                           'file')
+
+
 def initialize_action_parser() -> GraderParser:
     """
     Initialize a GraderParser object.
@@ -253,6 +267,7 @@ def initialize_action_parser() -> GraderParser:
     add_fetch_subparser(subparsers)
     add_query_subparser(subparsers)
     add_trigger_subparser(subparsers)
+    add_config_subparser(subparsers)
 
     return parser
 
@@ -332,6 +347,8 @@ def main():
         elif action_name == 'trigger':
             trigger_tests(parsed_args.class_name, parsed_args.assignment_name,
                           parsed_args.student_usernames)
+        elif action_name == 'config':
+            create_config()
     except Exception as e:
         sys.exit(e)
 
