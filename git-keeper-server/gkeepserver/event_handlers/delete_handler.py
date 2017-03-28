@@ -19,7 +19,6 @@ Provides DeleteHandler, the handler for deleting assignments.
 Event type: DELETE
 """
 
-import os
 
 from gkeepcore.faculty import faculty_from_username
 from gkeepcore.gkeep_exception import GkeepException

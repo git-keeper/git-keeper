@@ -20,10 +20,8 @@ Event type: TRIGGER
 """
 from gkeepcore.faculty import faculty_from_username
 from gkeepcore.local_csv_files import LocalCSVReader
-from gkeepcore.log_file import log_append_command
 from gkeepcore.path_utils import user_home_dir, faculty_assignment_dir_path, \
     user_log_path, student_assignment_repo_path
-from gkeepcore.shell_command import run_command
 from gkeepserver.assignments import AssignmentDirectory
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger

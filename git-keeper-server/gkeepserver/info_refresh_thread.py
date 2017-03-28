@@ -24,8 +24,7 @@ from tempfile import TemporaryDirectory
 from threading import Thread
 from time import time
 
-from gkeepcore.git_commands import git_head_hash, git_head_hash_date, \
-    git_hashes_and_times
+from gkeepcore.git_commands import git_head_hash, git_hashes_and_times
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_home_dir, student_assignment_repo_path, \
     faculty_info_path
