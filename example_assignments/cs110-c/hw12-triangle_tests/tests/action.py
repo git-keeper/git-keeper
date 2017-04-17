@@ -1,4 +1,4 @@
-from actionRunner import ActionRunner
+from gkeepcore.action_runner import ActionRunner
 
 # Possible interface for an assignment testing framework
 

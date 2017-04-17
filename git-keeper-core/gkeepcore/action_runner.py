@@ -35,7 +35,7 @@ not both)
 
 class ActionsBase(object):
     """
-
+    Abstract class for ActionRunner
     """
     __metaclass__ = ABCMeta
 
@@ -83,9 +83,6 @@ class FilesExist(ActionsBase):
         self.error = error
         self.warning = warning
 
-        # print("dir:", self.student_dir,"\nreq files:", self.required_files,
-        #       "\nnonessential:", self.nonessential_files)
-
         # Checking if the error_message/warning message is correctly written
         try:
             self.error.format("")
@@ -105,15 +102,11 @@ class FilesExist(ActionsBase):
         :return:
         """
 
-        #print(">>> enter files_exist.run()")
-
         # Check if directory exists and if it does copies file names
         try:
             self.student_files = os.listdir(self.student_dir)
         except OSError as err:
             raise ErrorException("OS error: {0}".format(err))
-        if (len(self.student_files)) == 0:
-            raise ErrorException("{0} is empty".format(self.student_dir))
 
         # Checks if required files are in the student files
         for fileName in self.required_files:
@@ -125,19 +118,20 @@ class FilesExist(ActionsBase):
         if self.nonessential_files is not None:
             for fileName in self.nonessential_files:
                 if fileName not in self.student_files:
-                    if self.error is not None:
+                    if self.warning is not None:
                         # replace "" with the error_message message
-                        raise ErrorException(self.warning.format(fileName))
-
-       # print("<<< exit files_exist.run()")
+                        print(self.warning.format(
+                            fileName))
 
 
 class RunCommand(ActionsBase):
 
     def __init__(self, command, output, bad_output, error_is_fatal,
-                 error_message='Your code doesnt compile correctly with my '
+                 error_message='Error : Your code doesnt compile correctly '
+                               'with my '
                                'tests:\n{0}\n'):
         """
+        Run a shell command
 
         :param command:
         :param bad_output:
@@ -170,8 +164,6 @@ class RunCommand(ActionsBase):
         :return: "Bad" or "Good" depending on if tests failed or not
         """
 
-       # print(">>> enter RunCommand[", self.command, "].run()")
-
         error_occurred = False
 
         try:
@@ -193,14 +185,12 @@ class RunCommand(ActionsBase):
             bad_output = re.match(self.bad_output_RE, self.student_output)
             if bad_output is not None:
                 raise ErrorException("The bad output RE does not match the"
-                                     "Student's Output: {0}").format(
-                                                            self.error_message)
+                                     "Student's "
+                                     "Output: {0}").format(self.error_message)
 
         if self.error_is_fatal and error_occurred:
             raise FatalActionException(self.error_message.format(
                                                          self.student_output))
-
-     #   print("<<< exit RunCommand[", self.command, '].run()')
 
 
 class CopyFiles(ActionsBase):
@@ -217,20 +207,15 @@ class CopyFiles(ActionsBase):
         :param dest_dir:
         :return:
         """
-        self.required_files = (required_files)
-        self.optional_files = (optional_files)
+        self.required_files = required_files
+        self.optional_files = optional_files
         self.student_dir = student_dir  # default is the current working dir
         self.test_dir = dest_dir
         self.error = ""
         self.warning = ""
 
     def run(self):
-        """
 
-        :return:
-        """
-
-     #   print(">>> enter copy_files.run()")
         source = self.student_dir
 
         # print(self.required_files)
@@ -243,7 +228,6 @@ class CopyFiles(ActionsBase):
         try:
             for f in self.required_files:
                 shutil.copy((os.path.join(source, f)), self.test_dir)
-                #print(os.listdir(os.getcwd()))
 
         except Exception as e:
             self.error = ("There was an error copying required "
@@ -255,39 +239,32 @@ class CopyFiles(ActionsBase):
                 # if optional files dont exist, then empty list []
                 shutil.copy((os.path.join(source, f)), self.test_dir)
         except Exception as e:
-            self.warning = "There was a warning copying optional files: {0}".format(e)
+            self.warning = \
+                "There was a warning copying optional files: {0}".format(e)
             raise WarningException(self.warning)
             pass
-
-      #  print("<<< exit copy_files.run()")
 
 
 class Diff(ActionsBase):
     """
-
-
-
-
-diff(filename1, filename2, output=False, different_is_fatal=True,
-different_message='', same_message='', directory=None): Determine if the
-contents of 2 files are different or the same
-filename1: Relative path of the first file
-filename2: Relative path of the second file
-output: Throws the output away if false, prints it if True, writes it to a file
- if it is a string
-different_is_fatal: If True, all actions will halt if the files are different
-different_message: Message to print if the files' contents are different
-same_message: Message to print if the files' contents are the same
-
-
-
-
     Determine if the contents of 2 files are different or the same
     """
 
     def __init__(self, filename1, filename2, output=False,
                  different_is_fatal=True, different_message='',
                  same_message='', directory=None):
+        """
+
+        :param filename1: Relative path of the first file
+        :param filename2: Relative path of the second file
+        :param output: Throws the output away if false, prints it if True, writes it to a file
+                 if it is a string
+        :param different_is_fatal: If True, all actions will halt if the files are different
+        :param different_message: Message to print if the files' contents are different
+        :param same_message: Message to print if the files' contents are the same
+        :return:
+        """
+
         self.filename1 = filename1
         self.filename2 = filename2
         if type(output) == str:
@@ -314,7 +291,6 @@ same_message: Message to print if the files' contents are the same
             text_file.write(differences_string)
             text_file.close()
 
-
         if differences_string != '':
             if self.different_is_fatal:
                 print(self.different_message)
@@ -325,23 +301,22 @@ same_message: Message to print if the files' contents are the same
 
 class Search(ActionsBase):
     """
-
-search(pattern, filename, dir=None): Try to match a regular expression against
-the contents of a file
-pattern: A regular expression suitable for use with the Python's re module
-filename: The relative path of the file in which to search
-dir: The path of the directory where the file resides. Uses working_dir if not
-provided.
-TODO: optional parameters to define behavior on a match or mismatch
+    Try to match a regular expression against the contents of a file
     """
 
-
     def __init__(self, pattern, desired_result, filename,
-                 sucess_message, fail_message, directory=None):
+                 success_message, fail_message, directory=None):
+        """
 
+        :param pattern: A regular expression suitable for use with the Python's
+                re module
+        :param filename: The relative path of the file in which to search
+
+        """
 
         self.filename = filename
-        self.pattern =  pattern # probably dont need to do: re.compile(pattern)
+        self.pattern = pattern   # probably do not need to do: re.compile()
+        # pattern)
         self.directory = directory
         if directory is None:
             self.directory = os.getcwd()
@@ -351,24 +326,23 @@ TODO: optional parameters to define behavior on a match or mismatch
         elif desired_result == "Mismatch":
             self.match_expected = False
             self.mismatch_expeted = True
-        else: #this should never happen!
+        else:
+            # this should never happen!
             self.match_expected = False
             self.mismatch_expeted = False
-        self.success_message = sucess_message
+        self.success_message = success_message
         self.fail_message = fail_message
-
-
 
     def run(self):
 
-        file= open (self.filename, "r")
-        data=file.read()
+        file = open(self.filename, "r")
+        data = file.read()
         match = re.search(self.pattern, data)
 
         if (self.mismatch_expeted and match is None) or \
                 (self.match_expected and match is not None):
             # there is  no mismatch/a match  which is what is expected!
-            print (self.success_message)
+            print(self.success_message)
         elif (self.mismatch_expeted and match is not None) or \
                 (self.match_expected and match is None):
             # EITHER: Did not want to see something in output, but found it
@@ -376,42 +350,29 @@ TODO: optional parameters to define behavior on a match or mismatch
             # Thus this is an error
             print(self.fail_message.format(pattern=self.pattern, output=data))
 
-
-
-
-
         # do a search through the entire document rather than line by line
         # set MATCH bool to true
         # re.search through one string
 
         # returns a match object, otherwise none.
 
-
-
         # MATCH :
         # Scan through string looking for the first location where the
-        # regular expression pattern produces a match, and return a corresponding
-        # MatchObject instance. Return None if no position in the string matches
+        # regular expression pattern produces a match, and return a
+        # corresponding MatchObject instance. Return None if no position in
+        #  the string matches
         # the pattern; note that this is different from finding a zero-length
         # match at some point in the string.
 
+        # if it does match, say nothing
+        # if not present then say {Custom Message}.format0...i
+        # expected to find ___
+        # but your output was ____
 
-
-# if it does match, say nothing
-# if not present then say {Custom Message}.format0...i expected to find ___
-# but your output was ____
-
-#
             # MAKE a test assignment code with  student code to print out
             # stings
             # info on structure in Wiki
-
-
-            #Edit search, more testing
-
-
-
-
+            # Edit search, more testing
 
 '''
 
@@ -534,7 +495,8 @@ class ActionRunner(ActionsBase):
         self.actionList.append(FilesExist(self.submission_dir, required_files,
                                           optional_files, error, warning))
 
-    def copy_files(self, required_files, optional_files=None, dest=os.getcwd()):
+    def copy_files(self, required_files, optional_files=None,
+                   dest=os.getcwd()):
         """
         Copy files from submission_dir to the the destination (by default the
         current working dir)
@@ -591,28 +553,23 @@ class ActionRunner(ActionsBase):
         :return: None
         """
 
-
         success = True
         try:
             for action in self.actionList:
                 action.run()
-               # print( action, " finished running\n")
+            # print( action, " finished running\n")
 
         # This occurs if an action fails fatally - still continue program,
         except FatalActionException as error:
             success = False
-            print(error) # We want to exit and send the student a message
-
+            print(error)  # We want to exit and send the student a message
 
         # Occurs if there is is an error running the action
         except Exception as e:
             error = "There was an error: {0}".format(e)
-            print(error)
+            print(e)
             # We want to exit and send the student a message
             exit(0)
 
         if success:
             print(success_message)
-
-
-

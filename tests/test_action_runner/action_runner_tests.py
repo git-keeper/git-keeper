@@ -35,8 +35,33 @@ def run_test(test_dir, expected_output):
 
 def test_files_exist():
     run_test('files_exist/required_files_exist', 'All tests passed!\n')
-    run_test('files_exist/required_files_do_not_exist', 'There was an error:'
+    run_test('files_exist/required_files_do_not_exist', 'Error:'
                                                         ' test_text.txt does'
                                                         ' not exist.\n')
+    run_test('files_exist/optional_files_exist', 'All tests passed!\n')
+    run_test('files_exist/optional_files_do_not_exist', 'Warning: '
+                                                   'test_optional2.txt does '
+                                                   'not exist.\nAll tests passed!\n')
+     ### error being printed for this is kindof weird
 
-test_files_exist()
+
+def test_copy_files():
+     # I SHOULD CHECK IF THE FILES ARE COPIED
+    run_test('copy_files/cp_req_files_exist', 'All tests passed!\n')
+    run_test('copy_files/cp_req_files_dont_exist', 'All tests passed!\n')
+    run_test('copy_files/cp_opt_files_exist', 'All tests passed!\n')
+    run_test('copy_files/cp_opt_files_dont_exist', 'Warning: '
+                                                   'test_optional2.txt does '
+                                                   'not exist.\nAll tests passed!\n')
+    ### error being printed for this is kindof weird
+
+
+
+def run_tests():
+    print('\n Test Files Exist\n')
+    test_files_exist()
+    print('\n Test Copy Files\n')
+    test_copy_files()
+
+run_tests()
+
