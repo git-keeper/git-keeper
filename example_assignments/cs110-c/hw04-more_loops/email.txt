@@ -1,7 +1,0 @@
-Write programs in all 3 of the C files in the assignment. Do them in
-this order:
-
-square.c
-triangle.c
-pyramid.c
-

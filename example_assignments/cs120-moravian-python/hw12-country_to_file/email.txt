@@ -1,1 +1,0 @@
-See the file country_to_file.py for instructions.

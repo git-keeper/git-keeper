@@ -1,2 +1,0 @@
-See here for instructions:
-http://csweb.wooster.edu/nsommer/cs110/paycheck-function.html

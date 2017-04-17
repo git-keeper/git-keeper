@@ -1,1 +1,0 @@
-See the file measles_counts.py for instructions.

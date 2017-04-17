@@ -1,1 +1,0 @@
-See the file is_triangle.py for instructions.

@@ -1,5 +1,0 @@
-Write programs in both of the C files in the assignment. Do them in
-this order:
-
-checkerboard.c
-diamond.c
