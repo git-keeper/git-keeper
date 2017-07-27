@@ -20,18 +20,18 @@ on the submission.
 """
 
 import os
-from time import strftime
+from time import strftime, time
 from tempfile import TemporaryDirectory
 
 from gkeepcore.student import Student
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepcore.git_commands import git_clone, git_add_all, git_commit, git_push
-from gkeepcore.system_commands import cp, sudo_chown
+from gkeepcore.system_commands import cp, sudo_chown, mkdir, rm
 from gkeepcore.shell_command import run_command_in_directory
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email
-from gkeepcore.path_utils import parse_submission_repo_path
+from gkeepcore.path_utils import parse_submission_repo_path, user_home_dir
 
 
 class Submission:
@@ -64,20 +64,27 @@ class Submission:
         """
         Run tests on the student's submission.
 
+        Test results are emailed to the student and placed in the reports
+        repository for the assignment.
+
         This thread must terminate in a reasonable amount of time or it may
         prevent future tests from being run and will prevent gkeepd from
         cleanly shutting down.
+
+        Creates a directory in the tester user's home directory in which to
+        run the tests.
         """
 
         logger.log_debug('Running tests on {0}'.format(self.student_repo_path))
 
-        working_dir = TemporaryDirectory()
-        temp_path = working_dir.name
+        temp_path = os.path.join(user_home_dir(config.tester_user),
+                                 str(time()))
+        mkdir(temp_path)
 
         # check out the student repo in the temp dir
         git_clone(self.student_repo_path, temp_path)
 
-        # copy the tests - this creates a test folder inside the temp dir...
+        # copy the tests - this creates a tests folder inside the temp dir
         cp(self.tests_path, temp_path, recursive=True)
         temp_tests_path = os.path.join(temp_path, 'tests')
 
@@ -86,17 +93,15 @@ class Submission:
 
         temp_assignment_path = os.path.join(temp_path, assignment_name)
 
+        # make the tester user the owner of the temporary directory
+        sudo_chown(temp_path, config.tester_user, config.keeper_group,
+                   recursive=True)
+
         # execute action.sh and capture the output
         try:
-            cmd = ['bash', config.run_action_sh_file_path,
-                   temp_assignment_path]
+            cmd = ['sudo', '-u', config.tester_user, 'bash',
+                   config.run_action_sh_file_path, temp_assignment_path]
             body = run_command_in_directory(temp_tests_path, cmd)
-
-            # The following version of running action.sh uses docker
-            # cmd = 'docker run -it -v '
-            # cmd += temp_path
-            # cmd += ':/temp coleman/git-keeper-test-env bash go'
-            # body = run_command(cmd)
 
             # send output as email
             subject = ('[{0}] {1} submission test results'
@@ -105,10 +110,15 @@ class Submission:
                                        body))
 
             if self.student.username != faculty_username:
-                # put the report file into the reports repo
-                git_clone(self.reports_repo_path, temp_path)
+                # add the report to the reports repository
 
-                temp_reports_repo_path = os.path.join(temp_path, 'reports')
+                reports_temp = TemporaryDirectory()
+
+                # put the report file into the reports repo
+                git_clone(self.reports_repo_path, reports_temp.name)
+
+                temp_reports_repo_path = os.path.join(reports_temp.name,
+                                                      'reports')
 
                 first_last_username = self.student.get_last_first_username()
 
@@ -133,6 +143,9 @@ class Submission:
         except Exception as e:
             report_failure(assignment_name, self.student,
                            self.faculty_email, str(e))
+
+        if os.path.isdir(temp_path):
+            rm(temp_path, recursive=True, sudo=True)
 
         logger.log_debug('Done running tests on {0}'
                          .format(self.student_repo_path))
