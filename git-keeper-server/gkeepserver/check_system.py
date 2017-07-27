@@ -139,12 +139,6 @@ def check_paths_and_permissions():
         # we can create it as an empty file
         touch(config.log_snapshot_file_path)
 
-    if not os.path.isfile(config.gitconfig_file_path):
-        write_gitconfig()
-
-    if not os.path.isfile(config.run_action_sh_file_path):
-        write_run_action_sh()
-
     required_modes = {
         config.home_dir: '750',
         tester_home_dir: '770',
@@ -159,6 +153,12 @@ def check_paths_and_permissions():
                                       'changing it now'
                                       .format(path, required_mode))
             chmod(path, required_mode, sudo=True)
+
+    if not os.path.isfile(config.gitconfig_file_path):
+        write_gitconfig()
+
+    if not os.path.isfile(config.run_action_sh_file_path):
+        write_run_action_sh()
 
 
 def write_gitconfig():
