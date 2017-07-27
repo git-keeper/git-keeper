@@ -31,9 +31,11 @@ from pkg_resources import resource_exists, resource_string
 from gkeepcore.faculty import Faculty, faculty_from_csv_file
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
+from gkeepcore.path_utils import user_home_dir
 from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
                                        sudo_add_group, mode, chmod, touch,
-                                       this_user, this_group)
+                                       this_user, this_group, sudo_add_user,
+                                       group_owner, sudo_chown)
 from gkeepserver.create_user import create_user, UserType
 from gkeepserver.gkeepd_logger import gkeepd_logger as gkeepd_logger
 from gkeepserver.server_configuration import config
@@ -57,11 +59,11 @@ def check_system():
     Only call this once.
     """
 
-    check_keeper_paths_and_permissions()
+    check_paths_and_permissions()
     check_faculty()
 
 
-def check_keeper_paths_and_permissions():
+def check_paths_and_permissions():
     """
     Check that all necessary files, directories, and usernames exist, and that
     everything has proper permissions.
@@ -73,6 +75,7 @@ def check_keeper_paths_and_permissions():
         * gkeepd is not being run by the keeper group
 
     Corrected scenarios:
+        * the tester user does not exist
         * the faculty group does not exist
         * the faculty log directory does not exist
         * the log snapshot file does not exist
@@ -105,6 +108,20 @@ def check_keeper_paths_and_permissions():
 
     # below are non-fatal conditions that can be corrected
 
+    # create the tester user if it does not exist
+    if not user_exists(config.tester_user):
+        sudo_add_user(config.tester_user)
+
+    tester_home_dir = user_home_dir(config.tester_user)
+
+    # make the tester's home directory owned by the keeper group
+    if not group_owner(tester_home_dir) == config.keeper_group:
+        gkeepd_logger.log_warning('The home directory of {} must be owned by '
+                                  'the group {}, changing it now'
+                                  .format(config.tester_user,
+                                          config.keeper_group))
+        sudo_chown(tester_home_dir, config.tester_user, config.keeper_group)
+
     # create the faculty and student groups if they don't exist
     for group in (config.faculty_group, config.student_group):
         if not group_exists(group):
@@ -130,6 +147,7 @@ def check_keeper_paths_and_permissions():
 
     required_modes = {
         config.home_dir: '750',
+        tester_home_dir: '770',
         config.log_file_path: '600',
         config.log_snapshot_file_path: '600',
         config.faculty_csv_path: '600',
@@ -140,7 +158,7 @@ def check_keeper_paths_and_permissions():
             gkeepd_logger.log_warning('Mode of {0} must be {1}, '
                                       'changing it now'
                                       .format(path, required_mode))
-            chmod(path, required_mode)
+            chmod(path, required_mode, sudo=True)
 
 
 def write_gitconfig():
@@ -181,6 +199,9 @@ def write_run_action_sh():
         error = 'error writing {0}: {1}'.format(config.run_action_sh_file_path,
                                                 e)
         raise CheckSystemError(error)
+
+    sudo_chown(config.run_action_sh_file_path, config.tester_user,
+               config.keeper_group)
 
 
 def setup_faculty(faculty: Faculty):
