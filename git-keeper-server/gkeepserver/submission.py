@@ -21,12 +21,12 @@ on the submission.
 
 import os
 from time import strftime, time
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, mkdtemp
 
 from gkeepcore.student import Student
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepcore.git_commands import git_clone, git_add_all, git_commit, git_push
-from gkeepcore.system_commands import cp, sudo_chown, mkdir, rm
+from gkeepcore.system_commands import cp, sudo_chown, rm, chmod
 from gkeepcore.shell_command import run_command_in_directory
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.server_configuration import config
@@ -77,9 +77,9 @@ class Submission:
 
         logger.log_debug('Running tests on {0}'.format(self.student_repo_path))
 
-        temp_path = os.path.join(user_home_dir(config.tester_user),
-                                 str(time()))
-        mkdir(temp_path)
+        temp_path = mkdtemp(dir=user_home_dir(config.tester_user),
+                            prefix='{}_'.format(int(time())))
+        chmod(temp_path, '770')
 
         # check out the student repo in the temp dir
         git_clone(self.student_repo_path, temp_path)
