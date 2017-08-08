@@ -101,6 +101,24 @@ class ClientConfiguration:
 
         self._parsed = False
 
+    def set_config_path(self, config_path):
+        """
+        Set the path to the configuration file.
+
+        Must be called before calling parse().
+
+        Raises ClientConfigurationError
+
+        :param config_path: path to the configuration file
+        """
+
+        if self._parsed:
+            raise ClientConfigurationError('Config path must be set '
+                                           'before the configuration file is '
+                                           'parsed')
+
+        self._config_path = config_path
+
     def is_parsed(self):
         """
         Determine if the configuration file has been parsed.
@@ -109,7 +127,7 @@ class ClientConfiguration:
         """
         return self._parsed
 
-    def parse(self, config_path=None):
+    def parse(self):
         """
         Parse the configuration file and initialize the attributes.
 
@@ -123,12 +141,10 @@ class ClientConfiguration:
         if self._parsed:
             raise ClientConfigurationError('parse() may only be called once')
 
-        if config_path is None:
+        if self._config_path is None:
             relative_path = '.config/git-keeper/client.cfg'
             self._config_path = os.path.join(self.local_home_dir,
                                              relative_path)
-        else:
-            self._config_path = config_path
 
         if not os.path.isfile(self._config_path):
             error = '{0} does not exist'.format(self._config_path)

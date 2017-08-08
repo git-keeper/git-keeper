@@ -27,6 +27,7 @@ import sys
 from argparse import ArgumentParser
 
 from argcomplete import autocomplete
+from gkeepclient.client_configuration import config
 
 from gkeepclient.create_config import create_config
 from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
@@ -255,6 +256,9 @@ def initialize_action_parser() -> GraderParser:
     # sub-commands.
     # e.g. gkeep upload, gkeep publish, etc.
     parser = GraderParser()
+
+    parser.add_argument('-f', '--config_file', help='Path to config file')
+
     subparsers = parser.add_subparsers(dest='subparser_name', title="Actions")
 
     # add subparsers
@@ -313,6 +317,9 @@ def main():
     parsed_args = parser.parse_args()
 
     action_name = parsed_args.subparser_name
+
+    if parsed_args.config_file is not None:
+        config.set_config_path(parsed_args.config_file)
 
     try:
         # call the appropriate function for the action
