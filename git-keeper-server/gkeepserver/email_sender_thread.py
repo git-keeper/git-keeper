@@ -46,6 +46,7 @@ from threading import Thread
 from time import time, sleep
 
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
+from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email
 
 
@@ -67,22 +68,18 @@ class EmailSenderThread(Thread):
     gkeepserver.email.Email objects.
 
     """
-    def __init__(self, min_send_interval=2):
+    def __init__(self):
         """
         Construct the object.
 
         Constructing the object does not start the thread. Call start() to
         actually start the thread.
-
-        :param min_send_interval: number of seconds between calling send() on
-         each email
         """
 
         Thread.__init__(self)
 
         self._email_queue = Queue()
 
-        self._min_send_interval = min_send_interval
         self._last_send_time = 0
 
         self._shutdown_flag = False
@@ -147,9 +144,9 @@ class EmailSenderThread(Thread):
         # if _min_send_interval seconds have not elapsed since the last email
         # was sent, sleep until _min_send_interval seconds have elapsed
         current_time = time()
-        if current_time - self._last_send_time < self._min_send_interval:
+        if current_time - self._last_send_time < config.email_interval:
             elapsed_time = current_time - self._last_send_time
-            sleep_time = self._min_send_interval - elapsed_time
+            sleep_time = config.email_interval - elapsed_time
             sleep(sleep_time)
 
         self._last_send_time = current_time

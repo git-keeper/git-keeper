@@ -221,7 +221,7 @@ class Class:
         assert self.class_name in classes_query_result.split('\n')
 
         # wait for emails to be sent
-        sleep(2 * len(self.student_usernames) + 1)
+        sleep(0.5)
 
         check_email_counts(self.email_counts, self.port)
 
@@ -253,7 +253,7 @@ class Class:
         self.email_counts[self.faculty_username] += 1
 
         # wait for email to be sent
-        sleep(3)
+        sleep(0.5)
 
         check_email_counts(self.email_counts, self.port)
 
@@ -280,7 +280,7 @@ class Class:
             self.email_counts[username] += 1
 
         # wait for emails to be sent
-        sleep(2 * len(self.student_usernames) + 1)
+        sleep(0.5)
 
         check_email_counts(self.email_counts, self.port)
 
@@ -601,7 +601,7 @@ def test_one_class_two_students():
     class_one.clone_and_push_solution('python_print', 'student_two')
 
     # wait for emails
-    sleep(6)
+    sleep(0.5)
 
     check_email_counts(email_counts, port)
     class_one.check_email_contents()

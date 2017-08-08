@@ -73,7 +73,7 @@ Attributes:
     smtp_port - SMTP server port
     email_username - username for the SMTP server
     email_password - password for the SMTP server
-
+    email_interval - minimum amount of time to wait between sending emails
 """
 
 import configparser
@@ -198,6 +198,7 @@ class ServerConfiguration:
         self.use_tls = True
         self.email_username = None
         self.email_password = None
+        self.email_interval = 2
 
     def _parse_config_file(self):
         # Use a ConfigParser object to parse the configuration file and store
@@ -238,7 +239,8 @@ class ServerConfiguration:
         optional_options = [
             'use_tls',
             'email_username',
-            'email_password'
+            'email_password',
+            'email_interval',
         ]
 
         for name in optional_options:
@@ -257,6 +259,16 @@ class ServerConfiguration:
                 self.use_tls = False
             else:
                 error = 'use_tls must be true or false'
+                raise ServerConfigurationError(error)
+
+        # email_interval must be a non-negative number
+        if isinstance(self.email_interval, str):
+            try:
+                self.email_interval = float(self.email_interval)
+                if self.email_interval < 0:
+                    raise ValueError
+            except ValueError:
+                error = 'email_interval must be a non-negative number'
                 raise ServerConfigurationError(error)
 
         self._ensure_options_are_valid('email')
