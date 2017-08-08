@@ -1,6 +1,74 @@
+# Copyright 2017 Nathan Sommer and Ben Coleman
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+"""
+This module provides a means to test git-keeper. These are high level tests in
+which the server is run in a VM which is managed by Vagrant. Client code is run
+locally and interacts with the server. A mock SMTP server runs on the VM and
+captures outgoing emails to files. The state of the server is checked using
+gkeep queries and by examining the email files.
+
+This may be run as a standalone script or with pytest. Make sure the working
+directory is the directory that this file is in.
+
+Once the tests are finished running, the VM will still be running to allow
+for manual inspection and interaction. Run vagrant destroy to kill the VM.
+
+Here is the structure of the directory that contains these tests:
+
+.
+├── Vagrantfile
+├── assignments
+│   └── <faculty>
+│       └── <class>
+│           └── <assignment>
+│               ├── base_code
+│               │   └── ...
+│               ├── email.txt
+│               ├── solutions
+│               │   ├── <student or faculty username>
+│               │   │   ├── expected_output.txt
+│               │   │   └── files
+│               │   │       └── ...
+│               │   └── ...
+│               └── tests
+│                   └── action.sh
+├── faculty.csv
+├── mysmtpd.py
+├── server.cfg
+├── start_server_services.sh
+├── student_csv_files
+│   └── <faculty>
+│       └── <class>.csv
+└── tests.py
+
+When writing new tests, look at test_one_class_two_students() as an example.
+In addition to adding new things to the directory structure, you will need to
+write new test code to define the order in which things are added, solutions
+are submitted, etc.
+
+To add test faculty account, edit faculty.csv. To add a class, put a new CSV
+file in student_csv_files under the appropriate faculty subdirectory. To add
+assignments, put them in the assignments directory following the above
+structure.
+"""
+
+
 import os
 import re
-import sys
 from collections import defaultdict
 from tempfile import TemporaryDirectory
 from time import sleep
@@ -8,6 +76,11 @@ from time import sleep
 import vagrant
 
 from gkeepcore.shell_command import run_command, run_command_in_directory
+
+
+GKEEP_CONFIG_PATH = 'faculty_gkeep_configs'
+ASSIGNMENTS_PATH = 'assignments'
+STUDENT_CSV_PATH = 'student_csv_files'
 
 
 def run_gkeep_command(faculty_username, command):
@@ -19,8 +92,8 @@ def run_gkeep_command(faculty_username, command):
     :return: output of the command
     """
 
-    return run_command('gkeep -f faculty_gkeep_configs/{}.cfg {}'
-                       .format(faculty_username, command))
+    return run_command('gkeep -f {}/{}.cfg {}'
+                       .format(GKEEP_CONFIG_PATH, faculty_username, command))
 
 
 def check_email_counts(expected_email_counts, port):
@@ -106,19 +179,34 @@ class Class:
             - the proper number of emails have been sent
         """
 
+        # add the class to the server
         self._gkeep('add {} {}'.format(self.class_name, self.student_csv_path))
 
         student_query_result = self._gkeep('query students')
 
+        # collect the student usernames from the query in this set
         query_student_usernames = set()
 
+        current_class = ''
         for line in student_query_result.split('\n'):
-            match = re.search('<(.+)@', line)
+            # the query will list all students in all classes, so we need to
+            # update the current class whenever we see a line like '<class>:'
+            match = re.match('(\S+):$', line)
             if match:
-                query_student_usernames.add(match.group(1))
+                current_class = match.group(1)
+                continue
 
+            if current_class == self.class_name:
+                match = re.search('<(.+)@', line)
+                if match:
+                    query_student_usernames.add(match.group(1))
+
+        # the student usernames we collected from the query should match the
+        # usernames from the class csv file
         assert self.student_usernames == query_student_usernames
 
+        # for users that were just added, we need to add the local public
+        # key to that user's ~/.ssh/authorized_keys file on the server
         for username in self.student_usernames:
             if username not in self.users_with_injected_keys:
                 inject_public_key(username, self.port)
@@ -127,8 +215,9 @@ class Class:
                 # get an email
                 self.email_counts[username] += 1
 
+        # the class we just added should be in the list of classes when we
+        # query for classes
         classes_query_result = self._gkeep('query classes')
-
         assert self.class_name in classes_query_result.split('\n')
 
         # wait for emails to be sent
@@ -146,19 +235,21 @@ class Class:
 
         :param assignment_name: name of the assignment
         """
-        assignment_path = os.path.join('assignments', self.faculty_username,
+
+        assignment_path = os.path.join(ASSIGNMENTS_PATH, self.faculty_username,
                                        self.class_name, assignment_name)
 
         assert os.path.isdir(assignment_path)
 
         self._gkeep('upload {} {}'.format(self.class_name, assignment_path))
 
+        # since we just uploaded an assignment and it is unpublished, we should
+        # see 'U <assignment>' from an assignments query
         assignments_query_result = self._gkeep('query assignments')
-
         expected_string = 'U {}'.format(assignment_name)
-
         assert expected_string in assignments_query_result.split('\n')
 
+        # the faculty gets an email with a clone URL to test the assignment
         self.email_counts[self.faculty_username] += 1
 
         # wait for email to be sent
@@ -179,12 +270,12 @@ class Class:
 
         self._gkeep('publish {} {}'.format(self.class_name, assignment_name))
 
+        # we should now see 'P <assignment>' from an assignments query
         assignments_query_result = self._gkeep('query assignments')
-
         expected_string = 'P {}'.format(assignment_name)
-
         assert expected_string in assignments_query_result.split('\n')
 
+        # all the students are sent an email with a clone URL
         for username in self.student_usernames:
             self.email_counts[username] += 1
 
@@ -194,7 +285,7 @@ class Class:
         check_email_counts(self.email_counts, self.port)
 
     def clone_and_push_solution(self, assignment_name, student_username,
-                                solution_path, commit_message='test'):
+                                commit_message='test'):
         """
         Clone an assignment and then push a solution back to the server.
 
@@ -203,34 +294,49 @@ class Class:
 
         :param assignment_name: name of the assignment
         :param student_username: username of the submitter
-        :param solution_path: path to the solution
         :param commit_message: commit message, defaults to 'test'
         """
 
+        # we'll clone to a temporary directory
         temp_dir = TemporaryDirectory()
         temp_path = temp_dir.name
 
+        # ASSIGNMENTS_PATH/<faculty>/<class>/<assignment>/solutions/<student>
+        solution_path = ('{}/{}/{}/{}/solutions/{}'
+                         .format(ASSIGNMENTS_PATH, self.faculty_username,
+                                 self.class_name, assignment_name,
+                                 student_username))
         solution_files_path = os.path.join(solution_path, 'files')
+
         with open(os.path.join(solution_path, 'expected_output.txt')) as f:
             expected_output = f.read()
 
+        # FIXME: the clone URL could be extracted from the email
         run_command('git clone ssh://{}@localhost:{}/home/{}/{}/{}/{}.git {}'
                     .format(student_username, self.port, student_username,
                             self.faculty_username, self.class_name,
                             assignment_name, temp_path))
 
+        # remove the original files, copy in the solution files, add, commit,
+        # and push
         run_command('rm -rf {}/*'.format(temp_path))
         run_command('cp -r {}/* {}/'.format(solution_files_path, temp_path))
+        run_command_in_directory(temp_path, 'git add -A')
         run_command_in_directory(temp_path,
-                                 'git commit -am "{}"'.format(commit_message))
+                                 'git commit -m "{}"'.format(commit_message))
         run_command_in_directory(temp_path, 'git push')
 
+        # the student will receive an email with feedback
         self.email_counts[student_username] += 1
 
+        # the feedback will be in this file on the server
         email_filename = ('{}_{}.txt'
                           .format(student_username,
                                   self.email_counts[student_username]))
 
+        # store the expected output, later call check_email_contents() and
+        # check_reports() to make sure all the expected output is in the right
+        # place
         self.email_contents[email_filename] = expected_output
         if student_username != self.faculty_username:
             self.report_contents[(assignment_name,
@@ -246,6 +352,8 @@ class Class:
             file_contents = run_as_keeper('cat email/{}'.format(filename),
                                           self.port)
 
+            # the first two lines of the email are the from address and the
+            # subject, the third is a blank line, the rest is the body
             body = '\n'.join(file_contents.splitlines()[3:]) + '\n'
 
             assert body == self.email_contents[filename]
@@ -265,15 +373,19 @@ class Class:
             reports_path = os.path.join(temp_dir.name, assignment_name,
                                         'reports')
 
+            student_report_dir = None
             for student_dir in os.listdir(reports_path):
                 if student_dir.endswith(student_username):
                     student_report_dir = student_dir
+
+            assert student_report_dir is not None
 
             student_report_path = os.path.join(reports_path,
                                                student_report_dir)
 
             report_filenames = sorted([x
                                        for x in os.listdir(student_report_path)
+                                       # skip the .placeholder file
                                        if not x.startswith('.')])
 
             for i, report_filename in enumerate(report_filenames):
@@ -294,8 +406,7 @@ def get_public_key():
 
     public_key_path = os.path.expanduser('~/.ssh/id_rsa.pub')
 
-    if not os.path.isfile(public_key_path):
-        sys.exit('{} does not exist'.format(public_key_path))
+    assert os.path.isfile(public_key_path)
 
     with open(public_key_path) as f:
         public_key = f.read().strip()
@@ -342,8 +453,12 @@ def write_provision_script():
 
     text = '''#!/usr/bin/env bash
 
+# install dependencies
 apt-get update
 apt-get install -y python3 python3-setuptools git
+
+# add the keeper user, give it sudo privledges, and put the host machine's
+# public key in ~/.ssh/authorized_keys
 useradd -m -U -s /bin/bash keeper
 echo keeper:keeper | chpasswd
 echo "keeper ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/keeper
@@ -352,6 +467,8 @@ echo "{}" >> ~keeper/.ssh/authorized_keys
 chown -R keeper:keeper ~keeper/.ssh
 chmod 700 ~keeper/.ssh
 chmod 600 ~keeper/.ssh/authorized_keys
+
+# stop exim4 to free up port 25
 systemctl stop exim4.service
 systemctl disable exim4.service
 '''.format(get_public_key())
@@ -364,16 +481,14 @@ def write_faculty_client_cfg(faculty_username, port):
     """
     Write a gkeep configuration file for a test faculty account.
 
-    Config is written to faculty_gkeep_configs/<faculty_username>.cfg
+    Config is written to GKEEP_CONFIG_DIR/<faculty_username>.cfg
 
     :param faculty_username: username of the test faculty account
     :param port: SSH port of the server
     """
 
-    configs_path = 'faculty_gkeep_configs'
-
-    if not os.path.isdir(configs_path):
-        os.makedirs(configs_path)
+    if not os.path.isdir(GKEEP_CONFIG_PATH):
+        os.makedirs(GKEEP_CONFIG_PATH)
 
     text = '''[server]
 host = localhost
@@ -381,7 +496,8 @@ ssh_port = {}
 username = {}
 '''.format(port, faculty_username)
 
-    file_path = os.path.join(configs_path, '{}.cfg'.format(faculty_username))
+    file_path = os.path.join(GKEEP_CONFIG_PATH,
+                             '{}.cfg'.format(faculty_username))
 
     with open(file_path, 'w') as f:
         f.write(text)
@@ -396,47 +512,69 @@ def start_vm():
 
     v = vagrant.Vagrant()
     v.destroy()
-
     write_provision_script()
-
-    print('Bringing VM up')
     v.up()
-    print('VM up')
 
-    port = int(v.port())
+    return int(v.port())
 
-    print('copying git-keeper')
-    run_command('scp -r -P {} ../../../git-keeper keeper@localhost:'
-                .format(port))
-    print('installing git-keeper-core')
+
+def install_gitkeeper(port):
+    """
+    Copy git-keeper to the VM and install git-keeper-core and git-keeper-server
+
+    :param port: SSH port for the VM
+    """
+
+    run_command('scp -r -P {} {} keeper@localhost:'
+                .format(port, os.path.abspath('../..')))
     run_as_keeper('cd git-keeper/git-keeper-core; '
                   'sudo python3 setup.py install', port)
-    print('installing git-keeper-server')
     run_as_keeper('cd git-keeper/git-keeper-server; '
                   'sudo python3 setup.py install', port)
 
-    print('copying config files')
-    run_command('scp -P {} server.cfg keeper@localhost:'.format(port))
-    run_command('scp -P {} faculty.csv keeper@localhost:'.format(port))
 
-    print('copying mysmtpd.py')
-    run_command('scp -P {} mysmtpd.py keeper@localhost:'.format(port))
-    print('copying services script')
+def copy_needed_files(port):
+    """
+    Copies the following to the server:
+        - server.cfg
+        - faculty.csv
+        - mysmtpd.py
+
+    :param port: SSH port for the VM
+    """
+
+    run_command('scp -P {} server.cfg faculty.csv mysmtpd.py keeper@localhost:'
+                .format(port))
+
+
+def start_services(port):
+    """
+    Copy start_server_services.sh to the VM and run it in the background.
+
+    :param port: SSH port for the VM
+    :return:
+    """
+
     run_command('scp -P {} start_server_services.sh keeper@localhost:'
                 .format(port))
-    print('starting services')
     run_as_keeper('nohup bash start_server_services.sh > /dev/null 2>&1 &',
                   port)
 
-    return port
 
-
-def test_happy_paths():
+def test_one_class_two_students():
     """
-    Test the "normal" use cases for git-keeper.
+    Test normal use cases for git-keeper.
+
+    Creates the class class_one owned by the faculty user faculty_one. Two
+    students are added to the class, student_one and student_two. The
+    assignment python_print is added. The faculty and both students push
+    solutions.
     """
 
     port = start_vm()
+    install_gitkeeper(port)
+    copy_needed_files(port)
+    start_services(port)
 
     # give the services some time to start
     sleep(5)
@@ -447,30 +585,29 @@ def test_happy_paths():
     users_with_injected_keys = {'faculty_one'}
     email_counts = defaultdict(int)
 
+    # faculty is emailed about account
     email_counts['faculty_one'] += 1
 
+    # this object will be used to interact with the server
     class_one = Class('faculty_one', 'class_one', email_counts,
                       users_with_injected_keys, port)
 
     class_one.add()
 
     class_one.upload('python_print')
-    class_one.clone_and_push_solution('python_print', 'faculty_one',
-                                      'assignments/faculty_one/class_one/python_print/solutions/faculty_one')
+    class_one.clone_and_push_solution('python_print', 'faculty_one')
     class_one.publish('python_print')
-    class_one.clone_and_push_solution('python_print', 'student_one',
-                                      'assignments/faculty_one/class_one/python_print/solutions/student_one')
-    class_one.clone_and_push_solution('python_print', 'student_two',
-                                      'assignments/faculty_one/class_one/python_print/solutions/student_two')
+    class_one.clone_and_push_solution('python_print', 'student_one')
+    class_one.clone_and_push_solution('python_print', 'student_two')
 
     # wait for emails
     sleep(6)
 
-    check_email_counts(class_one.email_counts, port)
+    check_email_counts(email_counts, port)
     class_one.check_email_contents()
 
     class_one.check_reports()
 
 
 if __name__ == '__main__':
-    test_happy_paths()
+    test_one_class_two_students()
