@@ -73,6 +73,7 @@ from collections import defaultdict
 from tempfile import TemporaryDirectory
 from time import sleep
 
+import sys
 import vagrant
 
 from gkeepcore.shell_command import run_command, run_command_in_directory
@@ -96,26 +97,59 @@ def run_gkeep_command(faculty_username, command):
                        .format(GKEEP_CONFIG_PATH, faculty_username, command))
 
 
-def check_email_counts(expected_email_counts, port):
+def check_email_counts(email_counts, port):
     """
-    Ensure that the number of emails to each user matches the expected counts
-    in expected_email_counts.
+    Ensure that the email files on the server match what we expect based on
+    email_counts.
 
-    :param expected_email_counts: a dictionary mapping usernames to counts
+    :param email_counts: a dictionary mapping usernames to counts
     :param port: SSH port of the test VM
     """
 
-    email_counts = defaultdict(int)
+    expected_filenames = set()
+    for username, count in email_counts.items():
+        for x in range(1, count + 1):
+            expected_filenames.add(get_email_filename(username, x))
 
-    filenames = run_as_keeper('ls email', port).split()
+    # we'll try listing the email files numerous times since there will be
+    # a delay before the email is sent
+    max_tries = 10
+    tries = 0
+    found = False
 
-    for filename in filenames:
-        match = re.search('(\S+)_(\d+).txt', filename)
-        username = match.group(1)
-        email_counts[username] += 1
+    server_filenames = set()
 
-    for username in expected_email_counts:
-        assert expected_email_counts[username] == email_counts[username]
+    while not found and tries < max_tries:
+        server_filenames = set(run_as_keeper('ls email', port).split())
+
+        if server_filenames == expected_filenames:
+            found = True
+        else:
+            tries += 1
+            sleep(0.1)
+
+    if not found:
+        error = 'Expected to see these emails on the server:\n'
+        for filename in sorted(expected_filenames):
+            error += '{}\n'.format(filename)
+        error += 'Instead, I saw these:'
+        for filename in sorted(server_filenames):
+            error += '{}\n'.format(filename)
+
+        sys.exit(error)
+
+
+def get_email_filename(username, email_number):
+    """
+    Build and return the filename for an email on the server.
+
+    The filenames are of the form <username>_<number>.txt
+
+    :param username: username that the email was sent to
+    :param email_number: number of the email
+    :return: the filename of the email
+    """
+    return '{}_{}.txt'.format(username, email_number)
 
 
 class Class:
@@ -220,9 +254,6 @@ class Class:
         classes_query_result = self._gkeep('query classes')
         assert self.class_name in classes_query_result.split('\n')
 
-        # wait for emails to be sent
-        sleep(0.5)
-
         check_email_counts(self.email_counts, self.port)
 
     def upload(self, assignment_name):
@@ -252,9 +283,6 @@ class Class:
         # the faculty gets an email with a clone URL to test the assignment
         self.email_counts[self.faculty_username] += 1
 
-        # wait for email to be sent
-        sleep(0.5)
-
         check_email_counts(self.email_counts, self.port)
 
     def publish(self, assignment_name):
@@ -278,9 +306,6 @@ class Class:
         # all the students are sent an email with a clone URL
         for username in self.student_usernames:
             self.email_counts[username] += 1
-
-        # wait for emails to be sent
-        sleep(0.5)
 
         check_email_counts(self.email_counts, self.port)
 
@@ -330,17 +355,18 @@ class Class:
         self.email_counts[student_username] += 1
 
         # the feedback will be in this file on the server
-        email_filename = ('{}_{}.txt'
-                          .format(student_username,
-                                  self.email_counts[student_username]))
+        email_filename = \
+            get_email_filename(student_username,
+                               self.email_counts[student_username])
 
-        # store the expected output, later call check_email_contents() and
-        # check_reports() to make sure all the expected output is in the right
-        # place
+        # store the expected output. later call check_email_contents() and
+        # check_repots() to make sure the content is as expected
         self.email_contents[email_filename] = expected_output
         if student_username != self.faculty_username:
             self.report_contents[(assignment_name,
                                  student_username)].append(expected_output)
+
+        check_email_counts(self.email_counts, self.port)
 
     def check_email_contents(self):
         """
@@ -515,7 +541,14 @@ def start_vm():
     write_provision_script()
     v.up()
 
-    return int(v.port())
+    port = int(v.port())
+
+    # connect via SSH with no host key checking so the server gets added to
+    # known_hosts
+    run_command('ssh -o StrictHostKeyChecking=no -p {} keeper@localhost true'
+                .format(port))
+
+    return port
 
 
 def install_gitkeeper(port):
@@ -549,16 +582,20 @@ def copy_needed_files(port):
 
 def start_services(port):
     """
-    Copy start_server_services.sh to the VM and run it in the background.
+    Start mystmpd.py and gkeepd on the server in the background.
+
+    Outputs from the 2 programs are stored in mysmtpd.out and gkeepd.out
 
     :param port: SSH port for the VM
-    :return:
     """
 
-    run_command('scp -P {} start_server_services.sh keeper@localhost:'
-                .format(port))
-    run_as_keeper('nohup bash start_server_services.sh > /dev/null 2>&1 &',
+    run_as_keeper('mkdir email', port)
+    run_as_keeper('nohup sudo python3 mysmtpd.py 25 email > mysmtpd.out 2>&1 &',
                   port)
+    run_as_keeper('nohup gkeepd > gkeepd.out 2>&1 &', port)
+
+    # give gkeepd a chance to start fully
+    sleep(2)
 
 
 def test_one_class_two_students():
@@ -600,12 +637,7 @@ def test_one_class_two_students():
     class_one.clone_and_push_solution('python_print', 'student_one')
     class_one.clone_and_push_solution('python_print', 'student_two')
 
-    # wait for emails
-    sleep(0.5)
-
-    check_email_counts(email_counts, port)
     class_one.check_email_contents()
-
     class_one.check_reports()
 
 
