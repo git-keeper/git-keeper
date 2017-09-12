@@ -414,6 +414,26 @@ class ServerInterface:
 
         return self.run_command(command).strip()
 
+    def users_home_dirs(self, usernames: list) -> dict:
+        """
+        Find multiple users' home directory paths on the server.
+
+        :param usernames: the users whose home directory we want
+        :return: dictionary of home directory paths indexed by usernames
+        """
+
+        tilde_home_dirs = ''
+
+        for username in usernames:
+            tilde_home_dirs += '~{0} '.format(username)
+
+        # expand each ~<username> into the full paths of the home directories
+        command = 'eval echo {0}'.format(tilde_home_dirs)
+
+        home_dirs = self.run_command(command).strip().split(' ')
+
+        return dict(zip(usernames, home_dirs))
+
     def me_to_gkeepd_log_path(self) -> str:
         """
         Build the path to a student or faculty's event log file path on the
