@@ -178,7 +178,7 @@ def build_clone_url(path):
 
 def fetch_student_submission(class_name: str, assignment_name: str,
                              assignment_submission_path: str,
-                             remote_head_hash: str, student_home_dir: str,
+                             remote_head_hash: str, remote_repo_path: str,
                              last_first_username: str,
                              hash_cache: FetchedHashCache):
     """
@@ -194,18 +194,13 @@ def fetch_student_submission(class_name: str, assignment_name: str,
     :param assignment_submission_path: path to the directory containing the
      assignment's submissions
     :param remote_head_hash: hash of the remote repo's HEAD commit
-    :param student_home_dir: student's home directory on the server
+    :param remote_repo_path: path to the student's remote assignment repo
     :param last_first_username: <last name>_<first name>_<username> for student
     :param hash_cache: cache of git commit hashes of local repositories
     """
 
     student_submission_path = os.path.join(assignment_submission_path,
                                            last_first_username)
-
-    remote_repo_path = student_assignment_repo_path(config.server_username,
-                                                    class_name,
-                                                    assignment_name,
-                                                    student_home_dir)
 
     remote_git_url = build_clone_url(remote_repo_path)
 
@@ -219,8 +214,7 @@ def fetch_student_submission(class_name: str, assignment_name: str,
 
 
 def fetch_assignment_submissions(class_name: str, assignment_name: str,
-                                 class_submission_path: str, info: dict,
-                                 students_home_dirs: dict):
+                                 class_submission_path: str, info: dict):
     """
     Fetch submissions for a single assignment.
 
@@ -232,8 +226,6 @@ def fetch_assignment_submissions(class_name: str, assignment_name: str,
     :param class_submission_path: path to the directory containing submissions
      for the class
     :param info: info dictionary
-    :param students_home_dirs: dictionary of student home directories indexed
-     by username
     """
 
     assignment_info = info[class_name]['assignments'][assignment_name]
@@ -269,15 +261,16 @@ def fetch_assignment_submissions(class_name: str, assignment_name: str,
     students_repos_info = assignment_info['students_repos']
 
     # fetch each student's submission
-    for username, student_home_dir in students_home_dirs.items():
+    for username in class_students_info:
         remote_head_hash = students_repos_info[username]['hash']
+        remote_repo_path = assignment_info['students_repos'][username]['path']
 
         last_first_username = \
             class_students_info[username]['last_first_username']
 
         fetch_student_submission(class_name, assignment_name,
                                  assignment_submissions_path, remote_head_hash,
-                                 student_home_dir, last_first_username,
+                                 remote_repo_path, last_first_username,
                                  hash_cache)
 
     hash_cache.write_cache()
@@ -373,5 +366,4 @@ def fetch_submissions(class_name: str, assignment_name: str,
     # fetch the submissions
     for assignment_name in assignments:
         fetch_assignment_submissions(class_name, assignment_name,
-                                     destination_path, info,
-                                     students_home_dirs)
+                                     destination_path, info)
