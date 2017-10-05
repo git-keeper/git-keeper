@@ -195,20 +195,53 @@ class LogFileReader(metaclass=abc.ABCMeta):
         """
 
 
-def log_append_command(file_path: str, item_type: str, text: str):
+def log_append_command(file_path: str, item_type: str, text: str,
+                       human_readable=False):
     """
-    Create a shell command to append to a log file.
+    Create a shell command which will append data to a log file.
+
+    After the command is run, a string of the following form will be appended
+    to the log file:
+
+    <timestamp> <item type> <text>
+
+    If the text contains any newline characters they will each be replaced by
+    two spaces, so that the logged item is on a single line.
+
+    The date command line utility is used to generate the timestamp. The
+    system running gkeepd must have a date utility that supports nanosecond
+    precision with the %N format specifier, such as GNU's date.
+
+    If human_readable is True, the following format will be used:
+
+        date -u +%Y-%m-%d-%H:%M:%S.%N
+
+    If human_readable is False, the following format will be used:
+
+        date -u +%s.%N
+
+    The 5 least significant digits of the timestamp are truncated. The text
+    will be truncated if the total length of the line is longer than
+    MAX_LOG_LINE_LENGTH.
 
     :param file_path: path to the log file
     :param item_type: a string describing the event type
     :param text: the payload of the event
+    :param human_readable: If True, the timestamp will be a human-readable
+      timestamp, otherwise it will use epoch time
     :return: a shell command as a string which will append to the log
     """
 
     text = text.replace('\n', '  ')
     text = text.replace('"', '\\"')
 
-    time_length = 15
+    if human_readable:
+        timestamp_format = '%Y-%m-%d-%H:%M:%S.%N'
+        time_length = 24
+    else:
+        timestamp_format = '%s.%N'
+        time_length = 15
+
     type_length = len(item_type.encode())
     text_length = len(text.encode())
     spacing_length = 2
@@ -216,13 +249,16 @@ def log_append_command(file_path: str, item_type: str, text: str):
     total_length = time_length + type_length + text_length + spacing_length
 
     if total_length > MAX_LOG_LINE_LENGTH:
+        # truncate the text and append '...' to indicate that it was truncated
         diff = total_length - MAX_LOG_LINE_LENGTH
         text = text[:len(text) - diff - 3] + '...'
 
     quoted_path = quote(file_path)
 
-    command = ('echo "$(date +%s.%N | '
-               'cut -c 1-15) {0} {1}" >> {2}'.format(item_type, text,
-                                                     quoted_path))
+    command = ('echo "$(date -u +{3} | '
+               'cut -c 1-{4}) {0} {1}" >> {2}'.format(item_type, text,
+                                                      quoted_path,
+                                                      timestamp_format,
+                                                      time_length))
 
     return command

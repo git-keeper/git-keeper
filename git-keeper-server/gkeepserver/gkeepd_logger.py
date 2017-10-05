@@ -169,7 +169,8 @@ class GkeepdLoggerThread(Thread):
             # one line
             text = text.replace('\n', ' ')
             command = log_append_command(self._log_file_path,
-                                         log_level.name, text)
+                                         log_level.name, text,
+                                         human_readable=True)
             try:
                 run_command(command)
             except CommandError as e:
