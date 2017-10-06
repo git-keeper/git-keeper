@@ -62,6 +62,7 @@ from gkeepcore.path_utils import user_log_path, gkeepd_to_faculty_log_path, \
     faculty_class_dir_path, assignment_published_file_path, \
     faculty_classes_dir_path, class_student_csv_path, faculty_info_path
 from gkeepcore.student import Student
+from gkeepcore.faculty_class_info import FacultyClassInfo
 
 
 class ServerInterfaceError(GkeepException):
@@ -616,11 +617,11 @@ class ServerInterface:
 
         return students
 
-    def get_info(self) -> dict:
+    def get_info(self) -> FacultyClassInfo:
         """
-        Get the dictionary of info from the server.
+        Fetch info from the server and return it as an FacultyClassInfo object.
 
-        :return: dictionary of info
+        :return: FacultyClassInfo object
         """
 
         info_path = faculty_info_path(self._home_dir)
@@ -636,6 +637,8 @@ class ServerInterface:
         except Exception as e:
             raise ServerInterfaceError('Error loading info from JSON: {0}'
                                        .format(e))
+
+        info = FacultyClassInfo(info)
 
         return info
 
