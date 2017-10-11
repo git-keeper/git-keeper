@@ -28,6 +28,7 @@ from argparse import ArgumentParser
 
 from argcomplete import autocomplete
 from gkeepclient.client_configuration import config
+from gkeepclient.client_function_decorators import config_parsed
 
 from gkeepclient.create_config import create_config
 from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
@@ -36,6 +37,7 @@ from gkeepclient.server_actions import class_add, class_modify, \
     upload_assignment, trigger_tests
 from gkeepclient.queries import list_classes, list_assignments, \
     list_students, list_recent
+from gkeepcore.gkeep_exception import GkeepException
 
 
 class GraderParser(ArgumentParser):
@@ -43,6 +45,7 @@ class GraderParser(ArgumentParser):
     ArgumentParser with a custom error() method so that the help message is
     displayed when the user has not used a command correctly.
     """
+
     def error(self, message):
         """
         Print the error message, a usage message, and then exit the program
@@ -316,48 +319,53 @@ def main():
     # Parse the args
     parsed_args = parser.parse_args()
 
+    try:
+        take_action(parsed_args)
+    except GkeepException as e:
+        sys.exit(e)
+
+
+@config_parsed
+def take_action(parsed_args):
     action_name = parsed_args.subparser_name
 
     if parsed_args.config_file is not None:
         config.set_config_path(parsed_args.config_file)
 
-    try:
-        # call the appropriate function for the action
-        if action_name == 'add':
-            class_add(parsed_args.class_name, parsed_args.csv_file_path)
-        elif action_name == 'modify':
-            class_modify(parsed_args.class_name, parsed_args.csv_file_path)
-        elif action_name == 'upload':
-            upload_assignment(parsed_args.class_name,
-                              parsed_args.assignment_path)
-        elif action_name == 'update':
-            if parsed_args.item == 'all':
-                items = ('base_code', 'email', 'tests')
-            else:
-                items = (parsed_args.item,)
-            update_assignment(parsed_args.class_name,
-                              parsed_args.assignment_path, items)
-        elif action_name == 'publish':
-            publish_assignment(parsed_args.class_name,
-                               parsed_args.assignment_name)
-        elif action_name == 'delete':
-            delete_assignment(parsed_args.class_name,
-                              parsed_args.assignment_name)
-        elif action_name == 'fetch':
-            dest_path = build_dest_path(parsed_args.destination_path,
-                                        parsed_args.class_name)
-            fetch_submissions(parsed_args.class_name,
-                              parsed_args.assignment_name,
-                              dest_path)
-        elif action_name == 'query':
-            run_query(parsed_args.query_type, parsed_args.number_of_days)
-        elif action_name == 'trigger':
-            trigger_tests(parsed_args.class_name, parsed_args.assignment_name,
-                          parsed_args.student_usernames)
-        elif action_name == 'config':
-            create_config()
-    except Exception as e:
-        sys.exit(e)
+    # parsed_args.class_name could be an alias
+    class_name = getattr(parsed_args, 'class_name', None)
+    if class_name and class_name in config.class_aliases:
+        class_name = config.class_aliases[class_name]
+
+    # call the appropriate function for the action
+    if action_name == 'add':
+        class_add(class_name, parsed_args.csv_file_path)
+    elif action_name == 'modify':
+        class_modify(class_name, parsed_args.csv_file_path)
+    elif action_name == 'upload':
+        upload_assignment(class_name, parsed_args.assignment_path)
+    elif action_name == 'update':
+        if parsed_args.item == 'all':
+            items = ('base_code', 'email', 'tests')
+        else:
+            items = (parsed_args.item,)
+        update_assignment(class_name, parsed_args.assignment_path, items)
+    elif action_name == 'publish':
+        publish_assignment(class_name, parsed_args.assignment_name)
+    elif action_name == 'delete':
+        delete_assignment(class_name, parsed_args.assignment_name)
+    elif action_name == 'fetch':
+        dest_path = build_dest_path(parsed_args.destination_path,
+                                    class_name)
+        fetch_submissions(class_name, parsed_args.assignment_name,
+                          dest_path)
+    elif action_name == 'query':
+        run_query(parsed_args.query_type, parsed_args.number_of_days)
+    elif action_name == 'trigger':
+        trigger_tests(class_name, parsed_args.assignment_name,
+                      parsed_args.student_usernames)
+    elif action_name == 'config':
+        create_config()
 
 
 if __name__ == '__main__':
