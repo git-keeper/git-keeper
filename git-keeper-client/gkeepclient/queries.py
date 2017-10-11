@@ -44,12 +44,11 @@ def list_assignments():
 
     info = server_interface.get_info()
 
-    for class_name in sorted(info.keys()):
+    for class_name in sorted(info.class_list()):
         print(class_name, ':', sep='')
 
-        for assignment_name in sorted(info[class_name]['assignments'].keys()):
-            published = \
-                info[class_name]['assignments'][assignment_name]['published']
+        for assignment_name in sorted(info.assignment_list(class_name)):
+            published = info.is_published(class_name, assignment_name)
 
             if published:
                 published_prefix = 'P'
@@ -95,30 +94,35 @@ def list_recent(number_of_days):
 
     info = server_interface.get_info()
 
-    for class_name in sorted(info.keys()):
+
+    for class_name in sorted(info.class_list()):
         class_name_printed = False
 
-        for assignment_name in sorted(info[class_name]['assignments'].keys()):
-            assignment_info = info[class_name]['assignments'][assignment_name]
-            students_info = assignment_info['students_repos']
+        for assignment_name in sorted(info.assignment_list(class_name)):
+            students_submitted = info.students_submitted_list(class_name,
+                                                              assignment_name)
 
-            if students_info is None:
+            if students_submitted is None:
                 continue
 
             cutoff_time = time() - (60 * 60 * 24 * number_of_days)
 
             recent = []
 
-            for username in students_info:
-                student_info = students_info[username]
+            for username in students_submitted:
 
-                if 'submission_count' in student_info and \
-                   student_info['submission_count'] == 0:
+                if info.student_submission_count(
+                        class_name, assignment_name, username) == 0:
                     continue
 
-                if student_info['time'] >= cutoff_time:
-                    recent.append((student_info['time'], student_info['first'],
-                                   student_info['last']))
+                submission_time = \
+                    info.student_submission_time(class_name, assignment_name,
+                                                 username)
+
+                if submission_time >= cutoff_time:
+                    first_name = info.student_first_name(class_name, username)
+                    last_name = info.student_last_name(class_name, username)
+                    recent.append((submission_time, first_name, last_name))
 
             if len(recent) > 0:
                 recent.sort()
