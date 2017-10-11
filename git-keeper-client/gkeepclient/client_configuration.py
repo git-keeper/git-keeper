@@ -153,6 +153,7 @@ class ClientConfiguration:
         self._parse_config_file()
         self._set_server_options()
         self._set_local_options()
+        self._set_class_aliases()
 
         self._parsed = True
 
@@ -168,6 +169,9 @@ class ClientConfiguration:
             error = 'Error reading {0}: {1}'.format(self._config_path,
                                                     e.message)
             raise ClientConfigurationError(error)
+        except (configparser.DuplicateOptionError,
+                configparser.DuplicateSectionError) as e:
+            raise ClientConfigurationError(str(e))
 
     def _ensure_section_is_present(self, section):
         # Raise an exception if section is not in the config file
@@ -215,6 +219,18 @@ class ClientConfiguration:
                                                      'submissions_path')
             self.submissions_path = os.path.expanduser(self.submissions_path)
             self.submissions_path = os.path.abspath(self.submissions_path)
+
+    def _set_class_aliases(self):
+        # Initialize class aliases dictionary and fill it with any aliases
+        # that are in the configuration file
+
+        self.class_aliases = dict()
+
+        if 'class_aliases' not in self._parser.sections():
+            return
+
+        for alias, class_name in self._parser['class_aliases'].items():
+            self.class_aliases[alias] = class_name
 
 
 # Module-level configuration instance. Someone must call parse() on this
