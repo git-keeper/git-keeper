@@ -91,6 +91,9 @@ class ServerInterface:
         self._home_dir = None
         self._event_log_path = None
 
+        self._info_cache = None
+        self._info_cache_fetch_time = None
+
     def is_connected(self):
         """
         Determine if we're connected to the server.
@@ -127,7 +130,8 @@ class ServerInterface:
             self._ssh_client.connect(hostname=config.server_host,
                                      username=config.server_username,
                                      port=config.server_ssh_port,
-                                     timeout=5)
+                                     timeout=5,
+                                     compress=True)
             self._sftp_client = self._ssh_client.open_sftp()
 
             self._home_dir = self.user_home_dir(config.server_username)
@@ -617,12 +621,25 @@ class ServerInterface:
 
         return students
 
-    def get_info(self) -> FacultyClassInfo:
+    def get_info(self, freshness_threshold=5) -> FacultyClassInfo:
         """
         Fetch info from the server and return it as an FacultyClassInfo object.
 
+        :param freshness_threshold: If the number of seconds since the last
+         fetch is smaller than freshness_threshold, the last cached fetch is
+         returned. If freshness_threshold is None, the cached version will be
+         used regardless of freshness.
         :return: FacultyClassInfo object
         """
+
+        # If the cache exists and is fresh enough, return the cached info
+        if self._info_cache_fetch_time is not None:
+            if freshness_threshold is None:
+                return self._info_cache
+            else:
+                freshness = time() - self._info_cache_fetch_time
+                if freshness < freshness_threshold:
+                    return self._info_cache
 
         info_path = faculty_info_path(self._home_dir)
 
@@ -638,9 +655,10 @@ class ServerInterface:
             raise ServerInterfaceError('Error loading info from JSON: {0}'
                                        .format(e))
 
-        info = FacultyClassInfo(info)
+        self._info_cache = FacultyClassInfo(info)
+        self._info_cache_fetch_time = time()
 
-        return info
+        return self._info_cache
 
 
 # Module-level interface instance. Someone must call connect() on this before

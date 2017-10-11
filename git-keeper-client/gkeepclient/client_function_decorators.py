@@ -100,7 +100,8 @@ def class_exists(func):
         :param args: positional arguments to pass on to the wrapped function
         :param kwargs: keyword arguments to pass on to the original function
         """
-        if not server_interface.class_exists(class_name):
+
+        if class_name not in server_interface.get_info().class_list():
             raise GkeepException('Class {0} does not exist'.format(class_name))
 
         return func(class_name, *args, **kwargs)
@@ -129,7 +130,7 @@ def class_does_not_exist(func):
         :param args: positional arguments to pass on to the wrapped function
         :param kwargs: keyword arguments to pass on to the original function
         """
-        if server_interface.class_exists(class_name):
+        if class_name in server_interface.get_info().class_list():
             raise GkeepException('Class {0} already exists'.format(class_name))
 
         return func(class_name, *args, **kwargs)
@@ -161,7 +162,10 @@ def assignment_exists(func):
         :param args: positional arguments to pass on to the wrapped function
         :param kwargs: keyword arguments to pass on to the original function
         """
-        if not server_interface.assignment_exists(class_name, assignment_name):
+
+        assignments = server_interface.get_info().assignment_list(class_name)
+
+        if assignment_name not in assignments:
             error = ('Assignment {0} does not exist in class {1}'
                      .format(assignment_name, class_name))
             raise GkeepException(error)
@@ -195,7 +199,10 @@ def assignment_does_not_exist(func):
         :param args: positional arguments to pass on to the wrapped function
         :param kwargs: keyword arguments to pass on to the original function
         """
-        if server_interface.assignment_exists(class_name, assignment_name):
+
+        assignments = server_interface.get_info().assignment_list(class_name)
+
+        if assignment_name in assignments:
             error = ('Assignment {0} already exists in class {1}'
                      .format(assignment_name, class_name))
             raise GkeepException(error)
@@ -227,8 +234,9 @@ def assignment_published(func):
         :param args: positional arguments to pass on to the wrapped function
         :param kwargs: keyword arguments to pass on to the original function
         """
-        if not server_interface.assignment_published(class_name,
-                                                     assignment_name):
+
+        if not server_interface.get_info().is_published(class_name,
+                                                        assignment_name):
             error = ('Assignment {0} in class {1} is not published'
                      .format(assignment_name, class_name))
             raise GkeepException(error)
@@ -260,8 +268,9 @@ def assignment_not_published(func):
         :param args: positional arguments to pass on to the wrapped function
         :param kwargs: keyword arguments to pass on to the original function
         """
-        if server_interface.assignment_published(class_name,
-                                                 assignment_name):
+
+        if server_interface.get_info().is_published(class_name,
+                                                    assignment_name):
             error = ('Assignment {0} in class {1} is already published'
                      .format(assignment_name, class_name))
             raise GkeepException(error)
