@@ -319,6 +319,9 @@ def main():
     # Parse the args
     parsed_args = parser.parse_args()
 
+    if parsed_args.config_file is not None:
+        config.set_config_path(parsed_args.config_file)
+
     try:
         take_action(parsed_args)
     except GkeepException as e:
@@ -328,9 +331,6 @@ def main():
 @config_parsed
 def take_action(parsed_args):
     action_name = parsed_args.subparser_name
-
-    if parsed_args.config_file is not None:
-        config.set_config_path(parsed_args.config_file)
 
     # parsed_args.class_name could be an alias
     class_name = getattr(parsed_args, 'class_name', None)

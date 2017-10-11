@@ -23,11 +23,9 @@ import sys
 from gkeepcore.valid_names import validate_class_name, validate_assignment_name
 
 from gkeepclient.assignment_uploader import AssignmentUploader
-from gkeepclient.client_configuration import config
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_does_not_exist, class_exists, \
-    assignment_exists, assignment_not_published, assignment_does_not_exist, \
-    assignment_published
+    assignment_exists, assignment_not_published, assignment_published
 from gkeepclient.server_interface import server_interface
 from gkeepclient.server_response_poller import communicate_event
 from gkeepcore.gkeep_exception import GkeepException
