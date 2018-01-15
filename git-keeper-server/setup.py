@@ -1,10 +1,11 @@
 # setup.py for git-keeper-server
 
 from setuptools import setup
+from gkeepserver.version import __version__
 
 setup(
     name='git-keeper-server',
-    version='0.1.0',
+    version=__version__,
     description=('A git-based system for distributing and collecting '
                  'programming assignments with automatic feedback.'),
     url='https://github.com/git-keeper/git-keeper',

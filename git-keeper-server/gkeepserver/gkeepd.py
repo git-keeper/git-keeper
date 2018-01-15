@@ -26,11 +26,14 @@ handler_assigner - EventHandlerAssignerThread for creating event handlers from
 submission_test_threads - list of SubmissionTestThread objects which run tests
 
 """
-
+import argparse
 import sys
 from queue import Queue, Empty
 from signal import signal, SIGINT, SIGTERM
 from traceback import extract_tb
+
+from gkeepserver.version import __version__ as server_version
+from gkeepcore.version import __version__ as core_version
 
 from gkeepcore.faculty import faculty_from_csv_file
 from gkeepcore.gkeep_exception import GkeepException
@@ -69,9 +72,21 @@ def main():
     """
     Entry point of the gkeepd process.
 
-    gkeepd takes no arguments.
-
+    If gkeepd is run with the --version or -v flags, it will print the current
+    version and exit.
     """
+
+    description = ('gkeepd, the git-keeper server, version {}'
+                   .format(server_version))
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('-v', '--version', action='store_true',
+                        help='Print gkeepd version')
+
+    args = parser.parse_args()
+
+    if args.version:
+        print('gkeepd version {}'.format(server_version))
+        sys.exit(0)
 
     # setup signal handling
     global shutdown_flag
@@ -88,7 +103,7 @@ def main():
     logger.initialize(config.log_file_path, log_level=config.log_level)
     logger.start()
 
-    logger.log_info('--- Starting gkeepd ---')
+    logger.log_info('--- Starting gkeepd version {}---'.format(server_version))
 
     # check for fatal errors in the system state, and correct correctable
     # issues including new faculty members
@@ -189,4 +204,10 @@ def main():
 
 
 if __name__ == '__main__':
+    if server_version != core_version:
+        error = 'git-keeper-server and git-keeper-core versions must match.\n'
+        error += 'server version: {}\n'.format(server_version)
+        error += 'core version: {}'.format(core_version)
+        sys.exit(error)
+
     main()
