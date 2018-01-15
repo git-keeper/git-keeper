@@ -1,10 +1,11 @@
 # setup.py for git-keeper-core
 
 from setuptools import setup
+from gkeepcore.version import __version__
 
 setup(
     name='git-keeper-core',
-    version='0.1.0',
+    version=__version__,
     description='Core modules for git-keeper-client and git-keeper-server.',
     url='https://github.com/git-keeper/git-keeper',
     license='GPL 3',

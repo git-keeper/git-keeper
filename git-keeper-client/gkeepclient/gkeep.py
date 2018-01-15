@@ -26,6 +26,9 @@ arguments and calls the appropriate function.
 import sys
 from argparse import ArgumentParser
 
+from gkeepclient.version import __version__ as client_version
+from gkeepcore.version import __version__ as core_version
+
 from argcomplete import autocomplete
 from gkeepclient.client_configuration import config
 from gkeepclient.client_function_decorators import config_parsed
@@ -261,6 +264,8 @@ def initialize_action_parser() -> GraderParser:
     parser = GraderParser()
 
     parser.add_argument('-f', '--config_file', help='Path to config file')
+    parser.add_argument('-v', '--version', action='store_true',
+                        help='Print gkeep version')
 
     subparsers = parser.add_subparsers(dest='subparser_name', title="Actions")
 
@@ -322,6 +327,9 @@ def main():
     if parsed_args.config_file is not None:
         config.set_config_path(parsed_args.config_file)
 
+    if parsed_args.version:
+        print('gkeep version', client_version)
+
     try:
         take_action(parsed_args)
     except GkeepException as e:
@@ -369,4 +377,10 @@ def take_action(parsed_args):
 
 
 if __name__ == '__main__':
+    if core_version != client_version:
+        error = 'git-keeper-client and git-keeper-core versions must match.\n'
+        error += 'client version: {}\n'.format(client_version)
+        error += 'core version: {}'.format(core_version)
+        sys.exit(error)
+
     main()
