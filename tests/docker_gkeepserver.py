@@ -51,7 +51,7 @@ def start_docker_gkeepserver(server_home_dir, email_dir,
             raise RuntimeError("Non-zero exit code on docker build.")
 
     # make sure the network has been created
-    # If the network was already created this will produce an error message,
+    # If the network was already created this will produce an error_message message,
     # but it won't hurt anything if it does.  No exit code check.
     DockerCommand("network", output=debug_output)\
         .add("create")\

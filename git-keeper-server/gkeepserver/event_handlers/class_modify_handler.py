@@ -215,7 +215,7 @@ class ClassModifyHandler(EventHandler):
         """
         Log a CLASS_MODIFY_ERROR message to the gkeepd.log for the faculty.
 
-        :param error: the error message
+        :param error: the error_message message
         """
 
         self._log_to_faculty('CLASS_MODIFY_ERROR', error)

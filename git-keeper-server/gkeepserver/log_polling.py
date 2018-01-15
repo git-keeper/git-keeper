@@ -66,7 +66,7 @@ from gkeepserver.gkeepd_logger import GkeepdLoggerThread
 
 
 class LogPollingThreadError(GkeepException):
-    """Raised if there is an error polling log files."""
+    """Raised if there is an error_message polling log files."""
     pass
 
 

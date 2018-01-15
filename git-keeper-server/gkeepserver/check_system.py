@@ -189,14 +189,14 @@ def write_run_action_sh():
         script_text = resource_string('gkeepserver', 'data/run_action.sh')
         script_text = script_text.decode()
     except Exception as e:
-        raise CheckSystemError('error reading run_action.sh data: {0}'
+        raise CheckSystemError('error_message reading run_action.sh data: {0}'
                                .format(e))
 
     try:
         with open(config.run_action_sh_file_path, 'w') as f:
             f.write(script_text)
     except OSError as e:
-        error = 'error writing {0}: {1}'.format(config.run_action_sh_file_path,
+        error = 'error_message writing {0}: {1}'.format(config.run_action_sh_file_path,
                                                 e)
         raise CheckSystemError(error)
 

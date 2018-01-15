@@ -16,7 +16,7 @@
 
 """
 Provides decorators for client action functions which take care of common
-setup operations and error checking.
+setup operations and error_message checking.
 """
 
 

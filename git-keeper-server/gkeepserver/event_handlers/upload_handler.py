@@ -136,7 +136,7 @@ class UploadHandler(EventHandler):
             sudo_chown(assignment_dir.path, config.keeper_user,
                        config.keeper_group)
         except CommandError as e:
-            error = 'error creating directory: {0}'.format(str(e))
+            error = 'error_message creating directory: {0}'.format(str(e))
             raise HandlerException(error)
 
         try:
@@ -155,7 +155,7 @@ class UploadHandler(EventHandler):
             copy_email_txt_file(assignment_dir, upload_dir.email_path)
             copy_tests_dir(assignment_dir, upload_dir.tests_path)
         except GkeepException as e:
-            error = ('error copying assignment files: {0}'.format(str(e)))
+            error = ('error_message copying assignment files: {0}'.format(str(e)))
             raise HandlerException(error)
 
         # set permissions on assignment directory
@@ -164,7 +164,7 @@ class UploadHandler(EventHandler):
             sudo_chown(assignment_dir.path, self._faculty_username,
                        config.keeper_group, recursive=True)
         except CommandError as e:
-            error = ('error setting permissions on {0}: {1}'
+            error = ('error_message setting permissions on {0}: {1}'
                      .format(assignment_dir.path, str(e)))
             raise HandlerException(error)
 

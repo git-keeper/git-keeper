@@ -237,7 +237,7 @@ def update_assignment(class_name: str, upload_dir_path: str,
             action.sh
 
     Copies items to the server, writes a log entry to notify the server of the
-    upload, and waits for a logged confirmation of success or error from the
+    upload, and waits for a logged confirmation of success or error_message from the
     server.
 
     Raises UpdateAssignmentError if anything goes wrong.
@@ -314,7 +314,7 @@ def upload_assignment(class_name: str, upload_dir_path: str):
             action.sh
 
     Copies files to the server, writes a log entry to notify the server of the
-    upload, and waits for a logged confirmation of success or error from the
+    upload, and waits for a logged confirmation of success or error_message from the
     server.
 
     :param class_name: name of the class the assignment belongs to

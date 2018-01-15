@@ -45,15 +45,15 @@ from gkeepcore.gkeep_exception import GkeepException
 
 class GraderParser(ArgumentParser):
     """
-    ArgumentParser with a custom error() method so that the help message is
+    ArgumentParser with a custom error_message() method so that the help message is
     displayed when the user has not used a command correctly.
     """
 
     def error(self, message):
         """
-        Print the error message, a usage message, and then exit the program
+        Print the error_message message, a usage message, and then exit the program
 
-        :param message: error message
+        :param message: error_message message
         """
         print('Error: {0}\n'.format(message), file=sys.stderr)
         self.print_help()
