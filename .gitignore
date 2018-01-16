@@ -3,3 +3,7 @@ __pycache__/
 .eggs/
 build/
 *egg-info/
+*.egg
+dist/
+# created by py.test
+.cache/

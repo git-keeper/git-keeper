@@ -18,176 +18,305 @@
 
 # PYTHON_ARGCOMPLETE_OK
 
-import argparse
+"""
+Provides the main entry point for the gkeep client. Parses command line
+arguments and calls the appropriate function.
+"""
+
 import sys
+from argparse import ArgumentParser
 
-import argcomplete
-import create_student_directories
-import delete_assignment
-import fetch_submissions
-import initialize_class
-import populate_students
-import send_feedback
-import send_passwords
-import update_assignment_tests
-import upload_assignment
-import upload_handout
+from gkeepclient.version import __version__ as client_version
+from gkeepcore.version import __version__ as core_version
+
+from argcomplete import autocomplete
+from gkeepclient.client_configuration import config
+from gkeepclient.client_function_decorators import config_parsed
+
+from gkeepclient.create_config import create_config
+from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
+from gkeepclient.server_actions import class_add, class_modify, \
+    delete_assignment, publish_assignment, update_assignment, \
+    upload_assignment, trigger_tests
+from gkeepclient.queries import list_classes, list_assignments, \
+    list_students, list_recent
+from gkeepcore.gkeep_exception import GkeepException
 
 
-# We need to define our own subclass of argparse, purely so when a user doesn't
-# use a command correctly, may it be be too many arguments, not enough
-# arguments, etc.. the help message will also be displayed rather than just an
-# error
-class GraderParser(argparse.ArgumentParser):
+class GraderParser(ArgumentParser):
+    """
+    ArgumentParser with a custom error() method so that the help message is
+    displayed when the user has not used a command correctly.
+    """
+
     def error(self, message):
-        sys.stderr.write('error: %s\n' % message)
+        """
+        Print the error message, a usage message, and then exit the program
+
+        :param message: error message
+        """
+        print('Error: {0}\n'.format(message), file=sys.stderr)
         self.print_help()
         sys.exit(2)
 
 
-# Helper method for establishing a consistent added argument 'class_name'
-# gsp refers to a reference to a sub-parsers that is passed into the func
-def add_class_name(subparser):
-    # name of the argument to the user is "<class name>", but it will be
-    # stored as class_name
-    subparser.add_argument("class_name", type=str, metavar="<class name>",
-                           help="name of the class")
+def add_class_name_argument(subparser):
+    """
+    Add a class_name argument to a subparser.
+
+    :param subparser: the subparser to add the argument to
+    """
+
+    subparser.add_argument('class_name', type=str, metavar='<class name>',
+                           help='name of the class')
 
 
-# This helper method initializes and returns the parser object
-def initialize_parser():
-    # Start the argument parser object, and declare that it will have
+def add_assignment_name_argument(subparser):
+    """
+    Add an assignment_name argument to a subparser.
+
+    :param subparser: the subparser to add the argument to
+    """
+
+    subparser.add_argument('assignment_name', type=str,
+                           metavar='<assignment name>',
+                           help='name of the assignment')
+
+
+def add_assignment_path_argument(subparser):
+    """
+    Add an assignment_path argument to a subparser.
+
+    :param subparser: the subparser to add the argument to
+    """
+
+    subparser.add_argument('assignment_path', type=str,
+                           metavar='<assignment directory>',
+                           help='directory containing the assignment')
+
+
+def add_csv_file_path_argument(subparser):
+    """
+    Add a csv_file_path argument to a subparser.
+
+    :param subparser: the subparser to add the argument to
+    """
+
+    subparser.add_argument('csv_file_path', type=str, metavar='<csv filename>',
+                           help='name of the CSV file containing students')
+
+
+def add_add_subparser(subparsers):
+    """
+    Add a subparser for action 'add', which adds a class.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('add', help='add a class')
+    add_class_name_argument(subparser)
+    add_csv_file_path_argument(subparser)
+
+
+def add_modify_subparser(subparsers):
+    """
+    Add a subparser for action 'modify', which modifies a class's enrollment.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('modify',
+                                      help='modify the enrollment for a class')
+    add_class_name_argument(subparser)
+    add_csv_file_path_argument(subparser)
+
+
+def add_upload_subparser(subparsers):
+    """
+    Add a subparser for action 'upload', which uploads an assignment.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('upload', help='upload an assignment')
+    add_class_name_argument(subparser)
+    add_assignment_path_argument(subparser)
+
+
+def add_publish_subparser(subparsers):
+    """
+    Add a subparser for action 'publish', which publishes an assignment.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('publish', help='publish an assignment')
+    add_class_name_argument(subparser)
+    add_assignment_name_argument(subparser)
+
+
+def add_update_subparser(subparsers):
+    """
+    Add a subparser for action 'update', which updates an assignment's files.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('update', help='update an assignment')
+    add_class_name_argument(subparser)
+    add_assignment_path_argument(subparser)
+    subparser.add_argument('item', metavar='<update item>',
+                           help='item to update: base_code, email, tests, '
+                                'or all')
+
+
+def add_delete_subparser(subparsers):
+    """
+    Add a subparser for action 'delete', which deletes an assignment.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('delete', help='delete an assignment')
+    add_class_name_argument(subparser)
+    add_assignment_name_argument(subparser)
+
+
+def add_fetch_subparser(subparsers):
+    """
+    Add a subparser for action 'fetch', which fetches student submissions.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('fetch',
+                                      help='fetch student submissions')
+    add_class_name_argument(subparser)
+    subparser.add_argument('assignment_name', type=str,
+                           metavar='<assignment name>',
+                           help='name of the assignment, or "all"')
+    subparser.add_argument('destination_path', type=str,
+                           metavar='<destination>',
+                           help=('directory in which to fetch the assignment '
+                                 '(optional)'), nargs='?')
+
+
+def add_query_subparser(subparsers):
+    """
+    Add a subparser for action 'query', which queries the server.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('query', help='query the server')
+    subparser.add_argument('query_type', metavar='<query type>',
+                           help='classes, assignments, recent, or students',
+                           choices=['classes', 'assignments', 'recent',
+                                    'students'])
+    subparser.add_argument('number_of_days', type=int,
+                           metavar='<number of days>',
+                           help='number of days considered recent (optional)',
+                           nargs='?')
+
+
+def add_trigger_subparser(subparsers):
+    """
+    Add a subparser for action 'trigger', which triggers tests to be run for
+    an assignment
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('trigger', help='trigger tests')
+    add_class_name_argument(subparser)
+    add_assignment_name_argument(subparser)
+    subparser.add_argument('student_usernames',
+                           metavar='<student username>',
+                           nargs='*',
+                           help='optional, trigger tests for only these '
+                                'students')
+
+
+def add_config_subparser(subparsers):
+    """
+    Add a subparser for action 'config', which asks to create a new
+    configuration file
+    or to overwrite the existing one
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('config',
+                                      help='create or overwrite configuration '
+                                           'file')
+
+
+def initialize_action_parser() -> GraderParser:
+    """
+    Initialize a GraderParser object.
+
+    :return: an initialized GraderParser object
+    """
+
+    # Create the argument parser object, and declare that it will have
     # sub-commands.
-    # e.g. git checkout and git clone, where checkout and clone are
-    # both subparse commands for git
-    parser = GraderParser(prog='')
-    subparsers = parser.add_subparsers(dest='subparser_name',
-                                       title="Actions")
+    # e.g. gkeep upload, gkeep publish, etc.
+    parser = GraderParser()
 
-    # Sub-command: Initializing a class
-    # add the sub-command "initialize_class" and a little help message to the
-    # subparsers object
-    initialize_class_subparser = subparsers.add_parser("initialize_class",
-                                                       help="initializes a class")
-    # Specify that the sub-command needs an argument <class name>
-    add_class_name(initialize_class_subparser)
+    parser.add_argument('-f', '--config_file', help='Path to config file')
+    parser.add_argument('-v', '--version', action='store_true',
+                        help='Print gkeep version')
 
-    # Sub-command: Populating Students
-    populate_students_subparser = subparsers.add_parser("populate_students",
-                                                        help="populates students "
-                                                             "in a specified class")
-    add_class_name(populate_students_subparser)
+    subparsers = parser.add_subparsers(dest='subparser_name', title="Actions")
 
-    # Sub-command: Uploading an Assignment
-    upload_assignment_subparser = subparsers.add_parser("upload_assignment",
-                                                        help="uploads an assignment to a "
-                                                             "specified class")
-    add_class_name(upload_assignment_subparser)
-    upload_assignment_subparser.add_argument('local_dir',
-                                             metavar="<local assignment directory>",
-                                             type=str,
-                                             help="local directory containing the "
-                                                  "assignment to be distributed")
-
-    # Sub-command: Fetching Submissions and Reports
-    fetch_submissions_subparser = subparsers.add_parser("fetch_submissions",
-                                                        help="fetches student submissions for a "
-                                                             "single specified or all assignments")
-    add_class_name(fetch_submissions_subparser)
-    fetch_submissions_subparser.add_argument("sub_dir", metavar="<class submission dir>",
-                                             type=str,
-                                             help="destination directory to put each of the "
-                                                  "student's submissions")
-    fetch_submissions_subparser.add_argument("assignment", metavar="(<assignment> | -a)",
-                                             type=str,
-                                             help="the assignment to be fetched; if \'-a\' is "
-                                                  "presented, all assignments for the class "
-                                                  "will be fetched")
-
-    # Sub-command: Creating Student Directories
-    create_student_directories_subparser = subparsers.add_parser("create_student_directories",
-                                                                 help="creates student directories in a "
-                                                                      "specified directory; useful for "
-                                                                      "manually sending feedback to "
-                                                                      "students")
-    add_class_name(create_student_directories_subparser)
-    create_student_directories_subparser.add_argument("parent_dir", metavar="<parent directory>",
-                                                      type=str,
-                                                      help="directory that will contain all "
-                                                           "of the student directories to be "
-                                                           "created")
-
-    # Sub-command: Sending Feedback
-    send_feedback_subparser = subparsers.add_parser("send_feedback",
-                                                    help="sends emails to students containing "
-                                                         "feedback about a specified assignment")
-    add_class_name(send_feedback_subparser)
-    send_feedback_subparser.add_argument("assignment", metavar="<assignment name>", type=str,
-                                         help="name of the assignment that the students "
-                                              "will be receiving feeback about. Note: the "
-                                              "assignment does not need to be a legitimate "
-                                              "assignment contained on the grading system.")
-    send_feedback_subparser.add_argument("feedback_dir", metavar="<feedback directory>",
-                                         type=str,
-                                         help="name of the parent directory containing all "
-                                              "of student directories that contain feedback")
-
-    # Sub-command: Deleting an assignment
-    delete_assignment_subparser = subparsers.add_parser("delete_assignment",
-                                                        help="deletes an assignment present on "
-                                                             "the grading server")
-    add_class_name(delete_assignment_subparser)
-    delete_assignment_subparser.add_argument("assignment", metavar="<assignment name>",
-                                             type=str,
-                                             help="name of the assignment to be deleted")
-
-    # Sub-command: Sending passwords
-    send_passwords_subparser = subparsers.add_parser("send_passwords",
-                                                     help="sends passwords for the grading "
-                                                          "server out to the students")
-    add_class_name(send_passwords_subparser)
-    send_passwords_subparser.add_argument("user_pass_file", metavar="<user pass file>",
-                                          type=str,
-                                          help="file containing all of the passwords for "
-                                               "each of the newly created accounts "
-                                               "on the server")
-
-    # Sub-command: Updating tests for an Assignment
-    update_assignment_tests_subparser = subparsers.add_parser("update_assignment_tests",
-                                                              help="updates the test files that an "
-                                                                   "assignment is tested against "
-                                                                   "following a student submission")
-    add_class_name(update_assignment_tests_subparser)
-    update_assignment_tests_subparser.add_argument("local_dir",
-                                                   metavar="<local assignment directory>",
-                                                   type=str,
-                                                   help="directory containing the updated "
-                                                        "tests to be pushed to the "
-                                                        "grading server")
-
-    # Sub-command: Upload handout
-    upload_handout_subparser = subparsers.add_parser("upload_handout",
-                                                     help="uploads a handout to the class")
-    add_class_name(upload_handout_subparser)
-    upload_handout_subparser.add_argument("local_handout_dir",
-                                          metavar="<local handout directory>",
-                                          type=str,
-                                          help="directory containing the handout "
-                                               "to be pushed to the grading server")
+    # add subparsers
+    add_add_subparser(subparsers)
+    add_modify_subparser(subparsers)
+    add_upload_subparser(subparsers)
+    add_update_subparser(subparsers)
+    add_publish_subparser(subparsers)
+    add_delete_subparser(subparsers)
+    add_fetch_subparser(subparsers)
+    add_query_subparser(subparsers)
+    add_trigger_subparser(subparsers)
+    add_config_subparser(subparsers)
 
     return parser
 
 
+def run_query(query_type: str, number_of_days: int):
+    """
+    Run the query specified by query_type.
+
+    :param query_type: type of the query
+    """
+
+    if query_type == 'classes':
+        list_classes()
+    elif query_type == 'assignments':
+        list_assignments()
+    elif query_type == 'students':
+        list_students()
+    elif query_type == 'recent':
+        list_recent(number_of_days)
+
+
 def main():
+    """
+    gkeep entry point.
+
+    Setup the command line argument parser, parse the arguments, and call the
+    appropriate function.
+    """
+
     # Initialize the parser object that will interpret the passed in
     # command line arguments
-    parser = initialize_parser()
+    parser = initialize_action_parser()
 
     # Allow for auto-complete
-    argcomplete.autocomplete(parser)
+    autocomplete(parser)
 
-    # If no arguments are given when teacher_interface is called, just
-    # display the help message and exit
+    # If no arguments are given just display the help message and exit
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
@@ -195,32 +324,63 @@ def main():
     # Parse the args
     parsed_args = parser.parse_args()
 
+    if parsed_args.config_file is not None:
+        config.set_config_path(parsed_args.config_file)
+
+    if parsed_args.version:
+        print('gkeep version', client_version)
+
+    try:
+        take_action(parsed_args)
+    except GkeepException as e:
+        sys.exit(e)
+
+
+@config_parsed
+def take_action(parsed_args):
     action_name = parsed_args.subparser_name
 
-    # call the appropriate functions associated with each sub-command
-    if action_name == 'initialize_class':
-        initialize_class.initialize_class(parsed_args.class_name)
-    elif action_name == 'populate_students':
-        populate_students.populate_students(parsed_args.class_name)
-    elif action_name == 'upload_assignment':
-        upload_assignment.upload_assignment(parsed_args.class_name, parsed_args.local_dir)
-    elif action_name == 'fetch_submissions':
-        fetch_submissions.fetch_submissions(parsed_args.class_name, parsed_args.sub_dir, parsed_args.assignment)
-    elif action_name == 'create_student_directories':
-        create_student_directories.create_student_directories(parsed_args.class_name, parsed_args.parent_dir)
-    elif action_name == 'send_feedback':
-        send_feedback.send_feedback(parsed_args.class_name, parsed_args.assignment, parsed_args.feedback_dir)
-    elif action_name == 'delete_assignment':
-        delete_assignment.delete_assignment(parsed_args.class_name, parsed_args.assignment)
-    elif action_name == 'send_passwords':
-        send_passwords.send_passwords(parsed_args.class_name, parsed_args.user_pass_file)
-    elif action_name == 'update_assignment_tests':
-        update_assignment_tests.update_assignment_tests(parsed_args.class_name, parsed_args.local_dir)
-    elif action_name == 'upload_handout':
-        upload_handout.upload_handout(parsed_args.class_name, parsed_args.local_handout_dir)
-    else:
-        parsed_args.func(parsed_args)
+    # parsed_args.class_name could be an alias
+    class_name = getattr(parsed_args, 'class_name', None)
+    if class_name and class_name in config.class_aliases:
+        class_name = config.class_aliases[class_name]
+
+    # call the appropriate function for the action
+    if action_name == 'add':
+        class_add(class_name, parsed_args.csv_file_path)
+    elif action_name == 'modify':
+        class_modify(class_name, parsed_args.csv_file_path)
+    elif action_name == 'upload':
+        upload_assignment(class_name, parsed_args.assignment_path)
+    elif action_name == 'update':
+        if parsed_args.item == 'all':
+            items = ('base_code', 'email', 'tests')
+        else:
+            items = (parsed_args.item,)
+        update_assignment(class_name, parsed_args.assignment_path, items)
+    elif action_name == 'publish':
+        publish_assignment(class_name, parsed_args.assignment_name)
+    elif action_name == 'delete':
+        delete_assignment(class_name, parsed_args.assignment_name)
+    elif action_name == 'fetch':
+        dest_path = build_dest_path(parsed_args.destination_path,
+                                    class_name)
+        fetch_submissions(class_name, parsed_args.assignment_name,
+                          dest_path)
+    elif action_name == 'query':
+        run_query(parsed_args.query_type, parsed_args.number_of_days)
+    elif action_name == 'trigger':
+        trigger_tests(class_name, parsed_args.assignment_name,
+                      parsed_args.student_usernames)
+    elif action_name == 'config':
+        create_config()
 
 
 if __name__ == '__main__':
+    if core_version != client_version:
+        error = 'git-keeper-client and git-keeper-core versions must match.\n'
+        error += 'client version: {}\n'.format(client_version)
+        error += 'core version: {}'.format(core_version)
+        sys.exit(error)
+
     main()

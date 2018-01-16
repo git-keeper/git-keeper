@@ -1,10 +1,11 @@
 # setup.py for git-keeper-client
 
 from setuptools import setup
+from gkeepclient.version import __version__
 
 setup(
     name='git-keeper-client',
-    version='0.1.0',
+    version=__version__,
     description=('A git-based system for distributing and collecting '
                  'programming assignments with automatic feedback.'),
     url='https://github.com/git-keeper/git-keeper',
@@ -25,7 +26,7 @@ setup(
     entry_points={
         'console_scripts': ['gkeep=gkeepclient.gkeep:main'],
     },
-    install_requires=['git-keeper-core', 'paramiko'],
+    install_requires=['git-keeper-core', 'paramiko', 'argcomplete'],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest']
+    tests_require=['pytest'],
 )

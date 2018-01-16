@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,269 +13,201 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
+"""
+Main entry point for gkeepd, the git-keeper server process.
+
+Spawns a number of threads:
+
+logger - GkeepdLoggerThread for logging runtime information
+email_sender - EmailSenderThread for sending rate-limited emails
+log_poller - LogPollingThread for watching student and faculty logs for events
+handler_assigner - EventHandlerAssignerThread for creating event handlers from
+                   log events
+submission_test_threads - list of SubmissionTestThread objects which run tests
+
+"""
+import argparse
 import sys
 from queue import Queue, Empty
-from tempfile import TemporaryDirectory
-from threading import Thread
-from time import strftime, time, sleep
+from signal import signal, SIGINT, SIGTERM
+from traceback import extract_tb
 
-from configuration import GraderConfiguration, ConfigurationError
-from email_sender import Email, process_email_queue
-from inotify_monitors import PushMonitor
-from repository import Repository
-from subprocess_commands import call_action, CommandError
+from gkeepserver.version import __version__ as server_version
+from gkeepcore.version import __version__ as core_version
 
-import locator
-from student import Student
+from gkeepcore.faculty import faculty_from_csv_file
+from gkeepcore.gkeep_exception import GkeepException
+from gkeepcore.local_csv_files import LocalCSVReader
+from gkeepserver.check_system import check_system
+from gkeepserver.email_sender_thread import email_sender
+from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
+from gkeepserver.gkeepd_logger import gkeepd_logger as logger
+from gkeepserver.info_refresh_thread import info_refresher
+from gkeepserver.local_log_file_reader import LocalLogFileReader
+from gkeepserver.event_handler_assigner import EventHandlerAssignerThread
+from gkeepserver.log_polling import log_poller
+from gkeepserver.server_configuration import config, ServerConfigurationError
+from gkeepserver.submission_test_thread import SubmissionTestThread
 
-
-def write_report(file_path, output, report_repo: Repository,
-                 commit_message='new submission'):
-    try:
-        with open(file_path, 'w') as f:
-            f.write(output)
-    except OSError as e:
-        print('Error opening {0}:\n{1}'.format(file_path, e), file=sys.stderr)
-        report_repo = None
-
-    if report_repo is not None:
-        report_repo.add_all_and_commit(commit_message)
-        report_repo.push()
+# switched to True by the signal handler on SIGINT or SIGTERM
+shutdown_flag = False
 
 
-def create_failure_email(to_address, assignment):
-    subject = '{0}: Failed to process submission - contact instructor'.format(assignment)
-    body = ['Your submission was received, but something went wrong.',
-            'This is likely your instructor\'s fault, not yours.',
-            'Please contact your instructor about this error!']
+def signal_handler(signum, frame):
+    """
+    Handle SIGINT and SIGTERM signals.
 
-    return Email(to_address, subject, body)
+    The main loop keeps looping while shutdown_flag is False. This will switch
+    it to True so the server shuts down.
 
+    :param signum: unused
+    :param frame: unused
+    """
 
-def report_failure(error, to_address, assignment, email_queue: Queue,
-                   report_path, report_repo):
-    print('FAILURE: {0}'.format(error), file=sys.stderr)
-    write_report(report_path, error, report_repo,
-                 commit_message='new submission, action.sh failure')
-    email_queue.put(create_failure_email(to_address, assignment))
-
-
-def run_tests(student_repo: Repository, test_repo: Repository,
-              report_repo: Repository, call_action_path, student: Student,
-              email_queue: Queue):
-    starting_dir = os.getcwd()
-
-    code_tempdir = TemporaryDirectory()
-    test_tempdir = TemporaryDirectory()
-    report_tempdir = TemporaryDirectory()
-
-    code_path = code_tempdir.name
-    test_path = test_tempdir.name
-    report_path = report_tempdir.name
-
-    report_file_path = ''
-
-    tmp_report_repo = None
-    try:
-        tmp_report_repo = report_repo.clone_to(report_path)
-        student_repo.clone_to(code_path)
-        test_repo.clone_to(test_path)
-    except CommandError as e:
-        error = 'Failed to clone:\n{0}'.format(e)
-        report_failure(error, student.email_address, student_repo.assignment,
-                       email_queue, report_file_path, tmp_report_repo)
-        os.chdir(starting_dir)
-        return
-
-    report_filename = 'report-{0}.txt'.format(strftime('%Y-%m-%d-%H:%M:%S-%Z'))
-
-    for item in os.listdir(report_path):
-        item_path = os.path.join(report_path, item)
-        if os.path.isdir(item_path) and student.username in item:
-            report_file_path = os.path.join(item_path, report_filename)
-            break
-
-    os.chdir(test_path)
-
-    try:
-        output = call_action(call_action_path, code_path, student.first_name,
-                             student.last_name, student.username,
-                             student.email_address)
-    except CommandError as e:
-        error = '!!!  ERROR: SCRIPT RETURNED NON-ZERO EXIT CODE  !!!\n\n'
-        error += str(e)
-        report_failure(error, student.email_address, student_repo.assignment,
-                       email_queue, report_file_path, tmp_report_repo)
-        os.chdir(starting_dir)
-        return
-
-    write_report(report_file_path, output, tmp_report_repo)
-
-    email_subject = student_repo.assignment + ' submission test results'
-    email_queue.put(Email(student.email_address, email_subject, output))
-
-    os.chdir(starting_dir)
-
-
-def add_update_flag_watches(class_name, config: GraderConfiguration,
-                            push_monitor: PushMonitor,
-                            repos_by_update_flag_path,
-                            assignment=None):
-    for student in config.students_by_class[class_name]:
-        assert isinstance(student, Student)
-        repos = student.get_class_repositories(class_name)
-        for repo in repos:
-            assert isinstance(repo, Repository)
-            update_flag_path = repo.get_update_flag_path()
-            if update_flag_path not in repos_by_update_flag_path \
-                    or assignment == repo.assignment:
-                repos_by_update_flag_path[update_flag_path] = repo
-                push_monitor.add_file(update_flag_path)
-
-
-def email_students_new_assignment(class_name, assignment, email_file_path,
-                                  config, email_queue):
-    relative_repo_path = '{0}/{1}.git'.format(class_name, assignment)
-    email_subject = 'New assignment: {0}'.format(assignment)
-
-    try:
-        with open(email_file_path) as f:
-            email_body_from_file = f.read()
-    except OSError as e:
-        print('Error opening {0}'.format(email_file_path), file=sys.stderr)
-        email_body_from_file = ''
-
-    for student in config.students_by_class[class_name]:
-        assert isinstance(student, Student)
-        clone_url = '{0}@{1}:{2}'.format(student.username, config.host,
-                                         relative_repo_path)
-
-        email_body = 'Clone URL:\n{0}\n\n{1}'.format(clone_url,
-                                                     email_body_from_file)
-
-        email_queue.put(Email(student.email_address, email_subject, email_body))
+    global shutdown_flag
+    shutdown_flag = True
 
 
 def main():
-    if len(sys.argv) != 2:
-        sys.exit('Usage: {0} <class name>'.format(sys.argv[0]))
+    """
+    Entry point of the gkeepd process.
 
-    class_name = sys.argv[1]
+    If gkeepd is run with the --version or -v flags, it will print the current
+    version and exit.
+    """
 
+    description = ('gkeepd, the git-keeper server, version {}'
+                   .format(server_version))
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('-v', '--version', action='store_true',
+                        help='Print gkeepd version')
+
+    args = parser.parse_args()
+
+    if args.version:
+        print('gkeepd version {}'.format(server_version))
+        sys.exit(0)
+
+    # setup signal handling
+    global shutdown_flag
+    signal(SIGINT, signal_handler)
+    signal(SIGTERM, signal_handler)
+
+    # do not run if there are errors in the configuration file
     try:
-        config = GraderConfiguration(on_grading_server=True)
-    except ConfigurationError as e:
+        config.parse()
+    except ServerConfigurationError as e:
         sys.exit(e)
 
-    if class_name not in config.students_by_class:
-        sys.exit('No student CSV file for {0}'.format(class_name))
+    # initialize and start system logger
+    logger.initialize(config.log_file_path, log_level=config.log_level)
+    logger.start()
 
-    call_action_path = os.path.join(locator.module_path(), 'call_action.sh')
+    logger.log_info('--- Starting gkeepd version {}---'.format(server_version))
 
-    if not os.path.isfile(call_action_path):
-        sys.exit('{0} does not exist'.format(call_action_path))
+    # check for fatal errors in the system state, and correct correctable
+    # issues including new faculty members
+    try:
+        check_system()
+    except Exception as e:
+        logger.log_error(str(e))
+        logger.log_info('Shutting down')
+        logger.shutdown()
+        sys.exit(1)
 
-    update_flag_queue = Queue()
-    push_monitor = PushMonitor(update_flag_queue)
+    # start the info refresher thread and refresh the info for each faculty
+    info_refresher.start()
 
-    # stores student submission repositories indexed by their
-    # update_flag file paths, which are watched by inotify
-    repos_by_update_flag_path = {}
+    reader = LocalCSVReader(config.faculty_csv_path)
+    faculty_list = faculty_from_csv_file(reader)
 
-    add_update_flag_watches(class_name, config, push_monitor,
-                            repos_by_update_flag_path)
+    for faculty in faculty_list:
+        info_refresher.enqueue(faculty.username)
 
-    assignments_path = os.path.join(config.home_dir, class_name, 'assignments')
+    # queues for thread communication
+    new_log_event_queue = Queue()
+    event_handler_queue = Queue()
 
-    active_assignments = set(os.listdir(assignments_path))
+    # the handler assigner creates event handlers for the main loop to call
+    # upon
+    handler_assigner = EventHandlerAssignerThread(new_log_event_queue,
+                                                  event_handler_queue,
+                                                  event_handlers_by_type,
+                                                  logger)
 
-    print('Current assignments:')
-    for assignment in active_assignments:
-        print(assignment)
+    # the log poller detects new events and passes them to the handler assigner
+    log_poller.initialize(new_log_event_queue, LocalLogFileReader,
+                          config.log_snapshot_file_path, logger)
 
-    last_assignment_poll_time = time()
+    # start the rest of the threads
+    email_sender.start()
 
-    email_queue = Queue()
-    email_thread = Thread(target=process_email_queue, args=(email_queue,
-                                                            class_name,
-                                                            config))
-    email_thread.start()
+    submission_test_threads = []
+    for count in range(config.test_thread_count):
+        # thread is automatically started by the constructor
+        submission_test_threads.append(SubmissionTestThread())
 
-    print('daemon initialized, waiting for pushes')
+    handler_assigner.start()
+    log_poller.start()
 
-    while True:
+    logger.log_info('Server is running')
+
+    # main loop
+    while not shutdown_flag:
         try:
-            if time() - last_assignment_poll_time > 5:
-                current_assignments = set(os.listdir(assignments_path))
-                last_assignment_poll_time = time()
+            # do not fully block since we need to check shutdown_flag
+            # regularly
+            handler = event_handler_queue.get(block=True, timeout=0.1)
 
-                if current_assignments != active_assignments:
-                    new_assignments = \
-                        current_assignments.difference(active_assignments)
-                    for new_assignment in new_assignments:
-                        print('I see a new directory for assignment {0}'
-                              .format(new_assignment))
-                        new_assignment_path = os.path.join(assignments_path,
-                                                           new_assignment)
-                        print('Path:', new_assignment_path)
-                        email_file_path = os.path.join(new_assignment_path,
-                                                       'email.txt')
+            logger.log_debug('New task: ' + str(handler))
 
-                        retries = 0
-                        while (not os.path.isfile(email_file_path) and
-                               retries < 10):
-                            retries += 1
-                            print('I see no email.txt, retry', retries)
-                            sleep(2)
+            # all of the main thread's actions are carried out by handlers
+            handler.handle()
 
-                        if os.path.isfile(email_file_path):
-                            print('email.txt exists, adding assignment')
-                            add_update_flag_watches(class_name, config,
-                                                    push_monitor,
-                                                    repos_by_update_flag_path,
-                                                    assignment=new_assignment)
-                            email_students_new_assignment(class_name,
-                                                          new_assignment,
-                                                          email_file_path,
-                                                          config, email_queue)
-                        else:
-                            print('No email.txt, skipping assignment')
-
-                    active_assignments = current_assignments
-
-            update_flag_path = update_flag_queue.get(block=True, timeout=0.5)
-            repo = repos_by_update_flag_path[update_flag_path]
-            assert isinstance(repo, Repository)
-            student = config.students_by_username[repo.student_username]
-            print('{0}: New push from {1}'.format(class_name, student.username))
-            test_repo_path = os.path.join(assignments_path,
-                                          repo.assignment,
-                                          repo.assignment + '_tests.git')
-            reports_repo_path = os.path.join(assignments_path,
-                                             repo.assignment,
-                                             repo.assignment + '_reports.git')
-            test_repo = Repository(test_repo_path, repo.assignment,
-                                   is_bare=True)
-            reports_repo = Repository(reports_repo_path, repo.assignment,
-                                      is_bare=True)
-            run_tests(repo, test_repo, reports_repo, call_action_path,
-                      student, email_queue)
+        # get() raises Empty after blocking for timeout seconds
         except Empty:
             pass
-        except KeyboardInterrupt:
-            print('Keyboard interrupt caught')
-            break
+        except (GkeepException, Exception) as e:
+            # A handler's handle() method should catch all exceptions. If we
+            # get here there is likely an issue with the handler.
+            error = ('An exception was caught that should have been caught\n'
+                     'earlier. This is likely due to a bug in the code.\n'
+                     'Please report this to the git-keeper developers along\n'
+                     'with the following stack trace:\n{0}'
+                     .format(extract_tb(e)))
+            print(error, file=sys.stderr)
+            logger.log_error('Unexpected exception. Please report this bug. '
+                             '{0}: {1}'.format(type(e), e))
 
-    print('Shutting down')
+    print('Shutting down. Waiting for threads to finish ... ', end='')
+    # flush so it prints immediately despite no newline
+    sys.stdout.flush()
 
-    email_queue.put(None)
-    emailer_shutdown_time = 10
-    print('Waiting up to {0} seconds for emailer to shut down'
-          .format(emailer_shutdown_time))
+    logger.log_info('Shutting down threads')
 
-    email_thread.join(timeout=emailer_shutdown_time)
+    # shut down the pipeline in this order so that no new log events are lost
+    log_poller.shutdown()
+    handler_assigner.shutdown()
+
+    for thread in submission_test_threads:
+        thread.shutdown()
+
+    info_refresher.shutdown()
+
+    email_sender.shutdown()
+
+    logger.log_info('Shutting down gkeepd')
+
+    logger.shutdown()
+
+    print('done')
 
 
 if __name__ == '__main__':
+    if server_version != core_version:
+        error = 'git-keeper-server and git-keeper-core versions must match.\n'
+        error += 'server version: {}\n'.format(server_version)
+        error += 'core version: {}'.format(core_version)
+        sys.exit(error)
+
     main()

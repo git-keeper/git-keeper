@@ -1,10 +1,11 @@
 # setup.py for git-keeper-server
 
 from setuptools import setup
+from gkeepserver.version import __version__
 
 setup(
     name='git-keeper-server',
-    version='0.1.0',
+    version=__version__,
     description=('A git-based system for distributing and collecting '
                  'programming assignments with automatic feedback.'),
     url='https://github.com/git-keeper/git-keeper',
@@ -23,11 +24,14 @@ setup(
         'Topic :: Education :: Testing',
         'Topic :: Education'
     ],
-    packages=['gkeepserver'],
+    packages=['gkeepserver', 'gkeepserver.event_handlers'],
     entry_points={
         'console_scripts': ['gkeepd=gkeepserver.gkeepd:main'],
     },
-    install_requires=['git-keeper-core', 'paramiko', 'pyinotify'],
+    package_data={
+        'gkeepserver': ['data/*']
+    },
+    install_requires=['git-keeper-core'],
     setup_requires=['pytest-runner'],
-    tests_require=['pytest']
+    tests_require=['pytest'],
 )
