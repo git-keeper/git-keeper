@@ -8,3 +8,4 @@ dist/
 # created by py.test
 .cache/
 .env/
+.vagrant/
