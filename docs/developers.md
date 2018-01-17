@@ -12,7 +12,7 @@ Both `git-keeper-client` and `git-keeper-server` depend on `git-keeper-core`.
 
 ## Developer Setup
 
-The preferred development environment is PyCharm on OSX.  The following steps will ensure that your development environment is isolated from the system Python and other Python projects.
+The preferred development environment is PyCharm on OSX Linux.  The following steps will ensure that your development environment is isolated from the system Python and other Python projects.
 
 ### Prerequisites
 
@@ -52,7 +52,7 @@ The preferred development environment is PyCharm on OSX.  The following steps wi
 
 * Open the project in PyCharm, and wait for it to index the packages.
 
-If you clone the repo from within PyCharm, you will have to change the project interpreter after you create the virtual environment.  Also, if you have the projectd open in PyCharm when you install the `git-keeper` modules, you will have to restart PyCharm before it will recognize the names (this is a known bug in PyCharm).
+If you clone the repo from within PyCharm, you will have to change the project interpreter after you create the virtual environment.  Also, if you have the project open in PyCharm when you install the `git-keeper` modules, you will have to restart PyCharm before it will recognize the names (this is a known bug in PyCharm).
 
 
 ## Style
