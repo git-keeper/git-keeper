@@ -1,5 +1,3 @@
-# Developers
-
 ## Project Organization
 
 There are 3 distributions in this project:
@@ -11,8 +9,15 @@ There are 3 distributions in this project:
 Both `git-keeper-client` and `git-keeper-server` depend on `git-keeper-core`.
 
 When developing, all 3 distributions should be installed in development mode
-by running `python setup.py develop` in the top level directory of all 3
+by running `python3 setup.py develop` in the top level directory of all 3
 distributions, starting with `git-keeper-core`.
+
+## PyCharm Setup
+
+If you use PyCharm, you need to mark all 3 distribution directories
+(`git-keeper-client`, `git-keeper-core`, and `git-keeper-server`) as sources
+roots so that PyCharm finds the packages correctly. Right click on each
+directory and select "Mark Directory As -> Sources Root".
 
 ## Style
 
