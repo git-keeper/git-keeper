@@ -12,7 +12,7 @@ Both `git-keeper-client` and `git-keeper-server` depend on `git-keeper-core`.
 
 ## Developer Setup
 
-The preferred development environment is PyCharm on OSX Linux.  The following steps will ensure that your development environment is isolated from the system Python and other Python projects.
+The preferred development environment is PyCharm on OSX or Linux.  The following steps will ensure that your development environment is isolated from the system Python and other Python projects.
 
 ### Prerequisites
 
