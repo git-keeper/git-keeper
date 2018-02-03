@@ -184,7 +184,8 @@ def create_base_code_repo(assignment_dir: AssignmentDirectory,
     Create a bare repository in an assignment directory which contains the
     base code for an assignment, a post-receive hook script for triggering
     tests, and a pre-receive hook for ensuring the students only push to
-    the master branch and they do not perform destructive pushes.
+    the master branch. The repository is configured to reject destructive
+    pushes.
 
     Raises an AssignmentDirectoryError if anything goes wrong.
 
