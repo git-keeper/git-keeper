@@ -24,7 +24,7 @@ from pkg_resources import resource_exists, resource_string, ResolutionError, \
     ExtractionError
 
 from gkeepcore.git_commands import git_init_bare, git_init, git_add_all, \
-    git_commit, git_push
+    git_commit, git_push, git_config
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import parse_faculty_assignment_path, \
     user_home_dir, faculty_class_dir_path, student_assignment_repo_path, \
@@ -224,12 +224,16 @@ def create_base_code_repo(assignment_dir: AssignmentDirectory,
 
         # put the git hook scripts in place
         hook_script_names = ('pre-receive', 'post-receive')
-
         for script_name in hook_script_names:
             script_path = os.path.join(assignment_dir.base_code_repo_path,
                                        'hooks', script_name)
             write_git_hook_script(script_name, script_path)
             chmod(script_path, '750')
+
+        # configure the repository so that it will not accept destructive
+        # pushes
+        git_config(assignment_dir.base_code_repo_path,
+                   ('receive.denyNonFastForwards', 'true'))
 
     except GkeepException as e:
         error = 'error building base code repository: {0}'.format(str(e))

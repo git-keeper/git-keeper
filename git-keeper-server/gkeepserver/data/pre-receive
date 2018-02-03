@@ -15,22 +15,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-# This hook prevents students from doing any of the following:
-#   - pushing to a branch other than master
-#   - force pushing
-#   - deleting the master branch
+# This hook prevents students from pushing to a branch other than master.
 #
 # If this script exits with a 0 exit code the push is accepted, otherwise the
 # push is rejected.
 
 # we will only allow pushes to the master branch
 allowed_ref='refs/heads/master'
-
-# regex for determining if the push is destructive (force push or delete)
-destructive_pattern='force|\-f|delete'
-
-# determine the command used to push
-push_command=$(ps -ocommand= -p $PPID)
 
 # this hook receives push information about each ref that is pushed in the
 # form <old hash> <new hash> <ref name>
@@ -39,12 +30,6 @@ do
     if [ $ref_name != $allowed_ref ]
     then
         echo "ERROR: You may only push to the master branch"
-        exit 1
-    fi
-
-    if [[ $push_command =~ $destructive_pattern ]]
-    then
-        echo "ERROR: You may not force push to git-keeper"
         exit 1
     fi
 done
