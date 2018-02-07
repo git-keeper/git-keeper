@@ -21,7 +21,7 @@ import os
 
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_home_dir, faculty_classes_dir_path, \
-    class_student_csv_path
+    class_student_csv_path, faculty_class_status_path
 from gkeepcore.student import students_from_csv
 
 
@@ -72,3 +72,20 @@ def get_class_students(faculty_username: str, class_name: str) -> list:
     students = students_from_csv(reader)
 
     return students
+
+
+def get_class_status(faculty_username: str, class_name: str) -> str:
+    """
+    Get the status of a class.
+
+    :param faculty_username: username of the faculty member who owns the
+     class
+    :param class_name: name of the class
+    :return: status of the class
+    """
+
+    home_dir = user_home_dir(faculty_username)
+    status_path = faculty_class_status_path(class_name, home_dir)
+
+    with open(status_path) as f:
+        return f.read().strip()

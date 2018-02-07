@@ -37,6 +37,7 @@ from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_refresh_thread import info_refresher
 from gkeepserver.server_configuration import config
+from gkeepserver.students_and_classes import get_class_status
 
 
 class PublishHandler(EventHandler):
@@ -64,6 +65,12 @@ class PublishHandler(EventHandler):
         print(' Assignment path:', assignment_path)
 
         try:
+            class_status = get_class_status(self._faculty_username,
+                                            self._class_name)
+            if class_status != 'open':
+                raise HandlerException(
+                    '{} is not open'.format(self._class_name))
+
             assignment_dir = AssignmentDirectory(assignment_path)
             self._ensure_not_published(assignment_dir)
             students = self._setup_students_assignment_repos(assignment_dir)

@@ -27,6 +27,7 @@ from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, chmod
 from gkeepcore.valid_names import validate_class_name
 from gkeepserver.create_user import create_user, UserType
 from gkeepserver.event_handler import EventHandler, HandlerException
+from gkeepserver.file_writing import write_and_install_file
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_refresh_thread import info_refresher
@@ -57,7 +58,7 @@ class ClassAddHandler(EventHandler):
                     raise HandlerException('You cannot add yourself to your '
                                            'own class')
 
-            self._copy_csv_to_class_dir()
+            self._setup_class_dir()
             self._add_students_class_dirs(students)
 
             info_refresher.enqueue(self._faculty_username)
@@ -67,8 +68,9 @@ class ClassAddHandler(EventHandler):
             self._log_error_to_faculty(str(e))
             gkeepd_logger.log_warning('Class add failed: {0}'.format(e))
 
-    def _copy_csv_to_class_dir(self):
-        # copy the CSV file to its final destination
+    def _setup_class_dir(self):
+        # Create the class directory, copy the class CSV file to its final
+        # destination, and create the class's status file
 
         # uploaded CSV must be in place
         if not os.path.isfile(self._uploaded_csv_path):
@@ -85,7 +87,8 @@ class ClassAddHandler(EventHandler):
             error = ('class {0} already exists'.format(self._class_name))
             raise HandlerException(error)
 
-        # create the class directory, copy the CSV, and fix permissions
+        # create the class directory, copy the CSV, fix permissions, and
+        # install the status file
         try:
             mkdir(faculty_class_path, sudo=True)
             final_csv_path = class_student_csv_path(self._class_name, home_dir)
@@ -93,6 +96,9 @@ class ClassAddHandler(EventHandler):
             chmod(faculty_class_path, '750', sudo=True)
             sudo_chown(faculty_class_path, self._faculty_username,
                        config.keeper_group, recursive=True)
+            write_and_install_file('open', 'status', faculty_class_path,
+                                   self._faculty_username, config.keeper_group,
+                                   '640')
         except CommandError as e:
             error = 'Error setting up class directory: {0}'.format(e)
             raise HandlerException(error)

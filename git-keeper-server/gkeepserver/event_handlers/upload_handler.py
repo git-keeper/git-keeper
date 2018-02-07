@@ -39,6 +39,7 @@ from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_refresh_thread import info_refresher
 from gkeepserver.server_configuration import config
+from gkeepserver.students_and_classes import get_class_status
 
 
 class UploadHandler(EventHandler):
@@ -70,6 +71,12 @@ class UploadHandler(EventHandler):
         assignment_dir = AssignmentDirectory(assignment_path, check=False)
 
         try:
+            class_status = get_class_status(self._faculty_username,
+                                            self._class_name)
+            if class_status != 'open':
+                raise HandlerException('{} is not open'
+                                       .format(self._class_name))
+
             validate_assignment_name(assignment_dir.assignment_name)
             self._setup_assignment_dir(assignment_dir)
             self._setup_faculty_test_assignment(assignment_dir)

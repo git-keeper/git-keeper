@@ -33,6 +33,8 @@ from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email
 from gkeepcore.path_utils import parse_submission_repo_path, user_home_dir
 
+from gkeepserver.students_and_classes import get_class_status
+
 
 class Submission:
     """
@@ -75,6 +77,22 @@ class Submission:
         run the tests.
         """
 
+        faculty_username, class_name, assignment_name = \
+            parse_submission_repo_path(self.student_repo_path)
+
+        class_status = get_class_status(faculty_username, class_name)
+        if class_status == 'closed':
+            # inform the student that the class is closed
+            subject = ('[{0}] class is closed'.format(class_name))
+            body = ('You have pushed a submission for a class that is is '
+                    'closed.')
+            email_sender.enqueue(Email(self.student.email_address, subject,
+                                       body))
+            logger.log_info('{} pushed to {} in {}, which is closed'
+                            .format(self.student.username, assignment_name,
+                                    class_name))
+            return
+
         logger.log_debug('Running tests on {0}'.format(self.student_repo_path))
 
         temp_path = mkdtemp(dir=user_home_dir(config.tester_user),
@@ -87,9 +105,6 @@ class Submission:
         # copy the tests - this creates a tests folder inside the temp dir
         cp(self.tests_path, temp_path, recursive=True)
         temp_tests_path = os.path.join(temp_path, 'tests')
-
-        faculty_username, class_name, assignment_name = \
-            parse_submission_repo_path(self.student_repo_path)
 
         temp_assignment_path = os.path.join(temp_path, assignment_name)
 

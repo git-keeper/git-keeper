@@ -224,6 +224,19 @@ def faculty_class_dir_path(class_name: str, home_dir: str):
     return os.path.join(faculty_classes_dir_path(home_dir), class_name)
 
 
+def faculty_class_status_path(class_name: str, home_dir: str):
+    """
+    Build the path to a class's status file on the server.
+
+    :param class_name: name of the class
+    :param home_dir: home directory of the faculty member
+    :return: path to the class's status file
+    """
+
+    return os.path.join(faculty_class_dir_path(class_name, home_dir),
+                        'status')
+
+
 def faculty_info_path(home_dir: str):
     """
     Build the path to a faculty member's info directory.
