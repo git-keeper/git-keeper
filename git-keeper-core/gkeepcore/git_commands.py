@@ -165,6 +165,19 @@ def git_clone_remote(remote_repo_url, local_repo_path):
     run_command(cmd)
 
 
+def git_checkout(repo_path, branch_or_commit):
+    """
+    Checkout a branch or a commit in a repository.
+
+    :param repo_path: path of the repository
+    :param branch_or_commit: name of the branch or the commit hash to checkout
+    """
+
+    cmd = ['git', 'checkout', branch_or_commit]
+
+    run_command_in_directory(repo_path, cmd)
+
+
 def git_head_hash(repo_path):
     """
     Get the hash of the HEAD of a git repository.

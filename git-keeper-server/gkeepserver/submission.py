@@ -26,7 +26,8 @@ from tempfile import TemporaryDirectory, mkdtemp
 from gkeepcore.student import Student
 from gkeepserver.assignments import AssignmentDirectory
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
-from gkeepcore.git_commands import git_clone, git_add_all, git_commit, git_push
+from gkeepcore.git_commands import git_clone, git_add_all, git_commit, \
+    git_push, git_checkout
 from gkeepcore.system_commands import cp, sudo_chown, rm, chmod
 from gkeepcore.shell_command import run_command_in_directory
 from gkeepserver.email_sender_thread import email_sender
@@ -39,7 +40,7 @@ class Submission:
     """
     Stores student submission information and allows test running.
     """
-    def __init__(self, student: Student, student_repo_path,
+    def __init__(self, student: Student, student_repo_path, commit_hash,
                  assignment_dir: AssignmentDirectory, faculty_username,
                  faculty_email):
         """
@@ -47,16 +48,14 @@ class Submission:
 
         :param student: Student object containing information about the student
         :param student_repo_path: path to the student's assignment repository
-        :param tests_path: path to the directory containing tests for the
-         assignment
-        :param reports_repo_path: path to the repository where test reports are
-         stored
+        :param commit_hash: the hash of the commit of the submission
         :param faculty_email: email address of the faculty that owns the
          assignment
         """
 
         self.student = student
         self.student_repo_path = student_repo_path
+        self.commit_hash = commit_hash
         self.tests_path = assignment_dir.tests_path
         self.run_action_sh_path = assignment_dir.run_action_sh_path
         self.reports_repo_path = assignment_dir.reports_repo_path
@@ -84,8 +83,13 @@ class Submission:
                             prefix='{}_'.format(int(time())))
         chmod(temp_path, '770')
 
-        # check out the student repo in the temp dir
+        faculty_username, class_name, assignment_name = \
+            parse_submission_repo_path(self.student_repo_path)
+
+        temp_assignment_path = os.path.join(temp_path, assignment_name)
+
         git_clone(self.student_repo_path, temp_path)
+        git_checkout(temp_assignment_path, self.commit_hash)
 
         # copy the tests - this creates a tests folder inside the temp dir
         cp(self.tests_path, temp_path, recursive=True)

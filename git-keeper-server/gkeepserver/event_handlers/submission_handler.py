@@ -41,11 +41,12 @@ class SubmissionHandler(EventHandler):
         """Take action after a student pushes a new submission."""
 
         print('Handling submission:')
-        print(' Student:   ', self._student_username)
-        print(' Faculty:   ', self._faculty_username)
-        print(' Class:     ', self._class_name)
-        print(' Assignment:', self._assignment_name)
-        print(' Repo path: ', self._submission_repo_path)
+        print(' Student:    ', self._student_username)
+        print(' Faculty:    ', self._faculty_username)
+        print(' Class:      ', self._class_name)
+        print(' Assignment: ', self._assignment_name)
+        print(' Repo path:  ', self._submission_repo_path)
+        print(' Commit hash:', self._commit_hash)
         print()
 
         # We need to create a submission object to put in the
@@ -64,8 +65,6 @@ class SubmissionHandler(EventHandler):
                                                       faculty_home_dir)
         assignment_directory = AssignmentDirectory(assignment_path)
 
-        reports_repo_path = assignment_directory.reports_repo_path
-
         reader = LocalCSVReader(class_student_csv_path(self._class_name,
                                                        faculty_home_dir))
 
@@ -78,8 +77,8 @@ class SubmissionHandler(EventHandler):
             student = student_from_username(self._student_username, reader)
 
         submission = Submission(student, self._submission_repo_path,
-                                assignment_directory, self._faculty_username,
-                                faculty_email)
+                                self._commit_hash, assignment_directory,
+                                self._faculty_username, faculty_email)
 
         new_submission_queue.put(submission)
 
@@ -112,8 +111,9 @@ class SubmissionHandler(EventHandler):
 
         self._parse_log_path()
 
-        # the payload simply contains the submission repository path
-        self._submission_repo_path = self._payload
+        # the payload contains the submission repository path and the hash of
+        # the commit of the submission
+        self._submission_repo_path, self._commit_hash = self._payload.split()
 
         self._parse_repo_path()
 
