@@ -35,6 +35,8 @@ from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email
 from gkeepcore.path_utils import parse_submission_repo_path, user_home_dir
 
+from gkeepserver.students_and_classes import get_class_status
+
 
 class Submission:
     """
@@ -76,6 +78,22 @@ class Submission:
         Creates a directory in the tester user's home directory in which to
         run the tests.
         """
+
+        faculty_username, class_name, assignment_name = \
+            parse_submission_repo_path(self.student_repo_path)
+
+        class_status = get_class_status(faculty_username, class_name)
+        if class_status == 'closed':
+            # inform the student that the class is closed
+            subject = ('[{0}] class is closed'.format(class_name))
+            body = ('You have pushed a submission for a class that is is '
+                    'closed.')
+            email_sender.enqueue(Email(self.student.email_address, subject,
+                                       body))
+            logger.log_info('{} pushed to {} in {}, which is closed'
+                            .format(self.student.username, assignment_name,
+                                    class_name))
+            return
 
         logger.log_debug('Running tests on {0}'.format(self.student_repo_path))
 

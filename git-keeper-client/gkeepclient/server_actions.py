@@ -122,6 +122,32 @@ def class_modify(class_name: str, csv_file_path: str):
 @config_parsed
 @server_interface_connected
 @class_exists
+def update_status(class_name: str, status: str):
+    """
+    Update the status of a class.
+
+    :param class_name: name of the class
+    :param status: new status for the class, 'open' or 'closed'
+    """
+
+    current_status = server_interface.class_status(class_name)
+
+    if status == current_status:
+        raise GkeepException('{} is already {}'.format(class_name,
+                                                       current_status))
+
+    payload = '{0} {1}'.format(class_name, status)
+
+    communicate_event('CLASS_STATUS', payload,
+                      success_message='Status updated successfully',
+                      error_message='Error updating status:',
+                      timeout_message='Server response timeout. '
+                                      'Status of status update unknown')
+
+
+@config_parsed
+@server_interface_connected
+@class_exists
 @assignment_exists
 def delete_assignment(class_name: str, assignment_name: str,
                       response_timeout=20):

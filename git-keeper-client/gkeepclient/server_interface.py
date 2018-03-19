@@ -496,6 +496,20 @@ class ServerInterface:
         path = faculty_class_dir_path(class_name, self._home_dir)
         return self.is_directory(path)
 
+    def class_status(self, class_name: str) -> str:
+        """
+        Get the current status of a class. Possible values are 'open' and
+        'closed'.
+
+        :param class_name: name of the class
+        :return: status of the class
+        """
+
+        class_path = faculty_class_dir_path(class_name, self._home_dir)
+        status_path = os.path.join(class_path, 'status')
+
+        return self.read_file_text(status_path).strip()
+
     def assignment_exists(self, class_name: str, assignment_name: str) -> bool:
         """
         Determine if an assignment exists on the server.
