@@ -1,4 +1,4 @@
-# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ from time import strftime, time
 from tempfile import TemporaryDirectory, mkdtemp
 
 from gkeepcore.student import Student
+from gkeepserver.assignments import AssignmentDirectory
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepcore.git_commands import git_clone, git_add_all, git_commit, git_push
 from gkeepcore.system_commands import cp, sudo_chown, rm, chmod
@@ -38,8 +39,9 @@ class Submission:
     """
     Stores student submission information and allows test running.
     """
-    def __init__(self, student: Student, student_repo_path, tests_path,
-                 reports_repo_path, faculty_username, faculty_email):
+    def __init__(self, student: Student, student_repo_path,
+                 assignment_dir: AssignmentDirectory, faculty_username,
+                 faculty_email):
         """
         Simply assign the attributes.
 
@@ -55,8 +57,9 @@ class Submission:
 
         self.student = student
         self.student_repo_path = student_repo_path
-        self.tests_path = tests_path
-        self.reports_repo_path = reports_repo_path
+        self.tests_path = assignment_dir.tests_path
+        self.run_action_sh_path = assignment_dir.run_action_sh_path
+        self.reports_repo_path = assignment_dir.reports_repo_path
         self.faculty_username = faculty_username
         self.faculty_email = faculty_email
 
@@ -88,6 +91,9 @@ class Submission:
         cp(self.tests_path, temp_path, recursive=True)
         temp_tests_path = os.path.join(temp_path, 'tests')
 
+        temp_run_action_sh_path = os.path.join(temp_path, 'run_action.sh')
+        cp(self.run_action_sh_path, temp_run_action_sh_path)
+
         faculty_username, class_name, assignment_name = \
             parse_submission_repo_path(self.student_repo_path)
 
@@ -100,7 +106,7 @@ class Submission:
         # execute action.sh and capture the output
         try:
             cmd = ['sudo', '-u', config.tester_user, 'bash',
-                   config.run_action_sh_file_path, temp_assignment_path]
+                   temp_run_action_sh_path, temp_assignment_path]
             body = run_command_in_directory(temp_tests_path, cmd)
 
             # send output as email

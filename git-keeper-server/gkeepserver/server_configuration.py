@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -186,6 +186,8 @@ class ServerConfiguration:
 
         # testing student code
         self.test_thread_count = 1
+        self.tests_timeout = 300
+        self.tests_memory_limit = 1024
 
         # users and groups
         self.keeper_user = 'keeper'
