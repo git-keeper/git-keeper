@@ -1,4 +1,4 @@
-# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -157,9 +157,6 @@ def check_paths_and_permissions():
     if not os.path.isfile(config.gitconfig_file_path):
         write_gitconfig()
 
-    if not os.path.isfile(config.run_action_sh_file_path):
-        write_run_action_sh()
-
 
 def write_gitconfig():
     """
@@ -177,31 +174,6 @@ def write_gitconfig():
         raise CheckSystemError(error)
 
     gkeepd_logger.log_info('Created {0}'.format(config.gitconfig_file_path))
-
-
-def write_run_action_sh():
-    """Write the contents of data/run_action.sh to the proper file."""
-
-    if not resource_exists('gkeepserver', 'data/run_action.sh'):
-        raise CheckSystemError('run_action.sh does not exist in the package')
-
-    try:
-        script_text = resource_string('gkeepserver', 'data/run_action.sh')
-        script_text = script_text.decode()
-    except Exception as e:
-        raise CheckSystemError('error reading run_action.sh data: {0}'
-                               .format(e))
-
-    try:
-        with open(config.run_action_sh_file_path, 'w') as f:
-            f.write(script_text)
-    except OSError as e:
-        error = 'error writing {0}: {1}'.format(config.run_action_sh_file_path,
-                                                e)
-        raise CheckSystemError(error)
-
-    sudo_chown(config.run_action_sh_file_path, config.tester_user,
-               config.keeper_group)
 
 
 def setup_faculty(faculty: Faculty):

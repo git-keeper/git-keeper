@@ -25,11 +25,12 @@ It must be executable.
 
 When it is run, a line like this is appended to the student's log:
 
-<timestamp> SUBMISSION <repo path>
+<timestamp> SUBMISSION <repo path> <commit hash>
 """
 
 import getpass
 import os
+import fileinput
 
 from gkeepcore.log_file import log_append_command
 from gkeepcore.path_utils import log_path_from_username
@@ -38,8 +39,17 @@ from gkeepcore.shell_command import run_command
 
 def main():
     log_path = log_path_from_username(getpass.getuser())
-    command = log_append_command(log_path, 'SUBMISSION', os.getcwd())
-    run_command(command)
+
+    # hash and reference information comes from stdin
+    for line in fileinput.input():
+        # each line is of the form "<old hash> <new hash> <ref name>"
+        split_fields = line.split()
+        new_hash = split_fields[1]
+
+        payload = '{} {}'.format(os.getcwd(), new_hash)
+
+        command = log_append_command(log_path, 'SUBMISSION', payload)
+        run_command(command)
 
 
 if __name__ == '__main__':

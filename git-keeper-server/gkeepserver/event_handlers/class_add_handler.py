@@ -17,13 +17,15 @@
 """Provides a handler for handling classes added by faculty."""
 
 import os
+from shutil import which
 
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, student_class_dir_path, \
     user_home_dir, faculty_class_dir_path, class_student_csv_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.student import students_from_csv
-from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, chmod
+from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, \
+    chmod, make_symbolic_link
 from gkeepcore.valid_names import validate_class_name
 from gkeepserver.create_user import create_user, UserType
 from gkeepserver.event_handler import EventHandler, HandlerException
@@ -135,7 +137,16 @@ class ClassAddHandler(EventHandler):
                 create_user(student.username, UserType.student,
                             student.first_name, student.last_name,
                             email_address=student.email_address,
-                            additional_groups=groups)
+                            additional_groups=groups, shell='git-shell')
+                home_dir = user_home_dir(student.username)
+
+                # use git-shell so that the only command students can run on
+                # the server is passwd
+                git_shell_commands_path = os.path.join(home_dir,
+                                                       'git-shell-commands')
+                mkdir(git_shell_commands_path, sudo=True)
+                make_symbolic_link(which('passwd'), git_shell_commands_path,
+                                   sudo=True)
             except Exception as e:
                 error = 'Error adding user {0}: {1}'.format(student.username,
                                                             e)

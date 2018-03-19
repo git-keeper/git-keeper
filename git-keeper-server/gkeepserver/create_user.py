@@ -134,7 +134,7 @@ def create_git_shell_commands(username: str, command_list: list):
 
 
 def create_user(username, user_type, first_name, last_name, email_address=None,
-                additional_groups=None):
+                additional_groups=None, shell='bash'):
     """
     Create a faculty or a student user, email them their credentials, and start
     watching their log file for events.
@@ -150,6 +150,7 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
     :param email_address: email address of the user
     :param additional_groups: groups beyond the default group to add the user
      to
+    :param shell: name of the shell for the user
     """
 
     if username == config.faculty_group or username == config.student_group:
@@ -158,9 +159,6 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
         raise GkeepException(error)
 
     logger.log_info('Creating user {0}'.format(username))
-
-    # for now everyone gets bash, students may eventually get git-shell
-    shell = 'bash'
 
     sudo_add_user(username, additional_groups, shell)
 
