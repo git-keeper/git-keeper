@@ -26,7 +26,7 @@ from pkg_resources import resource_exists, resource_string, ResolutionError, \
     ExtractionError
 
 from gkeepcore.git_commands import git_init_bare, git_init, git_add_all, \
-    git_commit, git_push
+    git_commit, git_push, git_config
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import parse_faculty_assignment_path, \
     user_home_dir, faculty_class_dir_path, student_assignment_repo_path, \
@@ -192,8 +192,10 @@ def create_base_code_repo(assignment_dir: AssignmentDirectory,
                           base_code_path: str):
     """
     Create a bare repository in an assignment directory which contains the
-    base code for an assignment and a post-receive hook script for triggering
-    tests.
+    base code for an assignment, a post-receive hook script for triggering
+    tests, and a pre-receive hook for ensuring the students only push to
+    the master branch. The repository is configured to reject destructive
+    pushes.
 
     Raises an AssignmentDirectoryError if anything goes wrong.
 
@@ -231,12 +233,19 @@ def create_base_code_repo(assignment_dir: AssignmentDirectory,
         git_push(base_code_temp_path,
                  assignment_dir.base_code_repo_path)
 
-        # put the post-receive git hook script in place
-        post_receive_script_path =\
-            os.path.join(assignment_dir.base_code_repo_path,
-                         'hooks', 'post-receive')
-        write_post_receive_script(post_receive_script_path)
-        chmod(post_receive_script_path, '750')
+        # put the git hook scripts in place
+        hook_script_names = ('pre-receive', 'post-receive')
+        for script_name in hook_script_names:
+            script_path = os.path.join(assignment_dir.base_code_repo_path,
+                                       'hooks', script_name)
+            write_git_hook_script(script_name, script_path)
+            chmod(script_path, '750')
+
+        # configure the repository so that it will not accept destructive
+        # pushes
+        git_config(assignment_dir.base_code_repo_path,
+                   ('receive.denyNonFastForwards', 'true'))
+
     except GkeepException as e:
         error = 'error building base code repository: {0}'.format(str(e))
         raise AssignmentDirectoryError(error)
@@ -426,24 +435,31 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
     email_sender.enqueue(email)
 
 
-def write_post_receive_script(dest_path: str):
+def write_git_hook_script(script_name: str, dest_path: str):
     """
-    Write the contents of data/post-receive to a file.
+    Write the contents of one of the git hook scripts into its appropriate
+    location.
 
     This will overwrite an existing file.
 
     Raises PostReceiveScriptError on any errors.
 
+    :param script_name: name of the hook script to write
     :param dest_path: path to write to
     """
-    if not resource_exists('gkeepserver', 'data/post-receive'):
-        raise StudentAssignmentError('post-receive script does not exist')
+
+    script_data_path = 'data/{}'.format(script_name)
+
+    if not resource_exists('gkeepserver', script_data_path):
+        raise StudentAssignmentError('{} script does not exist'
+                                     .format(script_name))
 
     try:
-        script_text = resource_string('gkeepserver', 'data/post-receive')
+        script_text = resource_string('gkeepserver', script_data_path)
         script_text = script_text.decode()
     except (ResolutionError, ExtractionError, UnicodeDecodeError):
-        raise StudentAssignmentError('error reading post-receive script data')
+        raise StudentAssignmentError('error reading {} script data'
+                                     .format(script_name))
 
     try:
         with open(dest_path, 'w') as f:

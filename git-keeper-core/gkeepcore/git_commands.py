@@ -126,6 +126,21 @@ def git_pull(repo_path, remote_url=None):
     run_command_in_directory(repo_path, cmd)
 
 
+def git_config(repo_path, config_options):
+    """
+    Run a git config command on a repository.
+
+    :param repo_path: path to the repository
+    :param config_options: an iterable containing the options to pass to git
+      config
+    """
+
+    cmd = ['git', 'config']
+    cmd.extend(config_options)
+
+    run_command_in_directory(repo_path, cmd)
+
+
 def is_non_bare_repo(repo_path):
     """
     Determine if a directory is a non-bare git repository by checking for the
