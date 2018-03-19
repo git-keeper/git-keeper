@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +20,8 @@
 import os
 from tempfile import TemporaryDirectory
 
+from gkeepcore.action_scripts import get_action_script_and_interpreter
+from gkeepcore.upload_directory import UploadDirectory
 from pkg_resources import resource_exists, resource_string, ResolutionError, \
     ExtractionError
 
@@ -30,7 +32,7 @@ from gkeepcore.path_utils import parse_faculty_assignment_path, \
     user_home_dir, faculty_class_dir_path, student_assignment_repo_path, \
     student_class_dir_path
 from gkeepcore.shell_command import CommandError
-from gkeepcore.system_commands import cp, chmod, mkdir, sudo_chown, rm
+from gkeepcore.system_commands import cp, chmod, mkdir, sudo_chown, rm, mv
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email, EmailException
@@ -82,11 +84,14 @@ class AssignmentDirectory:
         """
         self.path = path
         self.published_flag_path = os.path.join(self.path, 'published')
+        self.run_action_sh_path = os.path.join(self.path, 'run_action.sh')
         self.email_path = os.path.join(self.path, 'email.txt')
         self.base_code_repo_path = os.path.join(self.path, 'base_code.git')
         self.reports_repo_path = os.path.join(self.path, 'reports.git')
         self.tests_path = os.path.join(self.path, 'tests')
-        self.action_sh_path = os.path.join(self.tests_path, 'action.sh')
+
+        self.action_script, self.action_script_interpreter = \
+            get_action_script_and_interpreter(self.tests_path)
 
         path_info = parse_faculty_assignment_path(path)
 
@@ -116,10 +121,15 @@ class AssignmentDirectory:
             if not os.path.isdir(dir_path):
                 raise AssignmentDirectoryError(dir_path)
 
-        # ensure all required files exist
-        for file_path in (self.email_path, self.action_sh_path):
-            if not os.path.isfile(file_path):
-                raise AssignmentDirectoryError(file_path)
+        # ensure email.txt exists
+        if not os.path.isfile(self.email_path):
+            raise AssignmentDirectoryError(self.email_path)
+
+        # ensure there is an action script
+        self.action_script, self.action_script_interpreter = \
+            get_action_script_and_interpreter(self.tests_path)
+        if self.action_script is None:
+            raise AssignmentDirectoryError('action script')
 
     def is_published(self):
         """
@@ -251,6 +261,45 @@ def copy_tests_dir(assignment_dir: AssignmentDirectory, tests_path: str):
     :param tests_path: path to tests directory
     """
     cp(tests_path, assignment_dir.tests_path, recursive=True, sudo=True)
+
+
+def write_run_action_sh(assignment_dir: AssignmentDirectory,
+                        upload_dir: UploadDirectory):
+    """
+    Write run_action.sh into an assignment directory.
+
+    The contents of the script depend on the type of action script used in the
+    uploaded assignment.
+
+    :param assignment_dir: AssignmentDirectory to write to
+    :param upload_dir: UploadDirectory containing uploaded assignment data
+    """
+    temp_dir = TemporaryDirectory()
+    temp_dir_path = temp_dir.name
+
+    temp_run_action_sh_path = os.path.join(temp_dir_path, 'run_action.sh')
+
+    template = '''#!/bin/bash
+GLOBAL_TIMEOUT={global_timeout}
+GLOBAL_MEM_LIMIT_MB={global_memory_limit}
+GLOBAL_MEM_LIMIT_KB=$(($GLOBAL_MEM_LIMIT_MB * 1024))
+ulimit -v $GLOBAL_MEM_LIMIT_KB
+trap 'kill -INT -$pid' INT
+timeout $GLOBAL_TIMEOUT {interpreter} {script_name} "$@" &
+pid=$!
+wait $pid
+'''
+
+    run_action_sh_contents = \
+        template.format(global_timeout=config.tests_timeout,
+                        global_memory_limit=config.tests_memory_limit,
+                        interpreter=upload_dir.action_script_interpreter,
+                        script_name=upload_dir.action_script)
+
+    with open(temp_run_action_sh_path, 'w') as f:
+        f.write(run_action_sh_contents)
+
+    mv(temp_run_action_sh_path, assignment_dir.path, sudo=True)
 
 
 def remove_student_assignment(assignment_dir: AssignmentDirectory,

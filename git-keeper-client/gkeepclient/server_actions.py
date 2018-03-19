@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -240,13 +240,20 @@ def update_assignment(class_name: str, upload_dir_path: str,
     upload, and waits for a logged confirmation of success or error from the
     server.
 
-    Raises UpdateAssignmentError if anything goes wrong.
+    Raises a GkeepException if anything goes wrong.
 
     :param class_name: name of the class the assignment belongs to
     :param upload_dir_path: path to the assignment
     :param items: tuple or list of items to update
     :param response_timeout: seconds to wait for server response
     """
+
+    valid_items = {'base_code', 'email', 'tests'}
+
+    for item in items:
+        if item not in valid_items:
+            error = '{} is not a valid update item'.format(item)
+            raise GkeepException(error)
 
     # expand any special path components, strip trailing slash
     upload_dir_path = os.path.abspath(upload_dir_path)
