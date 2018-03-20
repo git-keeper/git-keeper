@@ -126,12 +126,8 @@ def create_git_shell_commands(username: str, command_list: list):
     mkdir(git_shell_commands_path, sudo=True)
 
     for command in command_list:
-        path = which(command)
-        link_path = os.path.join(git_shell_commands_path, command)
-
-        make_symbolic_link(path, link_path, sudo=True)
-
-    sudo_chown(git_shell_commands_path, username, username, recursive=True)
+        command_path = which(command)
+        make_symbolic_link(command_path, git_shell_commands_path, sudo=True)
 
 
 def create_user(username, user_type, first_name, last_name, email_address=None,
@@ -173,8 +169,8 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
 
         create_faculty_dirs(username)
 
-    # if we start using git-shell for students, call
-    # create_git_shell_commands() here
+    if user_type == UserType.student:
+        create_git_shell_commands(username, ['passwd'])
 
     # email the credentials to the user if an email address was provided
     if email_address is not None:
