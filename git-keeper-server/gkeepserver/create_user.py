@@ -23,6 +23,7 @@ from shutil import which
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_home_dir, user_log_path, \
     gkeepd_to_faculty_log_path
+from gkeepcore.student import Student
 from gkeepcore.system_commands import (sudo_add_user, sudo_set_password, chmod,
                                        sudo_chown, mkdir, make_symbolic_link)
 from gkeepserver.email_sender_thread import email_sender
@@ -194,3 +195,20 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
         body += 'Enjoy!'
 
         email_sender.enqueue(Email(email_address, subject, body))
+
+
+def create_student_user(student: Student):
+    """
+    Wrapper that calls create_user() to add a new student user.
+
+    The student is added to the student group specified in the server
+    configuration, and their shell is set to git-shell.
+
+    :param student: Student object representing the new student
+    """
+
+    groups = [config.student_group]
+    create_user(student.username, UserType.student,
+                student.first_name, student.last_name,
+                email_address=student.email_address,
+                additional_groups=groups, shell='git-shell')
