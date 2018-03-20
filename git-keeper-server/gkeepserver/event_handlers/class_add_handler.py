@@ -27,7 +27,7 @@ from gkeepcore.student import students_from_csv
 from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, \
     chmod, make_symbolic_link
 from gkeepcore.valid_names import validate_class_name
-from gkeepserver.create_user import create_user, UserType
+from gkeepserver.create_user import create_user, UserType, create_student_user
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.file_writing import write_and_install_file
 from gkeepserver.gkeepd_logger import gkeepd_logger
@@ -133,11 +133,7 @@ class ClassAddHandler(EventHandler):
         # create new student accounts
         for student in new_students:
             try:
-                groups = [config.student_group]
-                create_user(student.username, UserType.student,
-                            student.first_name, student.last_name,
-                            email_address=student.email_address,
-                            additional_groups=groups, shell='git-shell')
+                create_student_user(student)
                 home_dir = user_home_dir(student.username)
 
                 # use git-shell so that the only command students can run on

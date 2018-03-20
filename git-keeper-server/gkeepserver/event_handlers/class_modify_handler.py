@@ -27,7 +27,7 @@ from gkeepcore.student import students_from_csv, Student
 from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, chmod
 from gkeepserver.assignments import get_class_assignment_dirs, \
     setup_student_assignment, StudentAssignmentError
-from gkeepserver.create_user import create_user, UserType
+from gkeepserver.create_user import create_user, UserType, create_student_user
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
@@ -124,11 +124,7 @@ class ClassModifyHandler(EventHandler):
         # add the user if necessary
         if not user_exists(student.username):
             try:
-                groups = [config.student_group]
-                create_user(student.username, UserType.student,
-                            student.first_name, student.last_name,
-                            email_address=student.email_address,
-                            additional_groups=groups)
+                create_student_user(student)
             except Exception as e:
                 error = 'Error adding user {0}: {1}'.format(student.username,
                                                             e)
