@@ -134,15 +134,6 @@ class ClassAddHandler(EventHandler):
         for student in new_students:
             try:
                 create_student_user(student)
-                home_dir = user_home_dir(student.username)
-
-                # use git-shell so that the only command students can run on
-                # the server is passwd
-                git_shell_commands_path = os.path.join(home_dir,
-                                                       'git-shell-commands')
-                mkdir(git_shell_commands_path, sudo=True)
-                make_symbolic_link(which('passwd'), git_shell_commands_path,
-                                   sudo=True)
             except Exception as e:
                 error = 'Error adding user {0}: {1}'.format(student.username,
                                                             e)
