@@ -38,7 +38,7 @@ from gkeepserver.assignments import AssignmentDirectory, \
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
-from gkeepserver.info_refresh_thread import info_refresher
+from gkeepserver.info_update_thread import info_updater
 from gkeepserver.server_configuration import config
 from gkeepserver.students_and_classes import get_class_status
 
@@ -82,7 +82,9 @@ class UploadHandler(EventHandler):
             self._setup_assignment_dir(assignment_dir)
             self._setup_faculty_test_assignment(assignment_dir)
 
-            info_refresher.enqueue(self._faculty_username)
+            info_updater.enqueue_assignment_scan(self._faculty_username,
+                                                 self._class_name,
+                                                 self._assignment_name)
 
             log_gkeepd_to_faculty(self._faculty_username, 'UPLOAD_SUCCESS',
                                   self._upload_path)

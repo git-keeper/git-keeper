@@ -63,6 +63,8 @@ class Submission:
         self.reports_repo_path = assignment_dir.reports_repo_path
         self.faculty_username = faculty_username
         self.faculty_email = faculty_email
+        self.class_name = assignment_dir.class_name
+        self.assignment_name = assignment_dir.assignment_name
 
     def run_tests(self):
         """
