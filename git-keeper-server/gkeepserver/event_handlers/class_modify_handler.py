@@ -128,7 +128,7 @@ class ClassModifyHandler(EventHandler):
                 create_user(student.username, UserType.student,
                             student.first_name, student.last_name,
                             email_address=student.email_address,
-                            additional_groups=groups)
+                            additional_groups=groups, shell='git-shell')
             except Exception as e:
                 error = 'Error adding user {0}: {1}'.format(student.username,
                                                             e)
