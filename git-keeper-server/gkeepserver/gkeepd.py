@@ -42,7 +42,7 @@ from gkeepserver.check_system import check_system
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
-from gkeepserver.info_refresh_thread import info_refresher
+from gkeepserver.info_update_thread import info_updater
 from gkeepserver.local_log_file_reader import LocalLogFileReader
 from gkeepserver.event_handler_assigner import EventHandlerAssignerThread
 from gkeepserver.log_polling import log_poller
@@ -116,13 +116,13 @@ def main():
         sys.exit(1)
 
     # start the info refresher thread and refresh the info for each faculty
-    info_refresher.start()
+    info_updater.start()
 
     reader = LocalCSVReader(config.faculty_csv_path)
     faculty_list = faculty_from_csv_file(reader)
 
     for faculty in faculty_list:
-        info_refresher.enqueue(faculty.username)
+        info_updater.enqueue_full_scan(faculty.username)
 
     # queues for thread communication
     new_log_event_queue = Queue()
@@ -192,7 +192,7 @@ def main():
     for thread in submission_test_threads:
         thread.shutdown()
 
-    info_refresher.shutdown()
+    info_updater.shutdown()
 
     email_sender.shutdown()
 

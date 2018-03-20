@@ -1,4 +1,4 @@
-# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ New submissions are pulled from the global new_submission_queue.
 from queue import Empty
 from threading import Thread
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
-from gkeepserver.info_refresh_thread import info_refresher
+from gkeepserver.info_update_thread import info_updater
 from gkeepserver.new_submission_queue import new_submission_queue
 
 
@@ -70,7 +70,13 @@ class SubmissionTestThread(Thread):
                     submission = new_submission_queue.get(block=True,
                                                           timeout=0.1)
                     submission.run_tests()
-                    info_refresher.enqueue(submission.faculty_username)
+
+                    scan_args = (submission.faculty_username,
+                                 submission.class_name,
+                                 submission.assignment_name,
+                                 submission.student.username)
+                    info_updater.enqueue_submission_scan(*scan_args)
+
             # get() raises Empty when there is nothing in the queue after
             # timeout seconds
             except Empty:

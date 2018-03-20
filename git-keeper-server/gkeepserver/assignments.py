@@ -30,7 +30,7 @@ from gkeepcore.git_commands import git_init_bare, git_init, git_add_all, \
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import parse_faculty_assignment_path, \
     user_home_dir, faculty_class_dir_path, student_assignment_repo_path, \
-    student_class_dir_path
+    student_class_dir_path, faculty_assignment_dir_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.system_commands import cp, chmod, mkdir, sudo_chown, rm, mv
 from gkeepserver.email_sender_thread import email_sender
@@ -141,9 +141,29 @@ class AssignmentDirectory:
         return os.path.isfile(self.published_flag_path)
 
 
+def get_assignment_dir(faculty_username: str, class_name: str,
+                       assignment_name: str) -> AssignmentDirectory:
+    """
+    Build and return an AssignmentDirectory object for an assignment.
+
+    :param faculty_username: faculty that owns the assignment
+    :param class_name: name of the class that the assignment belongs to
+    :param assignment_name: name of the assignment
+    :return: an AssignmentDirectory object representing the assignment's
+     directory
+    """
+
+    assignment_path = \
+        faculty_assignment_dir_path(class_name, assignment_name,
+                                    user_home_dir(faculty_username))
+
+    return AssignmentDirectory(assignment_path)
+
+
 def get_class_assignment_dirs(faculty_username: str, class_name: str) -> list:
     """
-    Get all the valid assignment directories from a class.
+    Get all the valid assignment directories from a class, as a list of
+    AssignmentDirectory objects.
 
     :param faculty_username: faculty who owns the class
     :param class_name: name of the class
