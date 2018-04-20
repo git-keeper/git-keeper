@@ -32,6 +32,4 @@ setup(
         'gkeepserver': ['data/*']
     },
     install_requires=['git-keeper-core'],
-    setup_requires=['pytest-runner'],
-    tests_require=['pytest'],
 )

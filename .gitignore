@@ -9,3 +9,7 @@ dist/
 .cache/
 .env/
 .vagrant/
+*.box
+log.html
+report.html
+output.xml
