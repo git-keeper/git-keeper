@@ -1,5 +1,5 @@
 import vagrant
-from gkeepcore.shell_command import run_command
+from gkeepcore.shell_command import run_command, run_command_in_directory
 
 
 class VagrantControl:
@@ -7,7 +7,19 @@ class VagrantControl:
     def __init__(self):
         self.v = vagrant.Vagrant()
 
+    def make_boxes_if_missing(self):
+        names = [box.name for box in self.v.box_list()]
+
+        if 'gkserver' not in names:
+            run_command_in_directory('gkserver_base', 'source make_box.sh')
+            self.v.box_add('gkserver', 'gkserver_base/gkserver.box')
+
+        if 'gkclient' not in names:
+            run_command_in_directory('gkclient_base', 'source make_box.sh')
+            self.v.box_add('gkclient', 'gkclient_base/gkclient.box')
+
     def start_vagrant(self):
+        self.make_boxes_if_missing()
         self.v.up()
 
     def start_gkeepd(self):
@@ -21,6 +33,7 @@ class VagrantControl:
 
     def expect_email(self, to_user, contains):
         result = self.run_server_script('keeper', 'email_check.py', to_user, contains)
+        print(result)
         assert result == 'True'
 
     def user_exists(self, username):
@@ -53,7 +66,7 @@ class VagrantControl:
         base = 'ssh localhost'
         port = '-p {}'.format(port)
         user = '-l {} -i ssh_keys/{}_rsa'.format(username, username)
-        other = '-o StrictHostKeyChecking=no'
+        other = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
 
         full_cmd = ' '.join([base, port, user, other, cmd])
         return run_command(full_cmd)

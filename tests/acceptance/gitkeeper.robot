@@ -1,7 +1,7 @@
 
 *** Settings ***
 Library    robot_lib/VagrantControl.py
-#Suite Setup    Start vagrant
+Suite Setup    Start vagrant
 #Suite Teardown    Stop vagrant
 
 **** Test Cases ****
