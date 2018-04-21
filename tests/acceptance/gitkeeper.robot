@@ -19,16 +19,16 @@ New System Setup
 
 Vagrant Setup
     Make Boxes if Missing
-    Start vagrant   ${VAGRANT_START_FLAG}
+    Start Vagrant   ${ROBOT_CONTROLS_VAGRANT}
 
 Vagrant Teardown
-    Stop Vagrant    ${VAGRANT_STOP_FLAG}
+    Stop Vagrant    ${ROBOT_CONTROLS_VAGRANT}
 
 Reset Server
     Remove User    prof
     Remove User    prof2
-    #Remove User    student
-    #Remove User    student2
+    Remove User    student
+    Remove User    student2
     Remove User    tester
     Remove File    keeper    gkeepd.log
     Remove File    keeper    snapshot.json
@@ -36,6 +36,4 @@ Reset Server
 
 
 *** Variables ***
-# use --variable VAGRANT_START_FLAG:False to change behavior
-${VAGRANT_START_FLAG}    ${True}
-${VAGRANT_STOP_FLAG}    ${True}
+${ROBOT_CONTROLS_VAGRANT}    Yes
