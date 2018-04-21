@@ -11,15 +11,16 @@ class VagrantControl:
         names = [box.name for box in self.v.box_list()]
 
         if 'gkserver' not in names:
-            run_command_in_directory('gkserver_base', 'source make_box.sh')
+            run_command_in_directory('gkserver_base', 'bash -c ./make_box.sh')
             self.v.box_add('gkserver', 'gkserver_base/gkserver.box')
 
         if 'gkclient' not in names:
-            run_command_in_directory('gkclient_base', 'source make_box.sh')
+            run_command_in_directory('gkclient_base', 'bash -c ./make_box.sh')
             self.v.box_add('gkclient', 'gkclient_base/gkclient.box')
 
-    def start_vagrant(self):
-        self.make_boxes_if_missing()
+    def start_vagrant(self, start_flag):
+        if not start_flag:
+            return
         self.v.up()
 
     def start_gkeepd(self):
@@ -28,7 +29,9 @@ class VagrantControl:
     def stop_gkeepd(self):
         self.run_on_server('keeper', 'screen -S gkserver -X quit')
 
-    def stop_vagrant(self):
+    def stop_vagrant(self, stop_flag):
+        if not stop_flag:
+            return
         self.v.destroy()
 
     def expect_email(self, to_user, contains):
@@ -65,10 +68,10 @@ class VagrantControl:
     def run_on(self, username, cmd, port):
         base = 'ssh localhost'
         port = '-p {}'.format(port)
-        user = '-l {} -i ssh_keys/{}_rsa'.format(username, username)
-        other = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
+        user_and_key = '-l {} -i ssh_keys/{}_rsa'.format(username, username)
+        supress_warnings = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
 
-        full_cmd = ' '.join([base, port, user, other, cmd])
+        full_cmd = ' '.join([base, port, user_and_key, supress_warnings, cmd])
         return run_command(full_cmd)
 
     def server_port(self):

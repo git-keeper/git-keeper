@@ -1,5 +1,3 @@
-#/bin/bash
-
 vagrant up
 echo 'Optimizing image...'
 vagrant ssh -- sudo dd if=/dev/zero of=/EMPTY bs=1M
