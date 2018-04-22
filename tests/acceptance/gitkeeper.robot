@@ -1,6 +1,7 @@
 
 *** Settings ***
-Library    robot_lib/VagrantControl.py
+Library    gkeeprobot.keywords.VagrantKeywords
+Library    gkeeprobot.keywords.ServerKeywords
 Suite Setup    Vagrant Setup
 Suite Teardown    Vagrant Teardown
 
@@ -36,4 +37,4 @@ Reset Server
 
 
 *** Variables ***
-${ROBOT_CONTROLS_VAGRANT}    Yes
+${ROBOT_CONTROLS_VAGRANT}    No
