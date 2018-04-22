@@ -8,6 +8,8 @@ Suite Teardown    Vagrant Teardown
 **** Test Cases ****
 
 New System Setup
+    Set Faculty    prof    prof2
+    Add File    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     Expect Email    to_user=prof    contains=Password
     Expect Email    to_user=prof2   contains=Password
@@ -33,6 +35,8 @@ Reset Server
     Remove User    tester
     Remove File    keeper    gkeepd.log
     Remove File    keeper    snapshot.json
+    Remove File    keeper    faculty.csv
+    Remove File    keeper    server.cfg
     Clear Email
 
 

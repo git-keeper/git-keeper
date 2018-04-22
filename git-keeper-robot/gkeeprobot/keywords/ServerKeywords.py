@@ -6,6 +6,14 @@ control = ServerControl()
 
 class ServerKeywords:
 
+    def set_faculty(self, *faculty_list):
+        for faculty_name in faculty_list:
+            line = 'Professor,Doctor,{}@gitkeeper.edu'.format(faculty_name)
+            control.run_server_script('keeper', 'add_to_file.py', 'faculty.csv', line)
+
+    def add_file(self, username, filename, target_filename):
+        control.copy(username, filename, target_filename)
+
     def start_gkeepd(self):
         control.run('keeper', 'screen -S gkserver -d -m gkeepd')
 

@@ -14,8 +14,6 @@ Vagrant.configure("2") do |config|
     SCRIPT
 
 
-    config.vm.provision "file", source:"server.cfg", destination:"/home/vagrant/server.cfg"
-    config.vm.provision "file", source:"faculty.csv", destination:"/home/vagrant/faculty.csv"
     config.vm.provision "file", source:"mysmtpd.py", destination:"/email/mysmtpd.py"
     config.vm.provision "file", source:"../ssh_keys", destination:"/home/vagrant/ssh_keys"
     config.vm.provision "shell", inline:<<-SCRIPT
@@ -25,11 +23,5 @@ Vagrant.configure("2") do |config|
         chown -R keeper /home/keeper/.ssh
         chgrp -R keeper /home/keeper/.ssh
         chmod -R 600 /home/keeper/.ssh/*
-        cp /home/vagrant/server.cfg /home/keeper/server.cfg
-        cp /home/vagrant/faculty.csv /home/keeper/faculty.csv
-        chown keeper /home/keeper/server.cfg
-        chown keeper /home/keeper/faculty.csv
-        chgrp keeper /home/keeper/server.cfg
-        chgrp keeper /home/keeper/faculty.csv
     SCRIPT
 end

@@ -13,13 +13,20 @@ class ServerControl:
         return self.run(username, cmd).strip()
 
     def run(self, username, cmd):
-
-        port = self.v.get_server_port()
-
         base = 'ssh localhost'
-        port = '-p {}'.format(port)
+        port = '-p {}'.format(self.v.get_server_port())
         user_and_key = '-l {} -i ssh_keys/{}_rsa'.format(username, username)
         suppress_warnings = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
 
         full_cmd = ' '.join([base, port, user_and_key, suppress_warnings, cmd])
+        return run_command(full_cmd)
+
+    def copy(self, username, filename, target_filename):
+        base = 'scp'
+        port = '-P {}'.format(self.v.get_server_port())
+        key = '-i ssh_keys/{}_rsa'.format(username, username)
+        suppress_warnings = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
+        copy = '{} {}@localhost:{}'.format(filename, username, target_filename)
+
+        full_cmd = ' '.join([base, port, key, suppress_warnings, copy])
         return run_command(full_cmd)
