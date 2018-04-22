@@ -12,12 +12,12 @@ class VagrantControl:
         names = [box.name for box in self.v.box_list()]
 
         if 'gkserver' not in names:
-            logger.console('Making gkserver.box.  This can take up to 30 minutes but only executes once per system.')
+            logger.console('Making gkserver.box.  This can take up to 30 minutes.')
             run_command_in_directory('gkserver_base', 'bash -c ./make_box.sh')
             self.v.box_add('gkserver', 'gkserver_base/gkserver.box')
 
         if 'gkclient' not in names:
-            logger.console('Making gkclient.box.  This can take up to 30 minutes but only executes once per system.')
+            logger.console('Making gkclient.box.  This can take up to 30 minutes.')
             run_command_in_directory('gkclient_base', 'bash -c ./make_box.sh')
             self.v.box_add('gkclient', 'gkclient_base/gkclient.box')
 
