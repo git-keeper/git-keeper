@@ -4,7 +4,7 @@ Library    gkeeprobot.keywords.ServerSetupKeywords
 Library    gkeeprobot.keywords.ServerCheckKeywords
 Test Teardown    Reset Server
 
-**** Test Cases ****
+*** Test Cases ***
 
 Valid Setup
     Set Faculty CSV   prof    prof2
