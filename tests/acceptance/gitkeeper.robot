@@ -9,7 +9,7 @@ Test Teardown    Reset Server
 **** Test Cases ****
 
 Valid Setup
-    Set Faculty    prof    prof2
+    Set Faculty CSV   prof    prof2
     Add File    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     Expect Email    to_user=prof    contains=Password
@@ -19,7 +19,7 @@ Valid Setup
     Stop gkeepd
 
 Missing server cfg
-    Set Faculty    prof
+    Set Faculty CSV    prof
     Start gkeepd
     Server Not Running
     User Does Not Exist    prof
@@ -36,6 +36,15 @@ Malformed faculty csv
     Server Not Running
     User Does Not Exist    prof
     User Does Not Exist    prof2
+
+Malformed server cfg
+    Set Faculty CSV    prof    prof2
+    Add File    keeper    files/malformed_server.cfg    server.cfg
+    Start gkeepd
+    Server Not Running
+    User Does Not Exist    prof
+    User Does Not Exist    prof2
+
 
 *** Keywords ***
 
