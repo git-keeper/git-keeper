@@ -1,10 +1,7 @@
 
 *** Settings ***
-Library    gkeeprobot.keywords.VagrantKeywords
 Library    gkeeprobot.keywords.ServerSetupKeywords
 Library    gkeeprobot.keywords.ServerCheckKeywords
-Suite Setup    Vagrant Setup
-Suite Teardown    Vagrant Teardown
 Test Teardown    Reset Server
 
 **** Test Cases ****
@@ -49,13 +46,6 @@ Malformed server cfg
 
 *** Keywords ***
 
-Vagrant Setup
-    Make Boxes if Missing
-    Start Vagrant   ${ROBOT_CONTROLS_VAGRANT}
-
-Vagrant Teardown
-    Stop Vagrant    ${ROBOT_CONTROLS_VAGRANT}
-
 Reset Server
     [Documentation]    All keywords succeed whether or not the user/file is present
     Remove User    prof
@@ -70,5 +60,3 @@ Reset Server
     Clear Email
 
 
-*** Variables ***
-${ROBOT_CONTROLS_VAGRANT}    No
