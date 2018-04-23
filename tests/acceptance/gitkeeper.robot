@@ -1,7 +1,8 @@
 
 *** Settings ***
 Library    gkeeprobot.keywords.VagrantKeywords
-Library    gkeeprobot.keywords.ServerKeywords
+Library    gkeeprobot.keywords.ServerSetupKeywords
+Library    gkeeprobot.keywords.ServerCheckKeywords
 Suite Setup    Vagrant Setup
 Suite Teardown    Vagrant Teardown
 Test Teardown    Reset Server
