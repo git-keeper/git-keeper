@@ -6,9 +6,9 @@ import pwd
 def user_exists(user):
     try:
         pwd.getpwnam(user)
-        return True
+        return 'Yes'
     except:
-        return False
+        return 'No'
 
 
 print(user_exists(sys.argv[1]))

@@ -4,19 +4,38 @@ Library    gkeeprobot.keywords.VagrantKeywords
 Library    gkeeprobot.keywords.ServerKeywords
 Suite Setup    Vagrant Setup
 Suite Teardown    Vagrant Teardown
+Test Teardown    Reset Server
 
 **** Test Cases ****
 
-New System Setup
+Valid Setup
     Set Faculty    prof    prof2
     Add File    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     Expect Email    to_user=prof    contains=Password
     Expect Email    to_user=prof2   contains=Password
     User Exists    tester
+    Server Running
     Stop gkeepd
-    Reset Server
 
+Missing server cfg
+    Set Faculty    prof
+    Start gkeepd
+    Server Not Running
+    User Does Not Exist    prof
+
+Missing faculty csv
+    Add File    keeper    files/valid_server.cfg    server.cfg
+    Start gkeepd
+    Server Not Running
+
+Malformed faculty csv
+    Add File    keeper    files/valid_server.cfg    server.cfg
+    Add File    keeper    files/malformed_faculty.csv    faculty.csv
+    Start gkeepd
+    Server Not Running
+    User Does Not Exist    prof
+    User Does Not Exist    prof2
 
 *** Keywords ***
 
@@ -28,6 +47,7 @@ Vagrant Teardown
     Stop Vagrant    ${ROBOT_CONTROLS_VAGRANT}
 
 Reset Server
+    [Documentation]    All keywords succeed whether or not the user/file is present
     Remove User    prof
     Remove User    prof2
     Remove User    student
