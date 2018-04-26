@@ -3,6 +3,7 @@ import time
 import glob
 import sys
 
+
 def email(to, contains):
     for tries in range(10):
         for file in glob.glob('/email/{}_*.txt'.format(to)):

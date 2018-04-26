@@ -7,8 +7,8 @@ class ServerControl:
     def __init__(self):
         self.v = VagrantControl()
 
-    def run_server_script(self, username, script, *args):
-        base = 'python3 /vagrant/server_scripts/' + script
+    def run_vm_script(self, username, script, *args):
+        base = 'python3 /vagrant/vm_scripts/' + script
         cmd = ' '.join([base] + list(args))
         return self.run(username, cmd).strip()
 
