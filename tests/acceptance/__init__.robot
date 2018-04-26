@@ -9,10 +9,8 @@ Suite Teardown    Vagrant Teardown
 
 Vagrant Setup
     Make Boxes if Missing
-    Start Vagrant   ${ROBOT_CONTROLS_VAGRANT}
+    Start Vagrant if Not Running
 
 Vagrant Teardown
-    Stop Vagrant    ${ROBOT_CONTROLS_VAGRANT}
+    Stop Vagrant if Not Originally Running
 
-*** Variables ***
-${ROBOT_CONTROLS_VAGRANT}    No

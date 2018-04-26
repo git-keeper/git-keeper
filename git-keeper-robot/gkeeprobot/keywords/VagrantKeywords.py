@@ -7,6 +7,9 @@ control = VagrantControl()
 
 class VagrantKeywords:
 
+    server_was_running = False
+    client_was_running = False
+
     def make_boxes_if_missing(self):
         names = [box.name for box in control.v.box_list()]
 
@@ -20,21 +23,28 @@ class VagrantKeywords:
             run_command_in_directory('gkclient_base', 'bash -c ./make_box.sh')
             control.v.box_add('gkclient', 'gkclient_base/gkclient.box')
 
-    def start_vagrant(self, vagrant_start):
-        if vagrant_start == 'Yes':
-            if control.is_server_running():
-                raise AssertionError('gkserver already running!')
-            if control.is_client_running():
-                raise AssertionError('gkclient already running!')
-            logger.console('Starting gkserver and gkclient VMs...')
-            control.v.up()
+    def start_vagrant_if_not_running(self):
+        if control.is_server_running():
+            logger.console('Using existing gkserver VM...')
+            VagrantKeywords.server_was_running = True
         else:
-            control.check_status()
-            logger.console('Using existing gkserver and gkclient VMS...')
+            logger.console('Start gkserver VM...')
+            control.v.up(vm_name='gkserver')
+        if control.is_client_running():
+            logger.console('Using existing gkclient VM...')
+            VagrantKeywords.client_was_running = True
+        else:
+            logger.console('Start gkclient VM...')
+            control.v.up(vm_name='gkclient')
 
-    def stop_vagrant(self, vagrant_stop):
-        if vagrant_stop == 'Yes':
-            logger.console('Destroying gkserver and gkclient VMs...')
-            control.v.destroy()
+    def stop_vagrant_if_not_originally_running(self):
+        if VagrantKeywords.server_was_running:
+            logger.console('Leaving gkserver VM running...')
         else:
-            logger.console('Leaving gkserver and gkclient VMs running...')
+            logger.console('Destroying gkserver VM...')
+            control.v.destroy(vm_name='gkserver')
+        if VagrantKeywords.client_was_running:
+            logger.console('Leaving gkclient VM running...')
+        else:
+            logger.console('Destroying gkclient VM...')
+            control.v.destroy(vm_name='gkclient')
