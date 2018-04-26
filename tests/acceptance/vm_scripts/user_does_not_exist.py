@@ -5,12 +5,12 @@ import pwd
 
 
 @polling
-def user_exists(user):
+def user_does_not_exist(user):
     try:
         pwd.getpwnam(user)
-        return True
-    except:
         return False
+    except:
+        return True
 
 
-print(user_exists(sys.argv[1]))
+print(user_does_not_exist(sys.argv[1]))

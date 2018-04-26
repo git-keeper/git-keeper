@@ -4,11 +4,7 @@
 #
 # The base gkserver image is configured as described in the server setup document (github wiki).
 #
-# The base gkclient image has four users, `prof`, `prof2`, `student`, and `student2`.
-#
-# On both systems, ssh keys are in place for password-less logins.  The folder `ssh_provision` contains
-# `keeper_rsa`, `prof_rsa`, etc. for each user.  If required, each usuer's password is their username
-# (e.g. keeper:keeper, prof:prof, etc.)
+# The base gkclient image is a vanilla ubuntu box
 #
 # This file configures the two VMs to facilitate testing:
 # * During provisioning, `git-keeper-core` and `git-keeper-server` are installed on the `gkserver`.  Similarly,
@@ -18,25 +14,36 @@
 Vagrant.configure("2") do |config|
 
     config.vm.define "gkserver" do |gkserver|
-        # FIXME upload to vagrant cloud and point to that version
         gkserver.vm.box = "gkserver"
         gkserver.vm.hostname = "gkserver"
         gkserver.vm.network "private_network", ip:"20.0.1.100"
 
         gkserver.vm.synced_folder "../../git-keeper-core", "/git-keeper-core"
         gkserver.vm.synced_folder "../../git-keeper-server", "/git-keeper-server"
+        gkserver.vm.synced_folder "../../git-keeper-robot", "/git-keeper-robot"
 
         gkserver.vm.provision "shell", inline:<<-SCRIPT
             pip3 install /git-keeper-core
             pip3 install /git-keeper-server
+            pip3 install /git-keeper-robot
             python3 /email/mysmtpd.py 25 /email &
         SCRIPT
     end
 
     config.vm.define "gkclient" do |gkclient|
-        # FIXME upload to vagrant cloud and point to that version
         gkclient.vm.box = "gkclient"
+        gkclient.vm.hostname = "gkclient"
         gkclient.vm.network "private_network", ip:"20.0.1.200"
         gkclient.vm.provision "shell", inline:"sed -i '$ a 20.0.1.100 gkserver' /etc/hosts"
+
+        gkclient.vm.synced_folder "../../git-keeper-core", "/git-keeper-core"
+        gkclient.vm.synced_folder "../../git-keeper-client", "/git-keeper-client"
+        gkclient.vm.synced_folder "../../git-keeper-robot", "/git-keeper-robot"
+
+        gkclient.vm.provision "shell", inline:<<-SCRIPT
+            pip3 install /git-keeper-core
+            pip3 install /git-keeper-client
+            pip3 install /git-keeper-robot
+        SCRIPT
     end
 end

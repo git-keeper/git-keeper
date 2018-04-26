@@ -1,32 +1,21 @@
-from gkeepcore.shell_command import run_command
 from gkeeprobot.control.VagrantControl import VagrantControl
+from gkeeprobot.control.VMControl import VMControl
 
 
 class ServerControl:
 
     def __init__(self):
         self.v = VagrantControl()
+        self.vm_control = VMControl()
 
-    def run_vm_script(self, username, script, *args):
-        base = 'python3 /vagrant/vm_scripts/' + script
-        cmd = ' '.join([base] + list(args))
-        return self.run(username, cmd).strip()
+    def run_vm_python_script(self, username, script, *args):
+        return self.vm_control.run_vm_python_script(username, script, self.v.get_server_port(), *args)
+
+    def run_vm_bash_script(self, username, script, *args):
+        return self.vm_control.run_vm_bash_script(username, script, self.v.get_server_port(), *args)
 
     def run(self, username, cmd):
-        base = 'ssh localhost'
-        port = '-p {}'.format(self.v.get_server_port())
-        user_and_key = '-l {} -i ssh_keys/{}_rsa'.format(username, username)
-        suppress_warnings = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
-
-        full_cmd = ' '.join([base, port, user_and_key, suppress_warnings, cmd])
-        return run_command(full_cmd)
+        return self.vm_control.run(username, self.v.get_server_port(), cmd)
 
     def copy(self, username, filename, target_filename):
-        base = 'scp'
-        port = '-P {}'.format(self.v.get_server_port())
-        key = '-i ssh_keys/{}_rsa'.format(username, username)
-        suppress_warnings = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
-        copy = '{} {}@localhost:{}'.format(filename, username, target_filename)
-
-        full_cmd = ' '.join([base, port, key, suppress_warnings, copy])
-        return run_command(full_cmd)
+        return self.vm_control.copy(username, self.v.get_server_port(), filename, target_filename)

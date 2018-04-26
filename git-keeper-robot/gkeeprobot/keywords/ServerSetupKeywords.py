@@ -12,7 +12,7 @@ class ServerSetupKeywords:
         for faculty_name in faculty_list:
             ServerSetupKeywords.faculty.append(faculty_name)
             line = 'Professor,Doctor,{}@gitkeeper.edu'.format(faculty_name)
-            control.run_vm_script('keeper', 'add_to_file.py', 'faculty.csv', line)
+            control.run_vm_python_script('keeper', 'add_to_file.py', 'faculty.csv', line)
 
     def add_file(self, username, filename, target_filename):
         control.copy(username, filename, target_filename)
