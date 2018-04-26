@@ -7,5 +7,5 @@ def polling(func):
             if func(*args, **kwargs):
                 return True
             time.sleep(.1)
-        return not False
+        return False
     return polling_wrapper
