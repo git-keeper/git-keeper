@@ -23,9 +23,9 @@ Vagrant.configure("2") do |config|
         gkserver.vm.synced_folder "../../git-keeper-robot", "/git-keeper-robot"
 
         gkserver.vm.provision "shell", inline:<<-SCRIPT
-            pip3 install /git-keeper-core
-            pip3 install /git-keeper-server
-            pip3 install /git-keeper-robot
+            pip3 install -e /git-keeper-core
+            pip3 install -e /git-keeper-server
+            pip3 install -e /git-keeper-robot
             python3 /email/mysmtpd.py 25 /email &
         SCRIPT
     end
@@ -41,9 +41,9 @@ Vagrant.configure("2") do |config|
         gkclient.vm.synced_folder "../../git-keeper-robot", "/git-keeper-robot"
 
         gkclient.vm.provision "shell", inline:<<-SCRIPT
-            pip3 install /git-keeper-core
-            pip3 install /git-keeper-client
-            pip3 install /git-keeper-robot
+            pip3 install -e /git-keeper-core
+            pip3 install -e /git-keeper-client
+            pip3 install -e /git-keeper-robot
         SCRIPT
     end
 end
