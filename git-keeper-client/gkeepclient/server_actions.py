@@ -50,10 +50,7 @@ def class_add(class_name: str, csv_file_path: str):
     if not os.path.isfile(csv_file_path):
         raise GkeepException('{0} does not exist'.format(csv_file_path))
 
-    try:
-        students = students_from_csv(LocalCSVReader(csv_file_path))
-    except GkeepException as e:
-        sys.exit(e)
+    students = students_from_csv(LocalCSVReader(csv_file_path))
 
     print('Adding class {0} with the following students:'.format(class_name))
 
@@ -91,10 +88,7 @@ def class_modify(class_name: str, csv_file_path: str):
     if not os.path.isfile(csv_file_path):
         raise GkeepException('{0} does not exist'.format(csv_file_path))
 
-    try:
-        students = students_from_csv(LocalCSVReader(csv_file_path))
-    except GkeepException as e:
-        sys.exit(e)
+    students = students_from_csv(LocalCSVReader(csv_file_path))
 
     print('Modifying class {0} with the following students:'
           .format(class_name))
