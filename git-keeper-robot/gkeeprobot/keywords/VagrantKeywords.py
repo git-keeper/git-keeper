@@ -48,3 +48,6 @@ class VagrantKeywords:
         else:
             logger.console('Destroying gkclient VM...')
             control.v.destroy(vm_name='gkclient')
+
+    def set_key_permissions(self):
+        run_command_in_directory('ssh_keys', 'chmod 600 *')

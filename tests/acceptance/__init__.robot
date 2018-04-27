@@ -10,6 +10,7 @@ Suite Teardown    Vagrant Teardown
 Vagrant Setup
     Make Boxes if Missing
     Start Vagrant if Not Running
+    Set Key Permissions
 
 Vagrant Teardown
     Stop Vagrant if Not Originally Running
