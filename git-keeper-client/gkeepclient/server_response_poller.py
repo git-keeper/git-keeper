@@ -23,6 +23,7 @@ from time import sleep, time
 
 from gkeepclient.server_interface import server_interface
 from gkeepclient.server_log_file_reader import ServerLogFileReader
+from gkeepcore.gkeep_exception import GkeepException
 
 
 class ServerResponseType(Enum):
@@ -109,19 +110,21 @@ def communicate_event(event_type: str, payload: str, response_timeout=20,
                       success_message=None, error_message=None,
                       warning_message=None, timeout_message=None):
     """
-    Log an event on the server to initiate server action. Wait for server
-    responses and print messages accordingly.
+    Log an event on the server to initiate server action and wait for server's
+    response.
+
+    Prints success_message if the action was successful. Raises a
+    GkeepException with an error or warning message if something went wrong.
 
     :param event_type: type of the event logged
     :param payload: payload of the event
     :param response_timeout: seconds to wait before reporting a timeout
     :param success_message: message to print if the server handled the
      event successfully
-    :param error_message: message to print announcing that the server failed
-     to handle the event
-    :param warning_message: message to print announcing that the server issued
-     a warning when handling the event
-    :param timeout_message: message to print if the timeout is reached
+    :param error_message: prefix to add to the server's error response message
+    :param warning_message: prefix to add to the server's warning response
+     message
+    :param timeout_message: error message for a timeout
     """
 
     poller = ServerResponsePoller(event_type, response_timeout)
@@ -133,13 +136,11 @@ def communicate_event(event_type: str, payload: str, response_timeout=20,
             if success_message is not None:
                 print(success_message)
         elif response.response_type == ServerResponseType.ERROR:
-            if error_message is not None:
-                print(error_message)
-            print(response.message)
+            message = (error_message or '') + response.message
+            raise GkeepException(message)
         elif response.response_type == ServerResponseType.WARNING:
-            if warning_message is not None:
-                print(warning_message)
-            print(response.message)
+            message = (warning_message or '') + response.message
+            raise GkeepException(message)
         elif response.response_type == ServerResponseType.TIMEOUT:
             if timeout_message is not None:
-                print(timeout_message)
+                raise GkeepException(timeout_message)
