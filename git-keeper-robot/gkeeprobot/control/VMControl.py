@@ -1,7 +1,7 @@
 
 from gkeepcore.shell_command import run_command
 from tempfile import TemporaryDirectory
-
+from robot.api import logger
 
 class VMControl:
 
@@ -13,7 +13,7 @@ class VMControl:
         return self.run(username, port, cmd).strip()
 
     def run_vm_bash_script(self, username, script, port, *args):
-        base = 'bash -c /vagrant/vm_scripts/' + script
+        base = 'source /vagrant/vm_scripts/' + script
         cmd = ' '.join([base] + list(args))
         return self.run(username, port, cmd).strip()
 

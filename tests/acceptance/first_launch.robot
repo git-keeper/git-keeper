@@ -12,6 +12,8 @@ Valid Setup
     Start gkeepd
     Expect Email    to_user=prof    contains=Password
     Expect Email    to_user=prof2   contains=Password
+    User Exists    prof
+    User Exists    prof2
     User Exists    tester
     Server Running
     [Teardown]    Run Keywords    Stop gkeepd    Reset Server

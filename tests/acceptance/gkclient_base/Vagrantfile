@@ -1,39 +1,24 @@
 
-$create_users = <<-SCRIPT
-useradd -ms /bin/bash prof
-useradd -ms /bin/bash prof2
-useradd -ms /bin/bash student
-useradd -ms /bin/bash student2
-echo 'prof:prof' | chpasswd
-echo 'prof2:prof2' | chpasswd
-echo 'student:student' | chpasswd
-echo 'student2:student2' | chpasswd
-apt-get update && apt-get install -y python3-pip
-apt-get clean
-SCRIPT
-
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/trusty64"
-  config.vm.provision "shell", inline:$create_users
-
-  config.vm.provision "file", source:"../ssh_keys",  destination:"/home/vagrant/ssh_keys"
-  for user in ["prof", "prof2", "student", "student2"]
-    config.vm.provision "shell" do |s|
-      s.inline = <<-SCRIPT
-        mkdir -p /home/$1/.ssh
-        cp /home/vagrant/ssh_keys/$1_rsa /home/$1/.ssh/
-        cp /home/vagrant/ssh_keys/$1_rsa.pub /home/$1/.ssh/
-        cp /home/vagrant/ssh_keys/$1_rsa.pub /home/$1/.ssh/authorized_keys
-        echo 'Host gkserver' >> /home/$1/.ssh/config
-        echo 'StrictHostKeyChecking no' >> /home/$1/.ssh/config
-        echo 'UserKnownHostsFile /dev/null' >> /home/$1/.ssh/config
-        chown -R $1 /home/$1/.ssh
-        chgrp -R $1 /home/$1/.ssh
-        chmod 700 /home/$1/.ssh
-        chmod -R 600 /home/$1/.ssh/*
-      SCRIPT
-      s.privileged = true
-      s.args = [user]
-    end
-  end
+    config.vm.box = "ubuntu/trusty64"
+    config.vm.provision "shell", inline:<<-SCRIPT
+        useradd -ms /bin/bash keeper
+        usermod -aG keeper keeper
+        usermod -aG vagrant keeper
+        echo 'keeper ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+        echo 'keeper:keeper' | chpasswd
+        apt-get update && apt-get install -y python3-pip libssl-dev
+        apt-get clean
+        sudo -H pip3 install -U pip setuptools
+        pip3 install cryptography
+    SCRIPT
+    config.vm.provision "file", source:"../ssh_keys", destination:"/home/vagrant/ssh_keys"
+    config.vm.provision "shell", inline:<<-SCRIPT
+        mkdir -p /home/keeper/.ssh
+        chmod 700 /home/keeper/.ssh
+        cp '/home/vagrant/ssh_keys/keeper_rsa.pub' '/home/keeper/.ssh/authorized_keys'
+        chown -R keeper /home/keeper/.ssh
+        chgrp -R keeper /home/keeper/.ssh
+        chmod -R 600 /home/keeper/.ssh/*
+    SCRIPT
 end
