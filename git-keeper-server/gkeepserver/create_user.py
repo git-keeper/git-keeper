@@ -154,7 +154,8 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
 
     if username == config.faculty_group or username == config.student_group:
         error = ('{0} is not a valid username. A username may not have the '
-                 'same name as the faculty or student user groups')
+                 'same name as the faculty or student '
+                 'user groups').format(username)
         raise GkeepException(error)
 
     logger.log_info('Creating user {0}'.format(username))
