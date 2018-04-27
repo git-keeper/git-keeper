@@ -37,7 +37,7 @@ from gkeepclient.create_config import create_config
 from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
 from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, \
-    upload_assignment, trigger_tests
+    upload_assignment, trigger_tests, update_status
 from gkeepclient.queries import list_classes, list_assignments, \
     list_students, list_recent
 from gkeepcore.gkeep_exception import GkeepException
@@ -251,6 +251,22 @@ def add_config_subparser(subparsers):
                                            'file')
 
 
+def add_status_subparser(subparsers):
+    """
+    Add a subparser for action 'status', which can change the status of a
+    class to 'open' or 'closed'.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('status', help='change the status of a '
+                                                     'class')
+    add_class_name_argument(subparser)
+    subparser.add_argument('status', metavar='<class status>',
+                           choices=('open', 'closed'),
+                           help='"open" or "closed"')
+
+
 def initialize_action_parser() -> GraderParser:
     """
     Initialize a GraderParser object.
@@ -280,6 +296,7 @@ def initialize_action_parser() -> GraderParser:
     add_query_subparser(subparsers)
     add_trigger_subparser(subparsers)
     add_config_subparser(subparsers)
+    add_status_subparser(subparsers)
 
     return parser
 
@@ -374,6 +391,8 @@ def take_action(parsed_args):
                       parsed_args.student_usernames)
     elif action_name == 'config':
         create_config()
+    elif action_name == 'status':
+        update_status(class_name, parsed_args.status)
 
 
 if __name__ == '__main__':

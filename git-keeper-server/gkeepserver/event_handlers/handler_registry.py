@@ -22,6 +22,7 @@ constructor.
 
 from gkeepserver.event_handlers.class_add_handler import ClassAddHandler
 from gkeepserver.event_handlers.class_modify_handler import ClassModifyHandler
+from gkeepserver.event_handlers.class_status_handler import ClassStatusHandler
 from gkeepserver.event_handlers.delete_handler import DeleteHandler
 from gkeepserver.event_handlers.publish_handler import PublishHandler
 from gkeepserver.event_handlers.submission_handler import SubmissionHandler
@@ -33,6 +34,7 @@ from gkeepserver.event_handlers.upload_handler import UploadHandler
 event_handlers_by_type = {
     'CLASS_ADD': ClassAddHandler,
     'CLASS_MODIFY': ClassModifyHandler,
+    'CLASS_STATUS': ClassStatusHandler,
     'SUBMISSION': SubmissionHandler,
     'UPLOAD': UploadHandler,
     'UPDATE': UpdateHandler,

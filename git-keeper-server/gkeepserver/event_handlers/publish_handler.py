@@ -1,4 +1,4 @@
-# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,8 +35,9 @@ from gkeepserver.assignments import AssignmentDirectory, \
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
-from gkeepserver.info_refresh_thread import info_refresher
+from gkeepserver.info_update_thread import info_updater
 from gkeepserver.server_configuration import config
+from gkeepserver.students_and_classes import get_class_status
 
 
 class PublishHandler(EventHandler):
@@ -64,13 +65,21 @@ class PublishHandler(EventHandler):
         print(' Assignment path:', assignment_path)
 
         try:
+            class_status = get_class_status(self._faculty_username,
+                                            self._class_name)
+            if class_status != 'open':
+                raise HandlerException(
+                    '{} is not open'.format(self._class_name))
+
             assignment_dir = AssignmentDirectory(assignment_path)
             self._ensure_not_published(assignment_dir)
             students = self._setup_students_assignment_repos(assignment_dir)
             self._populate_reports_repo(assignment_dir, students)
             self._create_published_flag(assignment_dir)
 
-            info_refresher.enqueue(self._faculty_username)
+            info_updater.enqueue_assignment_scan(self._faculty_username,
+                                                 self._class_name,
+                                                 self._assignment_name)
 
             log_gkeepd_to_faculty(self._faculty_username, 'PUBLISH_SUCCESS',
                                   '{0} {1}'.format(self._class_name,

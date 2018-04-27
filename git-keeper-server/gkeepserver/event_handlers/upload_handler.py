@@ -1,4 +1,4 @@
-# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,12 +33,14 @@ from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
 from gkeepcore.valid_names import validate_assignment_name
 from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, create_base_code_repo, copy_email_txt_file, \
-    copy_tests_dir, setup_student_assignment, StudentAssignmentError
+    copy_tests_dir, setup_student_assignment, StudentAssignmentError, \
+    write_run_action_sh
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
-from gkeepserver.info_refresh_thread import info_refresher
+from gkeepserver.info_update_thread import info_updater
 from gkeepserver.server_configuration import config
+from gkeepserver.students_and_classes import get_class_status
 
 
 class UploadHandler(EventHandler):
@@ -70,11 +72,19 @@ class UploadHandler(EventHandler):
         assignment_dir = AssignmentDirectory(assignment_path, check=False)
 
         try:
+            class_status = get_class_status(self._faculty_username,
+                                            self._class_name)
+            if class_status != 'open':
+                raise HandlerException('{} is not open'
+                                       .format(self._class_name))
+
             validate_assignment_name(assignment_dir.assignment_name)
             self._setup_assignment_dir(assignment_dir)
             self._setup_faculty_test_assignment(assignment_dir)
 
-            info_refresher.enqueue(self._faculty_username)
+            info_updater.enqueue_assignment_scan(self._faculty_username,
+                                                 self._class_name,
+                                                 self._assignment_name)
 
             log_gkeepd_to_faculty(self._faculty_username, 'UPLOAD_SUCCESS',
                                   self._upload_path)
@@ -157,6 +167,8 @@ class UploadHandler(EventHandler):
         except GkeepException as e:
             error = ('error copying assignment files: {0}'.format(str(e)))
             raise HandlerException(error)
+
+        write_run_action_sh(assignment_dir, upload_dir)
 
         # set permissions on assignment directory
         try:

@@ -1,4 +1,4 @@
-# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,11 +27,11 @@ from gkeepcore.student import students_from_csv, Student
 from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, chmod
 from gkeepserver.assignments import get_class_assignment_dirs, \
     setup_student_assignment, StudentAssignmentError
-from gkeepserver.create_user import create_user, UserType
+from gkeepserver.create_user import create_user, UserType, create_student_user
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
-from gkeepserver.info_refresh_thread import info_refresher
+from gkeepserver.info_update_thread import info_updater
 from gkeepserver.server_configuration import config
 
 
@@ -74,7 +74,8 @@ class ClassModifyHandler(EventHandler):
             self._add_class_students(old_students_by_username,
                                      new_students_by_username)
 
-            info_refresher.enqueue(self._faculty_username)
+            info_updater.enqueue_class_scan(self._faculty_username,
+                                            self._class_name)
 
             self._log_to_faculty('CLASS_MODIFY_SUCCESS', self._class_name)
         except Exception as e:
@@ -124,11 +125,7 @@ class ClassModifyHandler(EventHandler):
         # add the user if necessary
         if not user_exists(student.username):
             try:
-                groups = [config.student_group]
-                create_user(student.username, UserType.student,
-                            student.first_name, student.last_name,
-                            email_address=student.email_address,
-                            additional_groups=groups)
+                create_student_user(student)
             except Exception as e:
                 error = 'Error adding user {0}: {1}'.format(student.username,
                                                             e)

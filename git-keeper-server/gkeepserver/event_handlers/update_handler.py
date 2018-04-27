@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ from gkeepcore.upload_directory import UploadDirectory
 from gkeepserver.assignments import AssignmentDirectory, \
     create_base_code_repo, copy_email_txt_file, \
     copy_tests_dir, remove_student_assignment, setup_student_assignment, \
-    StudentAssignmentError
+    StudentAssignmentError, write_run_action_sh
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
@@ -130,8 +130,14 @@ class UpdateHandler(EventHandler):
             copy_email_txt_file(assignment_dir, upload_dir.email_path)
 
         if os.path.isdir(upload_dir.tests_path):
+            if upload_dir.action_script is None:
+                error = 'No action script in tests directory'
+                raise GkeepException(error)
+
             rm(assignment_dir.tests_path, recursive=True)
             copy_tests_dir(assignment_dir, upload_dir.tests_path)
+
+            write_run_action_sh(assignment_dir, upload_dir)
 
         # sanity check
         assignment_dir.check()

@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -50,10 +50,7 @@ def class_add(class_name: str, csv_file_path: str):
     if not os.path.isfile(csv_file_path):
         raise GkeepException('{0} does not exist'.format(csv_file_path))
 
-    try:
-        students = students_from_csv(LocalCSVReader(csv_file_path))
-    except GkeepException as e:
-        sys.exit(e)
+    students = students_from_csv(LocalCSVReader(csv_file_path))
 
     print('Adding class {0} with the following students:'.format(class_name))
 
@@ -91,10 +88,7 @@ def class_modify(class_name: str, csv_file_path: str):
     if not os.path.isfile(csv_file_path):
         raise GkeepException('{0} does not exist'.format(csv_file_path))
 
-    try:
-        students = students_from_csv(LocalCSVReader(csv_file_path))
-    except GkeepException as e:
-        sys.exit(e)
+    students = students_from_csv(LocalCSVReader(csv_file_path))
 
     print('Modifying class {0} with the following students:'
           .format(class_name))
@@ -117,6 +111,32 @@ def class_modify(class_name: str, csv_file_path: str):
                       error_message='Error modifying class:',
                       timeout_message='Server response timeout. '
                                       'Class modify status unknown')
+
+
+@config_parsed
+@server_interface_connected
+@class_exists
+def update_status(class_name: str, status: str):
+    """
+    Update the status of a class.
+
+    :param class_name: name of the class
+    :param status: new status for the class, 'open' or 'closed'
+    """
+
+    current_status = server_interface.class_status(class_name)
+
+    if status == current_status:
+        raise GkeepException('{} is already {}'.format(class_name,
+                                                       current_status))
+
+    payload = '{0} {1}'.format(class_name, status)
+
+    communicate_event('CLASS_STATUS', payload,
+                      success_message='Status updated successfully',
+                      error_message='Error updating status:',
+                      timeout_message='Server response timeout. '
+                                      'Status of status update unknown')
 
 
 @config_parsed
@@ -240,13 +260,20 @@ def update_assignment(class_name: str, upload_dir_path: str,
     upload, and waits for a logged confirmation of success or error from the
     server.
 
-    Raises UpdateAssignmentError if anything goes wrong.
+    Raises a GkeepException if anything goes wrong.
 
     :param class_name: name of the class the assignment belongs to
     :param upload_dir_path: path to the assignment
     :param items: tuple or list of items to update
     :param response_timeout: seconds to wait for server response
     """
+
+    valid_items = {'base_code', 'email', 'tests'}
+
+    for item in items:
+        if item not in valid_items:
+            error = '{} is not a valid update item'.format(item)
+            raise GkeepException(error)
 
     # expand any special path components, strip trailing slash
     upload_dir_path = os.path.abspath(upload_dir_path)
