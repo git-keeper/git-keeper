@@ -11,6 +11,7 @@ Vagrant Setup
     Make Boxes if Missing
     Start Vagrant if Not Running
     Set Key Permissions
+    Verify Systems Ready
 
 Vagrant Teardown
     Stop Vagrant if Not Originally Running
