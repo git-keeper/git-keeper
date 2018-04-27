@@ -6,7 +6,7 @@ Vagrant.configure("2") do |config|
         usermod -aG vagrant keeper
         echo 'keeper ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
         echo 'keeper:keeper' | chpasswd
-        apt-get update && apt-get install -y python3-pip git-sh
+        apt-get update && apt-get install -y python3-pip git
         apt-get clean
         mkdir /email
         chown vagrant /email
