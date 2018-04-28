@@ -4,7 +4,6 @@ Library    gkeeprobot.keywords.ServerSetupKeywords
 Library    gkeeprobot.keywords.ServerCheckKeywords
 Library    gkeeprobot.keywords.ClientSetupKeywords
 Test Setup    Launch Server
-Test Teardown    Run Keywords    Reset Server    Reset Client
 
 *** Test Cases ***
 
@@ -27,21 +26,8 @@ Valid Class
 *** Keywords ***
 
 Launch Server
+    Reset Server
+    Reset Client
     Configure Faculty   washington    adams
     Add File    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
-
-Reset Server
-    [Documentation]    All keywords succeed whether or not the user/file is present
-    Stop gkeepd
-    Remove Faculty
-    Remove User    tester
-    Remove File    keeper    gkeepd.log
-    Remove File    keeper    snapshot.json
-    Remove File    keeper    faculty.csv
-    Remove File    keeper    server.cfg
-    Clear Email
-
-Reset Client
-    Remove Students
-    Remove Client User    washington

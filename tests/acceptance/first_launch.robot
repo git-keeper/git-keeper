@@ -2,7 +2,7 @@
 *** Settings ***
 Library    gkeeprobot.keywords.ServerSetupKeywords
 Library    gkeeprobot.keywords.ServerCheckKeywords
-Test Teardown    Reset Server
+Test Setup    Reset Server
 
 *** Test Cases ***
 
@@ -16,7 +16,6 @@ Valid Setup
     User Exists    prof2
     User Exists    tester
     Server Running
-    [Teardown]    Run Keywords    Stop gkeepd    Reset Server
 
 Faculty Exists
     Add Faculty Account On Server    prof
@@ -24,7 +23,6 @@ Faculty Exists
     Add File    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     No Email To    prof
-    [Teardown]    Run Keywords    Stop gkeepd    Reset Server
 
 Missing server cfg
     Configure Faculty    prof
@@ -52,18 +50,5 @@ Malformed server cfg
     Server Not Running
     User Does Not Exist    prof
     User Does Not Exist    prof2
-
-
-*** Keywords ***
-
-Reset Server
-    [Documentation]    All keywords succeed whether or not the user/file is present
-    Remove Faculty
-    Remove User    tester
-    Remove File    keeper    gkeepd.log
-    Remove File    keeper    snapshot.json
-    Remove File    keeper    faculty.csv
-    Remove File    keeper    server.cfg
-    Clear Email
 
 
