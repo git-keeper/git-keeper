@@ -1,7 +1,6 @@
 
 from gkeeprobot.control.ClientControl import ClientControl
 from gkeeprobot.control.ServerControl import ServerControl
-from robot.api import logger
 
 client_control = ClientControl()
 server_control = ServerControl()
