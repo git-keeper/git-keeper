@@ -8,20 +8,48 @@ Test Setup    Launch Server
 *** Test Cases ***
 
 Valid Class
-    Create Accounts    washington    kermit    gonzo
-    Establish SSH Keys    washington
-    Create Gkeep Config File    washington
+    Setup Faculty Account    washington
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Add To Class    faculty=washington    class_name=cs1    student=gonzo
-    Run Gkeep Add    faculty=washington    class_name=cs1
-    Establish SSH Keys    kermit
-    Establish SSH Keys    gonzo
-    User Exists    washington
+    Gkeep Add Succeeds    faculty=washington    class_name=cs1
     User Exists    kermit
     User Exists    gonzo
     Expect Email    to_user=kermit    contains=Password
     Expect Email    to_user=gonzo    contains=Password
 
+Missing CSV
+    Setup Faculty Account    washington
+    Gkeep Add Fails    faculty=washington    class_name=cs1
+
+Existing Student
+    Setup Faculty Account    washington
+    Add Account on Server    gonzo
+    Add To Class    faculty=washington    class_name=cs1    student=kermit
+    Add To Class    faculty=washington    class_name=cs1    student=gonzo
+    Gkeep Add Succeeds    faculty=washington    class_name=cs1
+    User Exists    kermit
+    User Exists    gonzo
+    Expect Email    to_user=kermit    contains=Password
+    Expect No Email    to_user=gonzo
+
+Call Add Twice
+    Setup Faculty Account    washington
+    Add To Class    faculty=washington    class_name=cs1    student=kermit
+    Gkeep Add Succeeds    faculty=washington    class_name=cs1
+    Gkeep Add Fails    faculty=washington    class_name=cs1
+
+Duplicate Class Name
+    Setup Faculty Account    washington
+    Setup Faculty Account    adams
+    Add To Class    faculty=washington    class_name=cs1    student=kermit
+    Gkeep Add Succeeds    faculty=washington    class_name=cs1
+    Add To Class    faculty=adams    class_name=cs1    student=kermit
+    Gkeep Add Fails    faculty=adams    class_name=cs1
+
+Empty CSV
+    Setup Faculty Account    washington
+    Make Empty File    washington    cs1.csv
+    Gkeep Add Fails    faculty=washington    class_name=cs1
 
 *** Keywords ***
 
@@ -31,3 +59,9 @@ Launch Server
     Configure Faculty   washington    adams
     Add File    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
+
+Setup Faculty Account
+    [Arguments]    ${username}
+    Create Accounts    ${username}
+    Establish SSH Keys    ${username}
+    Create Gkeep Config File    ${username}

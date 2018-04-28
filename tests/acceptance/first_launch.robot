@@ -18,11 +18,11 @@ Valid Setup
     Server Running
 
 Faculty Exists
-    Add Faculty Account On Server    prof
+    Add Account On Server    prof
     Configure Faculty    prof
     Add File    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
-    No Email To    prof
+    Expect No Email    prof
 
 Missing server cfg
     Configure Faculty    prof

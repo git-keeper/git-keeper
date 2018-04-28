@@ -24,6 +24,6 @@ class ServerCheckKeywords:
         result = control.run_vm_python_script('keeper', 'user_does_not_exist.py', username)
         assert result == 'True'
 
-    def no_email_to(self, username):
+    def expect_no_email(self, username):
         result = control.run_vm_python_script('keeper', 'no_email_to.py', username)
         assert result == 'True'

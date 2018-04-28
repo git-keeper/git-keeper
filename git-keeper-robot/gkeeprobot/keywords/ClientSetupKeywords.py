@@ -1,6 +1,7 @@
 
 from gkeeprobot.control.ClientControl import ClientControl
 from gkeeprobot.control.ServerControl import ServerControl
+from gkeepcore.shell_command import CommandError
 
 client_control = ClientControl()
 server_control = ServerControl()
@@ -22,8 +23,18 @@ class ClientSetupKeywords:
         line = 'Last,First,{}@gitkeeper.edu'.format(student)
         client_control.run_vm_python_script(faculty, 'add_to_file.py', '{}.csv'.format(class_name), line)
 
-    def run_gkeep_add(self, faculty, class_name):
+    def gkeep_add_succeeds(self, faculty, class_name):
         client_control.run(faculty, 'gkeep add {} {}.csv'.format(class_name, class_name))
+
+    def gkeep_add_fails(self, faculty, class_name):
+        try:
+            client_control.run(faculty, 'gkeep add {} {}.csv'.format(class_name, class_name))
+            raise CommandError('gkeep add should have non-zero return')
+        except CommandError:
+            pass
+
+    def make_empty_file(self, username, filename):
+        client_control.run(username, 'touch {}'.format(filename))
 
     def create_gkeep_config_file(self, faculty):
         client_control.run_vm_bash_script(faculty, 'make_gkeep_config.sh', faculty)

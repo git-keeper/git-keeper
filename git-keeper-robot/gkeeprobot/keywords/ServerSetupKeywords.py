@@ -17,7 +17,7 @@ class ServerSetupKeywords:
     def start_gkeepd(self):
         control.run('keeper', 'screen -S gkserver -d -m gkeepd')
 
-    def add_faculty_account_on_server(self, faculty_name):
+    def add_account_on_server(self, faculty_name):
         control.run('keeper', 'sudo useradd -ms /bin/bash {}'.format(faculty_name))
 
     def reset_server(self):
