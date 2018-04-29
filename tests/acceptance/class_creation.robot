@@ -17,6 +17,8 @@ Valid Class
     User Exists    gonzo
     Expect Email    to_user=kermit    contains=Password
     Expect Email    to_user=gonzo    contains=Password
+    Gkeep Query Contains    washington    classes    cs1
+    Gkeep Query Contains    washington    students    kermit    gonzo
 
 Missing CSV
     Setup Faculty Account    washington
@@ -32,12 +34,16 @@ Existing Student
     User Exists    gonzo
     Expect Email    to_user=kermit    contains=Password
     Expect No Email    to_user=gonzo
+    Gkeep Query Contains    washington    classes    cs1
+    Gkeep Query Contains    washington    students    kermit    gonzo
 
 Call Add Twice
     Setup Faculty Account    washington
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Gkeep Add Succeeds    faculty=washington    class_name=cs1
     Gkeep Add Fails    faculty=washington    class_name=cs1
+    Gkeep Query Contains    washington    classes    cs1
+    Gkeep Query Contains    washington    students    kermit
 
 Duplicate Student
     Setup Faculty Account    washington

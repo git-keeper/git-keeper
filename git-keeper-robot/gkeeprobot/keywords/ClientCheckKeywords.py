@@ -17,3 +17,7 @@ class ClientCheckKeywords:
         except CommandError:
             pass
 
+    def gkeep_query_contains(self, faculty, sub_command, *expected_strings):
+        results = client_control.run(faculty, 'gkeep query {}'.format(sub_command))
+        for expected in expected_strings:
+            assert expected in results
