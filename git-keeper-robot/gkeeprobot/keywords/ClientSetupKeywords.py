@@ -23,6 +23,9 @@ class ClientSetupKeywords:
         line = 'Last,First,{}@gitkeeper.edu'.format(student)
         client_control.run_vm_python_script(faculty, 'add_to_file.py', '{}.csv'.format(class_name), line)
 
+    def remove_from_class(self, faculty, class_name, student):
+        client_control.run(faculty, 'sed -i /{}/d {}.csv'.format(student, class_name))
+
     def add_file_to_client(self, username, filename, target_filename):
         client_control.copy(username, filename, target_filename)
 

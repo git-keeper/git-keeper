@@ -31,3 +31,8 @@ class ClientCheckKeywords:
         results = client_control.run(faculty, 'gkeep query {}'.format(sub_command))
         for expected in expected_strings:
             assert expected in results
+
+    def gkeep_query_does_not_contain(self, faculty, sub_command, *forbidden_strings):
+        results = client_control.run(faculty, 'gkeep query {}'.format(sub_command))
+        for forbidden in forbidden_strings:
+            assert forbidden not in results
