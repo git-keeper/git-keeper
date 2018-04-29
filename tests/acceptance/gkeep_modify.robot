@@ -5,10 +5,12 @@ Library    gkeeprobot.keywords.ClientSetupKeywords
 Library    gkeeprobot.keywords.ClientCheckKeywords
 Resource    resources/setup.robot
 Test Setup    Launch Gkeepd With Faculty    washington
+Force Tags    gkeep_modify
 
 *** Test Cases ***
 
 Add Student To Course
+    [Tags]    happy_path
     Setup Faculty Accounts    washington
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Add To Class    faculty=washington    class_name=cs1    student=gonzo
