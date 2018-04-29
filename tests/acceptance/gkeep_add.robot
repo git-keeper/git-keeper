@@ -66,7 +66,7 @@ Duplicate Class Name
     Setup Faculty Account    adams
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Gkeep Add Succeeds    faculty=washington    class_name=cs1
-    Add To Class    faculty=adams    class_name=cs1    student=kermit
+    Add To Class    faculty=adams    class_name=cs1    student=gonzo
     Gkeep Add Fails    faculty=adams    class_name=cs1
 
 Empty CSV
