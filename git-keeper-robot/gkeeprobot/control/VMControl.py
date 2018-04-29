@@ -35,7 +35,7 @@ class VMControl:
         if username == 'keeper':
             key = '-i ssh_keys/{}_rsa'.format(username)
         else:
-            key = '-i ssh_keys/{}_rsa'.format(self.temp_dir.name, username)
+            key = '-i {}/{}_rsa'.format(self.temp_dir.name, username)
         suppress_warnings = '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR'
         copy_cmd = '{} {}@localhost:{}'.format(filename, username, target_filename)
 

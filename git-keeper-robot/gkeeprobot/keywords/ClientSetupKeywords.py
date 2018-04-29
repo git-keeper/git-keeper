@@ -23,15 +23,8 @@ class ClientSetupKeywords:
         line = 'Last,First,{}@gitkeeper.edu'.format(student)
         client_control.run_vm_python_script(faculty, 'add_to_file.py', '{}.csv'.format(class_name), line)
 
-    def gkeep_add_succeeds(self, faculty, class_name):
-        client_control.run(faculty, 'gkeep add {} {}.csv'.format(class_name, class_name))
-
-    def gkeep_add_fails(self, faculty, class_name):
-        try:
-            client_control.run(faculty, 'gkeep add {} {}.csv'.format(class_name, class_name))
-            raise CommandError('gkeep add should have non-zero return')
-        except CommandError:
-            pass
+    def add_file_to_client(self, username, filename, target_filename):
+        client_control.copy(username, filename, target_filename)
 
     def make_empty_file(self, username, filename):
         client_control.run(username, 'touch {}'.format(filename))

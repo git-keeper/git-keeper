@@ -8,7 +8,7 @@ Test Setup    Reset Server
 
 Valid Setup
     Configure Faculty   prof    prof2
-    Add File    keeper    files/valid_server.cfg    server.cfg
+    Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     Expect Email    to_user=prof    contains=Password
     Expect Email    to_user=prof2   contains=Password
@@ -20,9 +20,25 @@ Valid Setup
 Faculty Exists
     Add Account On Server    prof
     Configure Faculty    prof
-    Add File    keeper    files/valid_server.cfg    server.cfg
+    Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     Expect No Email    prof
+
+Duplicate Faculty
+    Configure Faculty    prof
+    Add File To Server    keeper    files/valid_server.cfg    server.cfg
+    Start gkeepd
+    Server Not Running
+    User Does Not Exist    prof
+    Expect No Email    prof
+
+Faculty Named Faculty
+    Configure Faculty    faculty
+    Add File To Server    keeper    files/valid_server.cfg    server.cfg
+    Start gkeepd
+    Server Not Running
+    User Does Not Exist    faculty
+    Expect No Email    faculty
 
 Missing server cfg
     Configure Faculty    prof
@@ -31,13 +47,13 @@ Missing server cfg
     User Does Not Exist    prof
 
 Missing faculty csv
-    Add File    keeper    files/valid_server.cfg    server.cfg
+    Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     Server Not Running
 
 Malformed faculty csv
-    Add File    keeper    files/valid_server.cfg    server.cfg
-    Add File    keeper    files/malformed_faculty.csv    faculty.csv
+    Add File To Server    keeper    files/valid_server.cfg    server.cfg
+    Add File To Server    keeper    files/malformed_faculty.csv    faculty.csv
     Start gkeepd
     Server Not Running
     User Does Not Exist    prof
@@ -45,7 +61,7 @@ Malformed faculty csv
 
 Malformed server cfg
     Configure Faculty    prof    prof2
-    Add File    keeper    files/malformed_server.cfg    server.cfg
+    Add File To Server    keeper    files/malformed_server.cfg    server.cfg
     Start gkeepd
     Server Not Running
     User Does Not Exist    prof

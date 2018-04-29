@@ -3,6 +3,7 @@
 Library    gkeeprobot.keywords.ServerSetupKeywords
 Library    gkeeprobot.keywords.ServerCheckKeywords
 Library    gkeeprobot.keywords.ClientSetupKeywords
+Library    gkeeprobot.keywords.ClientCheckKeywords
 Test Setup    Launch Server
 
 *** Test Cases ***
@@ -38,6 +39,22 @@ Call Add Twice
     Gkeep Add Succeeds    faculty=washington    class_name=cs1
     Gkeep Add Fails    faculty=washington    class_name=cs1
 
+Duplicate Student
+    Setup Faculty Account    washington
+    Add To Class    faculty=washington    class_name=cs1    student=kermit
+    Add To Class    faculty=washington    class_name=cs1    student=kermit
+    Gkeep Add Fails    faculty=washington    class_name=cs1
+
+Malformed CSV
+    Setup Faculty Account    washington
+    Add File To Client    washington    files/malformed_cs1.csv    cs1.csv
+    Gkeep Add Fails    faculty=washington    class_name=cs1
+
+Student Named Student
+    Setup Faculty Account    washington
+    Add To Class    faculty=washington    class_name=cs1    student=student
+    Gkeep Add Fails    faculty=washington    class_name=cs1
+
 Duplicate Class Name
     Setup Faculty Account    washington
     Setup Faculty Account    adams
@@ -57,7 +74,7 @@ Launch Server
     Reset Server
     Reset Client
     Configure Faculty   washington    adams
-    Add File    keeper    files/valid_server.cfg    server.cfg
+    Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
 
 Setup Faculty Account
