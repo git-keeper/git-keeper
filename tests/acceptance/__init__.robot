@@ -15,6 +15,6 @@ Vagrant Setup
     Set Key Permissions
 
 Vagrant Teardown
-    Stop Vagrant if Not Originally Running
     Reset Server
     Reset Client
+    Stop Vagrant if Not Originally Running
