@@ -1,0 +1,58 @@
+# Copyright 2018 Nathan Sommer and Ben Coleman
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+# This file defines two vagrant VMs, one for the git-keeper server (gkserver), and one to host faculty
+# and student accounts (gkclient).
+#
+# The base gkserver image is configured as described in the server setup document (github wiki).
+#
+# The base gkclient image is a vanilla ubuntu box
+Vagrant.configure("2") do |config|
+
+    config.vm.define "gkserver" do |gkserver|
+        gkserver.vm.box = "gkserver"
+        gkserver.vm.hostname = "gkserver"
+        gkserver.vm.network "private_network", ip:"20.0.1.100"
+
+        gkserver.vm.synced_folder "../../git-keeper-core", "/git-keeper-core"
+        gkserver.vm.synced_folder "../../git-keeper-server", "/git-keeper-server"
+        gkserver.vm.synced_folder "../../git-keeper-robot", "/git-keeper-robot"
+
+        gkserver.vm.provision "shell", inline:<<-SCRIPT
+            pip3 install -e /git-keeper-core
+            pip3 install -e /git-keeper-server
+            pip3 install -e /git-keeper-robot
+            python3 /email/mysmtpd.py 25 /email &
+        SCRIPT
+    end
+
+    config.vm.define "gkclient" do |gkclient|
+        gkclient.vm.box = "gkclient"
+        gkclient.vm.hostname = "gkclient"
+        gkclient.vm.network "private_network", ip:"20.0.1.200"
+        gkclient.vm.provision "shell", inline:"sed -i '$ a 20.0.1.100 gkserver' /etc/hosts"
+
+        gkclient.vm.synced_folder "../../git-keeper-core", "/git-keeper-core"
+        gkclient.vm.synced_folder "../../git-keeper-client", "/git-keeper-client"
+        gkclient.vm.synced_folder "../../git-keeper-robot", "/git-keeper-robot"
+
+        gkclient.vm.provision "shell", inline:<<-SCRIPT
+            pip3 install -e /git-keeper-core
+            pip3 install -e /git-keeper-client
+            pip3 install -e /git-keeper-robot
+        SCRIPT
+    end
+end

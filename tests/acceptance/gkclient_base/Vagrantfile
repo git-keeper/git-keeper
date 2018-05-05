@@ -1,0 +1,39 @@
+# Copyright 2018 Nathan Sommer and Ben Coleman
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+Vagrant.configure("2") do |config|
+    config.vm.box = "ubuntu/trusty64"
+    config.vm.provision "shell", inline:<<-SCRIPT
+        useradd -ms /bin/bash keeper
+        usermod -aG keeper keeper
+        usermod -aG vagrant keeper
+        echo 'keeper ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+        echo 'keeper:keeper' | chpasswd
+        apt-get update && apt-get install -y python3-pip libssl-dev
+        apt-get clean
+        sudo -H pip3 install -U pip setuptools
+        pip3 install cryptography
+    SCRIPT
+    config.vm.provision "file", source:"../ssh_keys", destination:"/home/vagrant/ssh_keys"
+    config.vm.provision "shell", inline:<<-SCRIPT
+        mkdir -p /home/keeper/.ssh
+        chmod 700 /home/keeper/.ssh
+        cp '/home/vagrant/ssh_keys/keeper_rsa.pub' '/home/keeper/.ssh/authorized_keys'
+        chown -R keeper /home/keeper/.ssh
+        chgrp -R keeper /home/keeper/.ssh
+        chmod -R 600 /home/keeper/.ssh/*
+    SCRIPT
+end
