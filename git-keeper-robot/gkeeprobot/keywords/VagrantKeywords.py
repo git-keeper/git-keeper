@@ -23,6 +23,7 @@ vagrant_control = VagrantControl()
 server_control = ServerControl()
 client_control = ClientControl()
 
+
 class VagrantKeywords:
 
     server_was_running = False
@@ -32,12 +33,14 @@ class VagrantKeywords:
         names = [box.name for box in vagrant_control.v.box_list()]
 
         if 'gkserver' not in names:
-            logger.console('Making gkserver.box.  This can take up to 30 minutes.')
+            logger.console('Making gkserver.box.  '
+                           'This can take up to 30 minutes.')
             run_command_in_directory('gkserver_base', 'bash -c ./make_box.sh')
             vagrant_control.v.box_add('gkserver', 'gkserver_base/gkserver.box')
 
         if 'gkclient' not in names:
-            logger.console('Making gkclient.box.  This can take up to 30 minutes.')
+            logger.console('Making gkclient.box.  '
+                           'This can take up to 30 minutes.')
             run_command_in_directory('gkclient_base', 'bash -c ./make_box.sh')
             vagrant_control.v.box_add('gkclient', 'gkclient_base/gkclient.box')
 
@@ -69,12 +72,3 @@ class VagrantKeywords:
 
     def set_key_permissions(self):
         run_command_in_directory('ssh_keys', 'chmod 600 *')
-
-    def verify_systems_ready(self):
-        assert server_control.run_vm_python_script('keeper', 'check_sudo.py') == 'True'
-        assert client_control.run_vm_python_script('keeper', 'check_sudo.py') == 'True'
-        assert server_control.run_vm_python_script('keeper', 'check_base_user_list.py') == 'True'
-        assert client_control.run_vm_python_script('keeper', 'check_base_user_list.py') == 'True'
-        assert server_control.run_vm_python_script('keeper', 'server_terminated.py') == 'True'
-        assert server_control.run_vm_python_script('keeper', 'check_keeper_files.py') == 'True'
-        assert server_control.run_vm_python_script('keeper', 'check_email_empty.py') == 'True'
