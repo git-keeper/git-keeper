@@ -20,12 +20,6 @@
 # The base gkserver image is configured as described in the server setup document (github wiki).
 #
 # The base gkclient image is a vanilla ubuntu box
-#
-# This file configures the two VMs to facilitate testing:
-# * During provisioning, `git-keeper-core` and `git-keeper-server` are installed on the `gkserver`.  Similarly,
-#   `git-keeper-core` and `git-keeper-client` are installed on `gkclient`.
-# * During provisioning, a mock email server launches.  Instead of sending email, it writes email individual
-#   files in /email.  Each file is named with the recipient username and a number.
 Vagrant.configure("2") do |config|
 
     config.vm.define "gkserver" do |gkserver|
