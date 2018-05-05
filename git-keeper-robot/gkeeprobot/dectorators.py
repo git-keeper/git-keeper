@@ -15,10 +15,12 @@
 
 import time
 
+polling_count = 25
+
 
 def polling(func):
     def polling_wrapper(*args, **kwargs):
-        for count in range(10):
+        for count in range(polling_count):
             if func(*args, **kwargs):
                 return True
             time.sleep(.1)
