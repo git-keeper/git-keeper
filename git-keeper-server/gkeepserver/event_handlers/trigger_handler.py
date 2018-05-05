@@ -18,12 +18,12 @@ Provides TriggerHandler, the handler for triggering assignment tests
 
 Event type: TRIGGER
 """
-from gkeepcore.faculty import faculty_from_username
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_home_dir, faculty_assignment_dir_path, \
     user_log_path, student_assignment_repo_path
 from gkeepserver.assignments import AssignmentDirectory
 from gkeepserver.event_handler import EventHandler, HandlerException
+from gkeepserver.faculty import FacultyMembers
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.new_submission_queue import new_submission_queue
@@ -84,8 +84,7 @@ class TriggerHandler(EventHandler):
             raise HandlerException('Assignment is not published')
 
     def _trigger_tests(self, students, assignment_dir: AssignmentDirectory):
-        reader = LocalCSVReader(config.faculty_csv_path)
-        faculty = faculty_from_username(self._faculty_username, reader)
+        faculty = FacultyMembers().get_faculty_object(self._faculty_username)
         faculty_email = faculty.email_address
 
         # trigger tests for all requested students

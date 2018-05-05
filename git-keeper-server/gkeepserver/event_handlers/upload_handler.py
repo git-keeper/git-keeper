@@ -21,7 +21,6 @@ Event type: UPLOAD
 
 import os
 
-from gkeepcore.faculty import faculty_from_username
 from gkeepcore.git_commands import git_init_bare
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
@@ -36,6 +35,7 @@ from gkeepserver.assignments import AssignmentDirectory, \
     copy_tests_dir, setup_student_assignment, StudentAssignmentError, \
     write_run_action_sh
 from gkeepserver.event_handler import EventHandler, HandlerException
+from gkeepserver.faculty import FacultyMembers
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_update_thread import info_updater
@@ -116,8 +116,7 @@ class UploadHandler(EventHandler):
         # Setup a bare repository so the faculty can test the assignment,
         # and email the faculty.
 
-        reader = LocalCSVReader(config.faculty_csv_path)
-        faculty = faculty_from_username(self._faculty_username, reader)
+        faculty = FacultyMembers().get_faculty_object(self._faculty_username)
 
         # set up the faculty's test assignment and send email
         try:
