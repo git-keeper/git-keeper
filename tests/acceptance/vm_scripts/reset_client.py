@@ -25,4 +25,5 @@ def remove_users():
         if user not in expected:
             run_command('sudo userdel -r {}'.format(user))
 
+
 remove_users()

@@ -48,7 +48,8 @@ def remove_gkeepd_files():
 
 def delete_email():
     # delete all files except mysmtpd.py
-    run_command('sudo find /email ! -name "mysmtpd.py" -type f -exec rm -f {} +')
+    run_command('sudo find /email ! -name "mysmtpd.py" '
+                '-type f -exec rm -f {} +')
 
 
 def remove_users():

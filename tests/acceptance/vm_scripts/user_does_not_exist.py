@@ -24,7 +24,7 @@ def user_does_not_exist(user):
     try:
         pwd.getpwnam(user)
         return False
-    except:
+    except KeyError:
         return True
 
 
