@@ -18,6 +18,9 @@ from gkeeprobot.control.ClientControl import ClientControl
 from gkeeprobot.control.ServerControl import ServerControl
 from gkeepcore.shell_command import CommandError
 
+"""Provides keywords for robotframework to configure faculty and student
+accounts before testing begins."""
+
 client_control = ClientControl()
 server_control = ServerControl()
 

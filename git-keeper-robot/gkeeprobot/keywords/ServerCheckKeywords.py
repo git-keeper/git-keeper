@@ -15,6 +15,9 @@
 
 from gkeeprobot.control.ServerControl import ServerControl
 
+"""Provides keywords for robotframework to check the state of gkserver
+and gkeepd."""
+
 control = ServerControl()
 
 

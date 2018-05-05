@@ -16,6 +16,8 @@
 from gkeeprobot.control.VagrantControl import VagrantControl
 from gkeeprobot.control.VMControl import VMControl
 
+"""Provides methods to run commands on gkserver during testing."""
+
 
 class ServerControl:
 

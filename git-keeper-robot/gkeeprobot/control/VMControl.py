@@ -17,6 +17,9 @@ from gkeepcore.shell_command import run_command
 from tempfile import TemporaryDirectory
 from robot.api import logger
 
+"""Provides methods to execute commands on gkclient and gkserver
+during testing."""
+
 
 class VMControl:
 

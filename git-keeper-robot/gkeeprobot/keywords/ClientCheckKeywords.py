@@ -17,6 +17,9 @@
 from gkeeprobot.control.ClientControl import ClientControl
 from gkeepcore.shell_command import CommandError
 
+"""Provides keywords used by robotframework to check the results of
+user actions."""
+
 client_control = ClientControl()
 
 

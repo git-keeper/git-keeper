@@ -15,6 +15,8 @@
 
 import vagrant
 
+"""Provides methods to interact with the gkclient and gkserver VMs."""
+
 
 class VagrantControl:
 
