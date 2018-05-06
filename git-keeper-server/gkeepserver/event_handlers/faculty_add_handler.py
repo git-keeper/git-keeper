@@ -94,11 +94,11 @@ class FacultyAddHandler(EventHandler):
 
         self._last_name = faculty_dictionary['last_name']
         self._first_name = faculty_dictionary['first_name']
-        self._email_address = faculty_dictionary['email_adress']
+        self._email_address = faculty_dictionary['email_address']
         self._admin = faculty_dictionary['admin']
 
         try:
-            self._username, _ = faculty_dictionary['email_add']
+            self._username, _ = self._email_address.split('@')
         except ValueError:
             raise HandlerException('{} is not an email address'
                                    .format(self._email_address))
