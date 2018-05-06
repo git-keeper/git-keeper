@@ -19,9 +19,12 @@ Launch Gkeepd With Faculty
     [Arguments]    @{faculty_names}
     Reset Server
     Reset Client
-    Configure Faculty   @{faculty_names}
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
+    Server Running
+    Setup Faculty Accounts    admin_prof
+    :FOR    ${username}    IN    @{faculty_names}
+    \        Gkeep Add Faculty Succeeds    admin_prof    ${username}
 
 Setup Faculty Accounts
     [Arguments]    @{usernames}

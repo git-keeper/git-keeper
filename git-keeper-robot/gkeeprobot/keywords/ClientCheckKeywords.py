@@ -68,4 +68,18 @@ class ClientCheckKeywords:
         email_address = '{}@school.edu'.format(new_faculty)
 
         client_control.run(admin, 'gkeep add_faculty {} {} {}'
-                           .format(last_name, first_name, email_address))
+                                   .format(last_name, first_name,
+                                           email_address))
+
+    def gkeep_add_faculty_fails(self, admin, new_faculty):
+        last_name = 'Professor'
+        first_name = 'Doctor'
+        email_address = '{}@school.edu'.format(new_faculty)
+
+        try:
+            client_control.run(admin, 'gkeep add_faculty {} {} {}'
+                                       .format(last_name, first_name,
+                                               email_address))
+            raise CommandError('gkeep add_faculty should have non-zero return')
+        except CommandError:
+            pass

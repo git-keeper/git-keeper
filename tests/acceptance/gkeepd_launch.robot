@@ -22,46 +22,25 @@ Force Tags    gkeepd_launch
 
 *** Test Cases ***
 
-One Faculty
-    [Tags]    happy_path
-    Add File To Server    keeper    files/valid_server.cfg    server.cfg
-    Start gkeepd
-    Expect Email    to_user=prof    contains=Password
-    Server Running
-
 Valid Setup
     [Tags]    happy_path
-    Configure Faculty   prof    prof2
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
-    Expect Email    to_user=prof    contains=Password
-    Expect Email    to_user=prof2   contains=Password
-    User Exists    prof
-    User Exists    prof2
+    Expect Email    to_user=admin_prof    contains=Password
+    User Exists    admin_prof
     User Exists    tester
     Server Running
 
 Faculty Exists
     [Tags]    error
-    Add Account On Server    prof
-    Configure Faculty    prof
+    Add Account On Server    admin_prof
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
-    Expect No Email    prof
+    Expect No Email    admin_prof
 
-Duplicate Faculty
+Admin Named Faculty
     [Tags]    error
-    Configure Faculty    prof
-    Add File To Server    keeper    files/valid_server.cfg    server.cfg
-    Start gkeepd
-    Server Not Running
-    User Does Not Exist    prof
-    Expect No Email    prof
-
-Faculty Named Faculty
-    [Tags]    error
-    Configure Faculty    faculty
-    Add File To Server    keeper    files/valid_server.cfg    server.cfg
+    Add File To Server    keeper    files/admin_named_faculty_server.cfg    server.cfg
     Start gkeepd
     Server Not Running
     User Does Not Exist    faculty
@@ -69,33 +48,13 @@ Faculty Named Faculty
 
 Missing server cfg
     [Tags]    error
-    Configure Faculty    prof
     Start gkeepd
     Server Not Running
-    User Does Not Exist    prof
-
-Missing faculty csv
-    [Tags]    error
-    Add File To Server    keeper    files/valid_server.cfg    server.cfg
-    Start gkeepd
-    Server Not Running
-
-Malformed faculty csv
-    [Tags]    error
-    Add File To Server    keeper    files/valid_server.cfg    server.cfg
-    Add File To Server    keeper    files/malformed_faculty.csv    faculty.csv
-    Start gkeepd
-    Server Not Running
-    User Does Not Exist    prof
-    User Does Not Exist    prof2
+    User Does Not Exist    admin_prof
 
 Malformed server cfg
     [Tags]    error
-    Configure Faculty    prof    prof2
     Add File To Server    keeper    files/malformed_server.cfg    server.cfg
     Start gkeepd
     Server Not Running
-    User Does Not Exist    prof
-    User Does Not Exist    prof2
-
-
+    User Does Not Exist    admin_prof
