@@ -22,6 +22,13 @@ Force Tags    gkeepd_launch
 
 *** Test Cases ***
 
+One Faculty
+    [Tags]    happy_path
+    Add File To Server    keeper    files/valid_server.cfg    server.cfg
+    Start gkeepd
+    Expect Email    to_user=prof    contains=Password
+    Server Running
+
 Valid Setup
     [Tags]    happy_path
     Configure Faculty   prof    prof2

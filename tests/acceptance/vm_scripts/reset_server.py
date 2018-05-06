@@ -43,7 +43,7 @@ def remove_gkeepd_files():
     remove('gkeepd.log')
     remove('snapshot.json')
     remove('server.cfg')
-    remove('faculty.csv')
+    remove('faculty.json')
 
 
 def delete_email():
