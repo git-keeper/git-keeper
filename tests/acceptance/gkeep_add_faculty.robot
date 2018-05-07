@@ -17,6 +17,7 @@
 *** Settings ***
 Library    gkeeprobot.keywords.ServerSetupKeywords
 Library    gkeeprobot.keywords.ServerCheckKeywords
+Library    gkeeprobot.keywords.ServerWaitKeywords
 Library    gkeeprobot.keywords.ClientSetupKeywords
 Library    gkeeprobot.keywords.ClientCheckKeywords
 Resource    resources/setup.robot
@@ -28,9 +29,11 @@ Force Tags    gkeep_add_faculty
 Add One Faculty
     [Tags]    happy_path
     Add Faculty    prof2
+    User Exists    prof2
+    Email Exists    to_user=prof2    contains=Password
 
 Duplicate Faculty
     [Tags]    error
     Add Faculty    prof2
     Gkeep Add Faculty Fails    admin_prof    prof2
-    Server Running
+    Gkeepd Is Running

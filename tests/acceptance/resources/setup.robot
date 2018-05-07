@@ -13,6 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+*** Settings ***
+Library    gkeeprobot.keywords.ServerSetupKeywords
+Library    gkeeprobot.keywords.ServerCheckKeywords
+Library    gkeeprobot.keywords.ServerWaitKeywords
+Library    gkeeprobot.keywords.ClientSetupKeywords
+Library    gkeeprobot.keywords.ClientCheckKeywords
+
 *** Keywords ***
 
 Reset And Launch Gkeepd
@@ -20,15 +27,14 @@ Reset And Launch Gkeepd
     Reset Client
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
-    Server Running
+    Wait For Gkeepd
     Setup Faculty Accounts    admin_prof
 
 Add Faculty
     [Arguments]    @{faculty_names}
     :FOR    ${username}    IN    @{faculty_names}
     \        Gkeep Add Faculty Succeeds    admin_prof    ${username}
-    \        Expect Email    to_user=${username}    contains=Password
-    Server Running
+    \        Wait For Email    to_user=${username}    contains=Password
 
 Launch Gkeepd With Faculty
     [Arguments]    @{faculty_names}
