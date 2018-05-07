@@ -15,16 +15,25 @@
 
 *** Keywords ***
 
-Launch Gkeepd With Faculty
-    [Arguments]    @{faculty_names}
+Reset And Launch Gkeepd
     Reset Server
     Reset Client
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     Server Running
     Setup Faculty Accounts    admin_prof
+
+Add Faculty
+    [Arguments]    @{faculty_names}
     :FOR    ${username}    IN    @{faculty_names}
     \        Gkeep Add Faculty Succeeds    admin_prof    ${username}
+    \        Expect Email    to_user=${username}    contains=Password
+    Server Running
+
+Launch Gkeepd With Faculty
+    [Arguments]    @{faculty_names}
+    Reset And Launch Gkeepd
+    Add Faculty    @{faculty_names}
 
 Setup Faculty Accounts
     [Arguments]    @{usernames}

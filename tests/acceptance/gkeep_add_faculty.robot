@@ -20,30 +20,17 @@ Library    gkeeprobot.keywords.ServerCheckKeywords
 Library    gkeeprobot.keywords.ClientSetupKeywords
 Library    gkeeprobot.keywords.ClientCheckKeywords
 Resource    resources/setup.robot
+Test Setup    Reset And Launch Gkeepd
 Force Tags    gkeep_add_faculty
 
 *** Test Cases ***
 
 Add One Faculty
     [Tags]    happy_path
-    Reset Server
-    Reset Client
-    Add File To Server    keeper    files/valid_server.cfg     server.cfg
-    Start gkeepd
-    Expect Email    to_user=admin_prof    contains=Password
-    Setup Faculty Accounts    admin_prof
-    Gkeep Add Faculty Succeeds    admin_prof    prof2
-    Expect Email    to_user=prof2    contains=Password
-    Server Running
+    Add Faculty    prof2
 
 Duplicate Faculty
     [Tags]    error
-    Reset Server
-    Reset Client
-    Add File To Server    keeper    files/valid_server.cfg     server.cfg
-    Start gkeepd
-    Setup Faculty Accounts    admin_prof
-    Gkeep Add Faculty Succeeds    admin_prof    prof2
-    Expect Email    to_user=prof2    contains=Password
+    Add Faculty    prof2
     Gkeep Add Faculty Fails    admin_prof    prof2
     Server Running
