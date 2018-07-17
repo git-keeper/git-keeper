@@ -15,38 +15,23 @@
 
 from gkeeprobot.control.ServerControl import ServerControl
 
-"""Provides keywords for robotframework to check the state of gkserver
-and gkeepd."""
+"""Provides keywords for robotframework to wait for an expected state on the
+server."""
 
 control = ServerControl()
 
 
-class ServerCheckKeywords:
-    def gkeepd_is_running(self):
+class ServerWaitKeywords:
+    def wait_for_gkeepd(self):
         result = control.run_vm_python_script('keeper', 'server_is_running.py')
         assert result == 'True'
 
-    def gkeepd_is_not_running(self):
-        result = control.run_vm_python_script('keeper', 'server_terminated.py')
-        assert result == 'True'
-
-    def email_exists(self, to_user, contains):
+    def wait_for_email(self, to_user, contains):
         result = control.run_vm_python_script('keeper', 'email_to.py',
                                               to_user, contains)
         assert result == 'True'
 
-    def email_does_not_exist(self, username):
-        result = control.run_vm_python_script('keeper', 'no_email_to.py',
-                                              username)
-        assert result == 'True'
-
-    def user_exists(self, username):
+    def wait_for_user(self, username):
         result = control.run_vm_python_script('keeper', 'user_exists.py',
-                                              username)
-        assert result == 'True'
-
-    def user_does_not_exist(self, username):
-        result = control.run_vm_python_script('keeper',
-                                              'user_does_not_exist.py',
                                               username)
         assert result == 'True'

@@ -23,12 +23,9 @@ Be sure to parse the server configuration and start the system logger before
 calling check_system()
 
 """
-
+import json
 import os
 
-from pkg_resources import resource_exists, resource_string
-
-from gkeepcore.faculty import Faculty, faculty_from_csv_file
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_home_dir
@@ -37,6 +34,7 @@ from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
                                        this_user, this_group, sudo_add_user,
                                        group_owner, sudo_chown)
 from gkeepserver.create_user import create_user, UserType
+from gkeepserver.faculty import FacultyMembers
 from gkeepserver.gkeepd_logger import gkeepd_logger as gkeepd_logger
 from gkeepserver.server_configuration import config
 
@@ -139,12 +137,18 @@ def check_paths_and_permissions():
         # we can create it as an empty file
         touch(config.log_snapshot_file_path)
 
+    if not os.path.isfile(config.faculty_json_path):
+        gkeepd_logger.log_info('{} does not exist, creating it now'
+                               .format(config.faculty_json_path))
+        with open(config.faculty_json_path, 'w') as f:
+            json.dump({}, f)
+
     required_modes = {
         config.home_dir: '750',
         tester_home_dir: '770',
         config.log_file_path: '600',
         config.log_snapshot_file_path: '600',
-        config.faculty_csv_path: '600',
+        config.faculty_json_path: '600',
     }
 
     for path, required_mode in required_modes.items():
@@ -176,37 +180,14 @@ def write_gitconfig():
     gkeepd_logger.log_info('Created {0}'.format(config.gitconfig_file_path))
 
 
-def setup_faculty(faculty: Faculty):
-    """
-    Create a faculty user and set up the home directory and logging.
-
-    :param faculty: Faculty object representing the faculty member
-    """
-
-    gkeepd_logger.log_info('New faculty: {0}'.format(faculty))
-
-    # in addition to the faculty's default group, the faculty needs to be in
-    # the keeper group and the faculty group
-    groups = [config.keeper_group, config.faculty_group]
-
-    create_user(faculty.username, UserType.faculty, faculty.first_name,
-                faculty.last_name, email_address=faculty.email_address,
-                additional_groups=groups)
-
-    gkeepd_logger.log_debug('User created')
-
-
 def check_faculty():
-    """Read faculty.csv and add any new faculty members."""
+    """Add any new faculty members."""
 
-    gkeepd_logger.log_debug('Reading faculty CSV file')
+    faculty_members = FacultyMembers()
 
-    try:
-        reader = LocalCSVReader(config.faculty_csv_path)
-        faculty_list = faculty_from_csv_file(reader)
-    except GkeepException as e:
-        raise CheckSystemError(e)
-
-    for faculty in faculty_list:
-        if not user_exists(faculty.username):
-            setup_faculty(faculty)
+    if not faculty_members.faculty_exists(config.admin_username):
+        faculty_members.add_faculty(config.admin_last_name,
+                                    config.admin_first_name,
+                                    config.admin_email, admin=True)
+    elif not faculty_members.is_admin(config.admin_username):
+        faculty_members.promote_to_admin(config.admin_username)

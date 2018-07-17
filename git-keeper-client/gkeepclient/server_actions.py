@@ -15,8 +15,7 @@
 
 
 """Provides functions that request action from the server."""
-
-
+import json
 import os
 import sys
 
@@ -137,6 +136,35 @@ def update_status(class_name: str, status: str):
                       error_message='Error updating status:',
                       timeout_message='Server response timeout. '
                                       'Status of status update unknown')
+
+
+@config_parsed
+@server_interface_connected
+def add_faculty(last_name: str, first_name: str, email_address: str,
+                admin=False):
+    """
+    Add a new faculty user.
+
+    :param admin:
+    :param email_address:
+    :param first_name:
+    :param last_name:
+    """
+
+    faculty_dictionary = {
+        'last_name': last_name,
+        'first_name': first_name,
+        'email_address': email_address,
+        'admin': admin,
+    }
+
+    payload = json.dumps(faculty_dictionary)
+
+    communicate_event('FACULTY_ADD', payload,
+                      success_message='Faculty added successfully',
+                      error_message='Error adding faculty:',
+                      timeout_message='Server response timeout. '
+                                      'Status of adding faculty unknown')
 
 
 @config_parsed

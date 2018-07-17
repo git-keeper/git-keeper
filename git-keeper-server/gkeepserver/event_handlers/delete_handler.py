@@ -20,7 +20,6 @@ Event type: DELETE
 """
 
 
-from gkeepcore.faculty import faculty_from_username
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
@@ -30,6 +29,7 @@ from gkeepcore.system_commands import rm
 from gkeepserver.assignments import AssignmentDirectory, \
     remove_student_assignment
 from gkeepserver.event_handler import EventHandler, HandlerException
+from gkeepserver.faculty import FacultyMembers
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_update_thread import info_updater
@@ -94,9 +94,7 @@ class DeleteHandler(EventHandler):
                                                        home_dir))
         students_with_assignment = []
 
-        faculty = \
-            faculty_from_username(self._faculty_username,
-                                  LocalCSVReader(config.faculty_csv_path))
+        faculty = FacultyMembers().get_faculty_object(self._faculty_username)
 
         students_with_assignment.append(faculty)
 

@@ -13,37 +13,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
 *** Settings ***
 Library    gkeeprobot.keywords.ServerSetupKeywords
 Library    gkeeprobot.keywords.ServerCheckKeywords
 Library    gkeeprobot.keywords.ServerWaitKeywords
 Library    gkeeprobot.keywords.ClientSetupKeywords
 Library    gkeeprobot.keywords.ClientCheckKeywords
+Resource    resources/setup.robot
+Test Setup    Reset And Launch Gkeepd
+Force Tags    gkeep_add_faculty
 
-*** Keywords ***
+*** Test Cases ***
 
-Reset And Launch Gkeepd
-    Reset Server
-    Reset Client
-    Add File To Server    keeper    files/valid_server.cfg    server.cfg
-    Start gkeepd
-    Wait For Gkeepd
-    Setup Faculty Accounts    admin_prof
+Add One Faculty
+    [Tags]    happy_path
+    Add Faculty    prof2
+    User Exists    prof2
+    Email Exists    to_user=prof2    contains=Password
 
-Add Faculty
-    [Arguments]    @{faculty_names}
-    :FOR    ${username}    IN    @{faculty_names}
-    \        Gkeep Add Faculty Succeeds    admin_prof    ${username}
-    \        Wait For Email    to_user=${username}    contains=Password
-
-Launch Gkeepd With Faculty
-    [Arguments]    @{faculty_names}
-    Reset And Launch Gkeepd
-    Add Faculty    @{faculty_names}
-
-Setup Faculty Accounts
-    [Arguments]    @{usernames}
-    :FOR    ${username}    IN    @{usernames}
-    \    Create Accounts    ${username}
-    \    Establish SSH Keys    ${username}
-    \    Create Gkeep Config File    ${username}
+Duplicate Faculty
+    [Tags]    error
+    Add Faculty    prof2
+    Gkeep Add Faculty Fails    admin_prof    prof2
+    Gkeepd Is Running

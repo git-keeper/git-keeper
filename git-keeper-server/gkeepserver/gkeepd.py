@@ -32,22 +32,21 @@ from queue import Queue, Empty
 from signal import signal, SIGINT, SIGTERM
 from traceback import extract_tb
 
-from gkeepserver.version import __version__ as server_version
-from gkeepcore.version import __version__ as core_version
-
-from gkeepcore.faculty import faculty_from_csv_file
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
+from gkeepcore.version import __version__ as core_version
 from gkeepserver.check_system import check_system
 from gkeepserver.email_sender_thread import email_sender
+from gkeepserver.event_handler_assigner import EventHandlerAssignerThread
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
+from gkeepserver.faculty import FacultyMembers
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepserver.info_update_thread import info_updater
 from gkeepserver.local_log_file_reader import LocalLogFileReader
-from gkeepserver.event_handler_assigner import EventHandlerAssignerThread
 from gkeepserver.log_polling import log_poller
 from gkeepserver.server_configuration import config, ServerConfigurationError
 from gkeepserver.submission_test_thread import SubmissionTestThread
+from gkeepserver.version import __version__ as server_version
 
 # switched to True by the signal handler on SIGINT or SIGTERM
 shutdown_flag = False
@@ -118,8 +117,7 @@ def main():
     # start the info refresher thread and refresh the info for each faculty
     info_updater.start()
 
-    reader = LocalCSVReader(config.faculty_csv_path)
-    faculty_list = faculty_from_csv_file(reader)
+    faculty_list = FacultyMembers().get_faculty_objects()
 
     for faculty in faculty_list:
         info_updater.enqueue_full_scan(faculty.username)

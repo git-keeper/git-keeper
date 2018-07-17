@@ -20,18 +20,18 @@ Handler for student submissions.
 Event type: SUBMISSION
 """
 
+from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
     parse_submission_repo_path
-from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.submission import Submission
 from gkeepcore.path_utils import user_home_dir, class_student_csv_path, \
     faculty_assignment_dir_path
 from gkeepcore.student import student_from_username
 from gkeepserver.assignments import AssignmentDirectory
+from gkeepserver.event_handler import EventHandler, HandlerException
+from gkeepserver.faculty import FacultyMembers
 from gkeepserver.new_submission_queue import new_submission_queue
-from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepserver.server_configuration import config
-from gkeepcore.faculty import faculty_from_username
+from gkeepserver.submission import Submission
 
 
 class SubmissionHandler(EventHandler):
@@ -56,8 +56,7 @@ class SubmissionHandler(EventHandler):
         # The AssignmentDirectory object can provide the paths we need
         faculty_home_dir = user_home_dir(self._faculty_username)
 
-        reader = LocalCSVReader(config.faculty_csv_path)
-        faculty = faculty_from_username(self._faculty_username, reader)
+        faculty = FacultyMembers().get_faculty_object(self._faculty_username)
         faculty_email = faculty.email_address
 
         assignment_path = faculty_assignment_dir_path(self._class_name,

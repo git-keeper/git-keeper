@@ -37,7 +37,7 @@ from gkeepclient.create_config import create_config
 from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
 from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, \
-    upload_assignment, trigger_tests, update_status
+    upload_assignment, trigger_tests, update_status, add_faculty
 from gkeepclient.queries import list_classes, list_assignments, \
     list_students, list_recent
 from gkeepcore.gkeep_exception import GkeepException
@@ -267,6 +267,24 @@ def add_status_subparser(subparsers):
                            help='"open" or "closed"')
 
 
+def add_add_faculty_subparser(subparsers):
+    """
+    Add a subparser for action 'add_faculty', which can add a new faculty user.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('add_faculty', help='add a new faculty '
+                                                          'user')
+
+    subparser.add_argument('last_name', metavar='<last name>',
+                           help='last name of the faculty member')
+    subparser.add_argument('first_name', metavar='<first name>',
+                           help='last name of the faculty member')
+    subparser.add_argument('email_address', metavar='<email address>',
+                           help='email address of the faculty member')
+
+
 def initialize_action_parser() -> GraderParser:
     """
     Initialize a GraderParser object.
@@ -297,6 +315,7 @@ def initialize_action_parser() -> GraderParser:
     add_trigger_subparser(subparsers)
     add_config_subparser(subparsers)
     add_status_subparser(subparsers)
+    add_add_faculty_subparser(subparsers)
 
     return parser
 
@@ -393,6 +412,9 @@ def take_action(parsed_args):
         create_config()
     elif action_name == 'status':
         update_status(class_name, parsed_args.status)
+    elif action_name == 'add_faculty':
+        add_faculty(parsed_args.last_name, parsed_args.first_name,
+                    parsed_args.email_address)
 
 
 if __name__ == '__main__':

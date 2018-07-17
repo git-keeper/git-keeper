@@ -61,7 +61,7 @@ Attributes:
     log_snapshot_file_path - path to file containing current log file sizes
     log_level - how detailed the log messages should be
 
-    faculty_csv_path - path to file containing faculty members
+    faculty_json_path - path to file containing faculty members
     faculty_log_dir_path - path to directory containing faculty event logs
 
     DO NOT USE UNTIL FIXED
@@ -150,6 +150,7 @@ class ServerConfiguration:
         self._set_email_options()
         self._set_gkeepd_options()
         self._set_server_options()
+        self._set_admin_options()
 
         self._parsed = True
 
@@ -182,7 +183,7 @@ class ServerConfiguration:
         self.log_level = LogLevel.DEBUG
 
         # faculty info locations
-        self.faculty_csv_path = os.path.join(self.home_dir, 'faculty.csv')
+        self.faculty_json_path = os.path.join(self.home_dir, 'faculty.json')
 
         # testing student code
         self.test_thread_count = 1
@@ -201,6 +202,13 @@ class ServerConfiguration:
         self.email_username = None
         self.email_password = None
         self.email_interval = 2
+
+        # admin
+        self.admin_email = None
+        self.admin_first_name = None
+        self.admin_last_name = None
+
+        self.admin_username = None
 
     def _parse_config_file(self):
         # Use a ConfigParser object to parse the configuration file and store
@@ -282,6 +290,28 @@ class ServerConfiguration:
             self.hostname = self._parser.get('server', 'hostname')
         except configparser.NoOptionError as e:
             raise ServerConfigurationError(e.message)
+
+    def _set_admin_options(self):
+        # set admin-related attributes
+
+        self._ensure_section_is_present('admin')
+
+        try:
+            # Required fields
+            self.admin_email = self._parser.get('admin', 'admin_email')
+            self.admin_first_name = self._parser.get('admin',
+                                                     'admin_first_name')
+            self.admin_last_name = self._parser.get('admin', 'admin_last_name')
+        except configparser.NoOptionError as e:
+            raise ServerConfigurationError(e.message)
+
+        try:
+            self.admin_username, _ = self.admin_email.split('@')
+        except ValueError:
+            raise ServerConfigurationError('{} is not a valid email address'
+                                           .format(self.admin_email))
+
+        self._ensure_options_are_valid('admin')
 
     def _set_gkeepd_options(self):
         # get any optional parameters from the parser and update the attributes
