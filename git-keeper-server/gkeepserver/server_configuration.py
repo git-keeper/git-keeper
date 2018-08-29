@@ -313,6 +313,20 @@ class ServerConfiguration:
 
         self._ensure_options_are_valid('admin')
 
+    def _ensure_positive_integer(self, name):
+        # raises an exception if the attribute specified by name is not a
+        # positive integer
+
+        try:
+            setattr(self, name, int(getattr(self, name)))
+        except:
+            error = '{} must be an integer'
+            raise ServerConfigurationError(error)
+
+        if getattr(self, name) <= 0:
+            error = '{} must be a positive integer'
+            raise ServerConfigurationError(error)
+
     def _set_gkeepd_options(self):
         # get any optional parameters from the parser and update the attributes
         # from their default values
@@ -322,6 +336,8 @@ class ServerConfiguration:
 
         optional_options = [
             'test_thread_count',
+            'tests_timeout',
+            'tests_memory_limit',
             'keeper_user',
             'keeper_group',
             'tester_user',
@@ -337,12 +353,16 @@ class ServerConfiguration:
                 value = self._parser.get('gkeepd', name)
                 setattr(self, name, value)
 
-        # test_thread_count must be an integer
-        try:
-            self.test_thread_count = int(self.test_thread_count)
-        except ValueError:
-            error = 'test_thread_count must be an integer'
-            raise ServerConfigurationError(error)
+        # test_thread_count, tests_timeout, and tests_memory_limit must be
+        # positive integers
+        positive_integer_options = [
+            'test_thread_count',
+            'tests_timeout',
+            'tests_memory_limit'
+        ]
+
+        for name in positive_integer_options:
+            self._ensure_positive_integer(name)
 
         self._ensure_options_are_valid('gkeepd')
 
