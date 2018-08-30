@@ -27,6 +27,7 @@ import sys
 from argparse import ArgumentParser
 
 from gkeepclient.version import __version__ as client_version
+from gkeepcore.path_utils import path_to_assignment_name
 from gkeepcore.version import __version__ as core_version
 
 from argcomplete import autocomplete
@@ -381,6 +382,11 @@ def take_action(parsed_args):
     if class_name and class_name in config.class_aliases:
         class_name = config.class_aliases[class_name]
 
+    # the user may pass a path for the name of an assignment
+    assignment_name = getattr(parsed_args, 'assignment_name', None)
+    if assignment_name:
+        assignment_name = path_to_assignment_name(assignment_name)
+
     # call the appropriate function for the action
     if action_name == 'add':
         class_add(class_name, parsed_args.csv_file_path)
@@ -395,18 +401,18 @@ def take_action(parsed_args):
             items = (parsed_args.item,)
         update_assignment(class_name, parsed_args.assignment_path, items)
     elif action_name == 'publish':
-        publish_assignment(class_name, parsed_args.assignment_name)
+        publish_assignment(class_name, assignment_name)
     elif action_name == 'delete':
-        delete_assignment(class_name, parsed_args.assignment_name)
+        delete_assignment(class_name, assignment_name)
     elif action_name == 'fetch':
         dest_path = build_dest_path(parsed_args.destination_path,
                                     class_name)
-        fetch_submissions(class_name, parsed_args.assignment_name,
+        fetch_submissions(class_name, assignment_name,
                           dest_path)
     elif action_name == 'query':
         run_query(parsed_args.query_type, parsed_args.number_of_days)
     elif action_name == 'trigger':
-        trigger_tests(class_name, parsed_args.assignment_name,
+        trigger_tests(class_name, assignment_name,
                       parsed_args.student_usernames)
     elif action_name == 'config':
         create_config()

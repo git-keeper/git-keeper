@@ -46,6 +46,26 @@ def path_to_list(path: str) -> list:
     return elements
 
 
+def path_to_assignment_name(path: str) -> str:
+    """
+    Extract an assignment name from a path. This simply returns the last
+    element in a path, and does not ensure that the name is a valid assignment
+    name.
+
+    If given an empty string, the empty string is returned.
+
+    :param path: assignment path
+    :return: name of the assignment
+    """
+
+    path_components = path_to_list(path)
+
+    if len(path_components) == 0:
+        return ''
+    else:
+        return path_components[-1]
+
+
 def user_home_dir(username):
     """
     Get a user's home directory on the local machine.
