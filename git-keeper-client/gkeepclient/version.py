@@ -2,4 +2,4 @@
 # Instead, edit the VERSION file in the top level directory of the git-keeper
 # project and then run bump_version.py.
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
