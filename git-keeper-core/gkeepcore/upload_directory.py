@@ -23,7 +23,7 @@ import os
 
 from gkeepcore.action_scripts import get_action_script_and_interpreter
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.path_utils import path_to_list
+from gkeepcore.path_utils import path_to_assignment_name
 
 
 class UploadDirectoryError(GkeepException):
@@ -75,7 +75,7 @@ class UploadDirectory:
         self.base_code_path = os.path.join(self.path, 'base_code')
         self.tests_path = os.path.join(self.path, 'tests')
 
-        self.assignment_name = path_to_list(self.path)[-1]
+        self.assignment_name = path_to_assignment_name(self.path)
 
         self.action_script, self.action_script_interpreter = \
             get_action_script_and_interpreter(self.tests_path)
