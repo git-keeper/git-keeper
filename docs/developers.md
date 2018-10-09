@@ -48,6 +48,7 @@ The preferred development environment is PyCharm on OSX or Linux.  The following
  pip install -e git-keeper-core
  pip install -e git-keeper-client
  pip install -e git-keeper-server
+ pip install -e git-keeper-robot
  ```
 
 * Open the project in PyCharm, and wait for it to index the packages.
