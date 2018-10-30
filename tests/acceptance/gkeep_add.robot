@@ -82,12 +82,12 @@ Student Named Student
     Gkeep Add Fails    faculty=washington    class_name=cs1
 
 Duplicate Class Name
-    [Tags]    error
+    [Tags]    happy_path
     Setup Faculty Accounts    washington    adams
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Gkeep Add Succeeds    faculty=washington    class_name=cs1
     Add To Class    faculty=adams    class_name=cs1    student=gonzo
-    Gkeep Add Fails    faculty=adams    class_name=cs1
+    Gkeep Add Succeeds    faculty=adams    class_name=cs1
 
 Empty CSV
     [Tags]    error
