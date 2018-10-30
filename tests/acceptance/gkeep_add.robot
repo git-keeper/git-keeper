@@ -82,7 +82,7 @@ Student Named Student
     Gkeep Add Fails    faculty=washington    class_name=cs1
 
 Duplicate Class Name
-    [Tags]    error
+    [Tags]    happy_path
     Setup Faculty Accounts    washington    adams
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Gkeep Add Succeeds    faculty=washington    class_name=cs1
