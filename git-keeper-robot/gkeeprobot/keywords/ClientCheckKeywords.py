@@ -81,6 +81,7 @@ class ClientCheckKeywords:
             client_control.run(admin, 'gkeep add_faculty {} {} {}'
                                        .format(last_name, first_name,
                                                email_address))
-            raise CommandError('gkeep add_faculty should have non-zero return')
+            error = 'gkeep add_faculty should have non-zero return'
+            raise GkeepRobotException(error)
         except CommandError:
             pass
