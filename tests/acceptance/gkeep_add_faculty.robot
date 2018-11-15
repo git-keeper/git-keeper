@@ -37,3 +37,11 @@ Duplicate Faculty
     Add Faculty    prof2
     Gkeep Add Faculty Fails    admin_prof    prof2
     Gkeepd Is Running
+    
+NonAdmin Adding Faculty
+    [Tags]  error
+    Add Faculty     prof2
+    User Exists     prof2
+    Setup Faculty Accounts  prof2
+    Gkeep Add Faculty Fails  prof2  prof3
+    Gkeepd Is Running
