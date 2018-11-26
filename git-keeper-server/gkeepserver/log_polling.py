@@ -62,6 +62,7 @@ from time import time, sleep
 
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.log_file import LogFileReader, LogFileException
+from gkeepcore.system_commands import file_is_readable
 from gkeepserver.gkeepd_logger import GkeepdLoggerThread
 
 
@@ -148,6 +149,10 @@ class LogPollingThread(Thread):
         :param file_path: path to the log file
 
         """
+
+        if not file_is_readable(file_path):
+            error = '{} is not a readable file'.format(file_path)
+            raise GkeepException(error)
 
         self._add_log_queue.put(file_path)
 
