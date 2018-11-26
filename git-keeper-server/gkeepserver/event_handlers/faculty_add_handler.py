@@ -43,6 +43,10 @@ class FacultyAddHandler(EventHandler):
                 error = 'Faculty user {} already exists'.format(self._username)
                 raise HandlerException(error)
 
+            if not faculty_members.is_admin(self._adder_username):
+                error = 'User {} is not an admin'.format(self._adder_username)
+                raise HandlerException(error)
+
             faculty_members.add_faculty(self._last_name, self._first_name,
                                         self._email_address, self._admin)
 
