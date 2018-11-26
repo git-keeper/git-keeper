@@ -121,13 +121,19 @@ class FacultyClassInfo:
 
     def assignment_list(self, class_name: str) -> list:
         """
-        Get the  of assignments for a class.
+        Get the list of assignments for a class.
+
+        Returns an empty list if the class does not exist, or if the class
+        has no assignments.
 
         :param class_name: name of a class
-        :return:  of assignments for a class
+        :return: list of assignments for a class
         """
 
-        return list(self.info_dict[class_name]['assignments'])
+        try:
+            return list(self.info_dict[class_name]['assignments'])
+        except KeyError:
+            return []
 
     def is_published(self, class_name: str, assignment: str) -> bool:
         """
