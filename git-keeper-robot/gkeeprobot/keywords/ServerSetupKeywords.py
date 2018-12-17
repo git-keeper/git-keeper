@@ -24,12 +24,6 @@ control = ServerControl()
 
 class ServerSetupKeywords:
 
-    def configure_faculty(self, *faculty_list):
-        for faculty_name in faculty_list:
-            line = 'Professor,Doctor,{}@gitkeeper.edu'.format(faculty_name)
-            control.run_vm_python_script('keeper', 'add_to_file.py',
-                                         'faculty.csv', line)
-
     def add_file_to_server(self, username, filename, target_filename):
         control.copy(username, filename, target_filename)
 
