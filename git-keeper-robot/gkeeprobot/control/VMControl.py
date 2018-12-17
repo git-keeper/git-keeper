@@ -13,9 +13,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from gkeepcore.system_commands import chmod
 from gkeepcore.shell_command import run_command
 from tempfile import TemporaryDirectory
-from robot.api import logger
+
 
 """Provides methods to execute commands on gkclient and gkserver
 during testing."""
@@ -39,6 +40,8 @@ class VMControl:
         base = 'ssh localhost'
         port = '-p {}'.format(port)
         if username == 'keeper':
+            chmod('ssh_keys/keeper_rsa', '600')
+            chmod('ssh_keys/keeper_rsa.pub', '600')
             user_and_key = '-l {} -i ssh_keys/{}_rsa'.format(username,
                                                              username)
         else:
@@ -56,6 +59,8 @@ class VMControl:
         base = 'scp'
         port = '-P {}'.format(port)
         if username == 'keeper':
+            chmod('ssh_keys/keeper_rsa', '600')
+            chmod('ssh_keys/keeper_rsa.pub', '600')
             key = '-i ssh_keys/{}_rsa'.format(username)
         else:
             key = '-i {}/{}_rsa'.format(self.temp_dir.name, username)
