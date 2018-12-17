@@ -9,12 +9,12 @@ client = ClientSetupKeywords()
 
 print('Checking that gkserver is running...')
 if not vagrant.is_server_running():
-    print("Server not running!")
+    print("Server not running.  Run 'vagrant up' first.")
     exit(1)
 
 print('Checking that gkclient is running')
 if not vagrant.is_client_running():
-    print("Client not running!")
+    print("Client not running.  Run 'vagrant up' first.")
     exit(1)
 
 # This also stops gkeepd
