@@ -143,7 +143,8 @@ def students_from_csv(reader: CSVReader) -> list:
 
     for row in reader.get_rows():
         if len(row) > 0:
-            students.append(Student.from_csv_row(row))
+            if Student.from_csv_row(row) not in students:
+                students.append(Student.from_csv_row(row))
 
     return students
 
