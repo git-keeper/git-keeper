@@ -14,25 +14,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from gkeeprobot.control.ServerControl import ServerControl
-
-"""Provides keywords for robotframework to configure gkserver before
-testing begins."""
-
-control = ServerControl()
+"""
+This module provides exceptions to be raised by robot keyword functions.
+"""
 
 
-class ServerSetupKeywords:
-
-    def add_file_to_server(self, username, filename, target_filename):
-        control.copy(username, filename, target_filename)
-
-    def start_gkeepd(self):
-        control.run('keeper', 'screen -S gkserver -d -m gkeepd')
-
-    def add_account_on_server(self, faculty_name):
-        cmd = 'sudo useradd -ms /bin/bash {}'.format(faculty_name)
-        control.run('keeper', cmd)
-
-    def reset_server(self):
-        control.run_vm_python_script('keeper', 'reset_server.py')
+class GkeepRobotException(Exception):
+    """Base exception for all robot exceptions."""
+    pass

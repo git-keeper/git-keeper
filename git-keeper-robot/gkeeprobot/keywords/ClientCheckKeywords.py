@@ -16,6 +16,7 @@
 
 from gkeeprobot.control.ClientControl import ClientControl
 from gkeepcore.shell_command import CommandError
+from gkeeprobot.exceptions import GkeepRobotException
 
 """Provides keywords used by robotframework to check the results of
 user actions."""
@@ -33,7 +34,7 @@ class ClientCheckKeywords:
         try:
             cmd = 'gkeep add {} {}.csv'.format(class_name, class_name)
             client_control.run(faculty, cmd)
-            raise CommandError('gkeep add should have non-zero return')
+            raise GkeepRobotException('gkeep add should have non-zero return')
         except CommandError:
             pass
 
@@ -80,6 +81,7 @@ class ClientCheckKeywords:
             client_control.run(admin, 'gkeep add_faculty {} {} {}'
                                        .format(last_name, first_name,
                                                email_address))
-            raise CommandError('gkeep add_faculty should have non-zero return')
+            error = 'gkeep add_faculty should have non-zero return'
+            raise GkeepRobotException(error)
         except CommandError:
             pass

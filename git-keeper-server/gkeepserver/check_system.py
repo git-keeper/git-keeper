@@ -82,7 +82,7 @@ def check_paths_and_permissions():
             * keeper user's home directory: 750
             * gkeepd.log: 600,
             * log snapshot file: 600
-            * faculty.csv: 600
+            * faculty.json: 600
 
     Raises a CheckSystemError exception on fatal errors.
 

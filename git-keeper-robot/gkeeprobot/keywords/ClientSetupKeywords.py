@@ -64,5 +64,9 @@ class ClientSetupKeywords:
         client_control.run_vm_bash_script(faculty, 'make_gkeep_config.sh',
                                           faculty)
 
+    def run_gkeep_command(self, faculty, *command):
+        cmd = 'gkeep ' + ' '.join(command)
+        client_control.run(faculty, cmd)
+
     def reset_client(self):
         client_control.run_vm_python_script('keeper', 'reset_client.py')
