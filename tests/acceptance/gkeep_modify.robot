@@ -36,6 +36,11 @@ Remove Student
     Gkeep Modify Succeeds    faculty=washington    class_name=cs1
     Gkeep Query Does Not Contain    washington    students    gonzo
 
+Malformed CSV
+    [Tags]    error
+    Establish Course  washington    cs1     @{cs1_students}
+    Add File To Client    washington    files/malformed_cs1.csv    cs1.csv
+    Gkeep Modify Fails    faculty=washington    class_name=cs1
 
 *** Keywords ***
 
