@@ -45,7 +45,7 @@ Add Student Twice
     Email Exists    to_user=piggy    contains=Password
     Gkeep Query Contains    washington    students    piggy
     Add To Class    faculty=washington   class_name=cs1  student=piggy
-    Gkeep Modify Succeeds    faculty=washington    class_name=cs1
+    Gkeep Modify Fails    faculty=washington    class_name=cs1
     User Exists    piggy
     Email Exists    to_user=piggy    contains=Password
     Gkeep Query Contains    washington    students    piggy
