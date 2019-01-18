@@ -130,7 +130,9 @@ class Submission:
         # execute action.sh and capture the output
         try:
             cmd = ['sudo', '-u', config.tester_user, 'bash',
-                   temp_run_action_sh_path, temp_assignment_path]
+                   temp_run_action_sh_path, temp_assignment_path,
+                   self.student.username, self.student.email_address,
+                   self.student.last_name, self.student.first_name]
             body = run_command_in_directory(temp_tests_path, cmd)
 
             # send output as email
