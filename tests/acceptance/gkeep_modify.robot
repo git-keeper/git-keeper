@@ -37,7 +37,7 @@ Remove Student
     Gkeep Query Does Not Contain    washington    students    gonzo
 
 Add Student Twice
-    [Tags]    happy_path
+    [Tags]    error
     Establish Course  washington    cs1     @{cs1_students}
     Add To Class    faculty=washington  class_name=cs1  student=kermit
     Gkeep Modify Fails   faculty=washington    class_name=cs1

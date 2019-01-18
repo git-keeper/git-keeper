@@ -46,7 +46,7 @@ class ClientCheckKeywords:
         try:
             cmd = 'gkeep modify {} {}.csv'.format(class_name, class_name)
             client_control.run(faculty, cmd)
-            raise CommandError('gkeep modify should have non-zero return')
+            raise GkeepRobotException('gkeep modify should have non-zero return')
         except CommandError:
             pass
 
