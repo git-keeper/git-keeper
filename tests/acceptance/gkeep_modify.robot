@@ -42,6 +42,12 @@ Add Student Twice
     Add To Class    faculty=washington  class_name=cs1  student=kermit
     Gkeep Modify Fails   faculty=washington    class_name=cs1
 
+Malformed CSV
+    [Tags]    error
+    Establish Course  washington    cs1     @{cs1_students}
+    Add File To Client    washington    files/malformed_cs1.csv    cs1.csv
+    Gkeep Modify Fails    faculty=washington    class_name=cs1
+
 *** Keywords ***
 
 Establish Course
