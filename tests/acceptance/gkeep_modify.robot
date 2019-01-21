@@ -48,6 +48,12 @@ Malformed CSV
     Add File To Client    washington    files/malformed_cs1.csv    cs1.csv
     Gkeep Modify Fails    faculty=washington    class_name=cs1
 
+Add Student Named Student
+    [Tags]    error
+    Setup Faculty Accounts    washington
+    Add To Class    faculty=washington  class_name=cs1  student=student
+    Gkeep Modify Fails    faculty=washington    class_name=cs1
+
 *** Keywords ***
 
 Establish Course
