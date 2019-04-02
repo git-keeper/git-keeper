@@ -90,7 +90,13 @@ Duplicate Class Name
     Gkeep Add Succeeds    faculty=adams    class_name=cs1
 
 Empty CSV
-    [Tags]    error
+    [Tags]    happy_path
     Setup Faculty Accounts    washington
     Make Empty File    washington    cs1.csv
-    Gkeep Add Fails    faculty=washington    class_name=cs1
+    Gkeep Add Succeeds    faculty=washington    class_name=cs1
+
+No CSV
+    [Tags]  happy_path
+    Setup Faculty Accounts    washington
+    Make Empty File    washington    cs1.csv
+    Gkeep Add No CSV Succeeds    faculty=washington    class_name=cs1

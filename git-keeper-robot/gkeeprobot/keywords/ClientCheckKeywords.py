@@ -30,6 +30,9 @@ class ClientCheckKeywords:
         client_control.run(faculty, 'gkeep add {} {}.csv'.format(class_name,
                                                                  class_name))
 
+    def gkeep_add_no_csv_succeeds(self, faculty, class_name):
+        client_control.run(faculty, 'gkeep add {}'.format(class_name))
+
     def gkeep_add_fails(self, faculty, class_name):
         try:
             cmd = 'gkeep add {} {}.csv'.format(class_name, class_name)
