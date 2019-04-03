@@ -258,6 +258,20 @@ class ServerInterface:
         except Exception as e:
             raise ServerInterfaceError(e)
 
+    def create_empty_file(self, remote_path: str):
+        """
+        Create an empty file on the server.
+
+        It is the responsibility of the caller to ensure that the remote
+        path does not exist.
+
+        The remote_path is the full destination file path.
+
+        :param remote_path: full path on the server
+        """
+        cmd = ['touch', remote_path]
+        self.run_command(cmd)
+
     def create_directory(self, remote_path):
         """
         Create a new directory on the server.

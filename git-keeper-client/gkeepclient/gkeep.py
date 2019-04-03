@@ -98,13 +98,25 @@ def add_assignment_path_argument(subparser):
 
 def add_csv_file_path_argument(subparser):
     """
-    Add a csv_file_path argument to a subparser.
+    Add a required csv_file_path argument to a subparser.
 
     :param subparser: the subparser to add the argument to
     """
 
     subparser.add_argument('csv_file_path', type=str, metavar='<csv filename>',
                            help='name of the CSV file containing students')
+
+
+def add_optional_csv_file_path_argument(subparser):
+    """
+    Add an optional csv_file_path argument to a subparser.
+
+    :param subparser: the subparser to add the argument to
+    """
+
+    subparser.add_argument('csv_file_path', type=str, metavar='<csv filename>',
+                           help='name of the CSV file containing students',
+                           default=None, nargs='?')
 
 
 def add_add_subparser(subparsers):
@@ -116,7 +128,7 @@ def add_add_subparser(subparsers):
 
     subparser = subparsers.add_parser('add', help='add a class')
     add_class_name_argument(subparser)
-    add_csv_file_path_argument(subparser)
+    add_optional_csv_file_path_argument(subparser)
 
 
 def add_modify_subparser(subparsers):
