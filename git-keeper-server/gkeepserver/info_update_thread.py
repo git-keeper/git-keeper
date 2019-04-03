@@ -337,7 +337,7 @@ class InfoUpdateThread(Thread):
 
         class_info = self._info[faculty_username][class_name]
 
-        students_info = class_info['students']
+        students_info = {}
 
         students = get_class_students(faculty_username, class_name)
 
@@ -352,6 +352,8 @@ class InfoUpdateThread(Thread):
             }
 
             students_info[student.username] = student_info
+
+        class_info['students'] = students_info
 
         assignment_dirs = get_class_assignment_dirs(faculty_username,
                                                     class_name)
