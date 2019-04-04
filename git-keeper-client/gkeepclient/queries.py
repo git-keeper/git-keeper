@@ -30,7 +30,9 @@ from gkeepclient.server_interface import server_interface
 def list_classes():
     """Print the names of all the classes owned by the faculty."""
 
-    for class_name in server_interface.get_classes():
+    class_list = sorted(server_interface.get_info().class_list())
+
+    for class_name in class_list:
         print(class_name)
 
 
@@ -67,10 +69,14 @@ def list_students():
     Print all the students in classes owned by the faculty, grouped by class.
     """
 
-    for class_name in server_interface.get_classes():
+    class_list = server_interface.get_info().class_list()
+
+    for class_name in sorted(class_list):
         print(class_name, ':', sep='')
 
-        for student in server_interface.get_students(class_name):
+        student_list = server_interface.get_info().student_list(class_name)
+
+        for student in sorted(student_list):
             print(student)
 
         print()
@@ -93,7 +99,6 @@ def list_recent(number_of_days):
     print()
 
     info = server_interface.get_info()
-
 
     for class_name in sorted(info.class_list()):
         class_name_printed = False
