@@ -29,3 +29,4 @@ sudo sh -c "echo 'LogLevel=ERROR' >> /home/$1/.ssh/config"
 sudo chown -R $1 /home/$1/.ssh/
 sudo chgrp -R $1 /home/$1/.ssh/
 sudo chmod 600 /home/$1/.ssh/*
+exit 0
