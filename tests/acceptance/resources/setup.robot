@@ -28,6 +28,7 @@ Reset And Launch Gkeepd
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     Wait For Gkeepd
+    Wait For Email    to_user=admin_prof    contains=Password
     Setup Faculty Accounts    admin_prof
 
 Add Faculty
