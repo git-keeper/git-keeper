@@ -31,6 +31,7 @@ class ServerCommunication:
 
         transport = self._ssh_client.get_transport()
         channel = transport.open_session()
+        channel.set_combine_stderr(True)
         f = channel.makefile()
         channel.exec_command(command)
         output = f.read().decode('utf-8')
