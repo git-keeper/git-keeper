@@ -39,5 +39,5 @@ class ServerControl:
         return self.vm_control.run(username, self.v.get_server_port(), cmd)
 
     def copy(self, username, filename, target_filename):
-        return self.vm_control.copy(username, self.v.get_server_port(),
+        self.vm_control.copy(username, self.v.get_server_port(),
                                     filename, target_filename)

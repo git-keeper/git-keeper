@@ -39,5 +39,8 @@ class ClientControl:
         return self.vm_control.run(username, self.v.get_client_port(), cmd)
 
     def copy(self, username, filename, target_filename):
-        return self.vm_control.copy(username, self.v.get_client_port(),
+        self.vm_control.copy(username, self.v.get_client_port(),
                                     filename, target_filename)
+
+    def close_user_connections(self):
+        self.vm_control.close_user_connections(self.v.get_client_port())

@@ -21,3 +21,4 @@ cat > .config/git-keeper/client.cfg <<EOL
 host = gkserver
 username = $1
 EOL
+exit 0
