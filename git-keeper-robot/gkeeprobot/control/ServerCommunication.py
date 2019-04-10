@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from paramiko import SSHClient, AutoAddPolicy
-
+import time
 
 class ServerCommunication:
 
@@ -58,3 +58,5 @@ class ServerCommunication:
     def close(self):
         self._ssh_client.close()
         self._sftp_client.close()
+        # paramiko runs close in a separate thread which caused timing issues
+        time.sleep(0.1)
