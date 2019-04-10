@@ -57,3 +57,4 @@ class ServerCommunication:
 
     def close(self):
         self._ssh_client.close()
+        self._sftp_client.close()
