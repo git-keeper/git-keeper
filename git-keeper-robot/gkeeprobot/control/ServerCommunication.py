@@ -56,7 +56,5 @@ class ServerCommunication:
         self._sftp_client = self._ssh_client.open_sftp()
 
     def close(self):
-        self._ssh_client.close()
         self._sftp_client.close()
-        # paramiko runs close in a separate thread which caused timing issues
-        time.sleep(0.1)
+        self._ssh_client.close()
