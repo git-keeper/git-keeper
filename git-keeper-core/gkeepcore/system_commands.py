@@ -162,6 +162,25 @@ def sudo_add_user(username, groups=None, shell=None, home_dir_mode=755):
     chmod(home_dir_path, home_dir_mode, sudo=True)
 
 
+def sudo_remove_user(username, home_dir_path=None):
+    """
+    Remove a user and the user's home directory.
+
+    If the user does not exist and home_dir_path is not none, home_dir_path
+    will be removed if it exists.
+
+    :param username: username of the user to remove
+    :param home_dir: optional path to a home directory that should be removed
+      even if the user does not exist
+    """
+
+    if user_exists(username):
+        cmd = 'userdel -r {}'.format(username)
+        run_command(cmd, sudo=True)
+    elif home_dir_path is not None and os.path.isdir(home_dir_path):
+        rm(home_dir_path, recursive=True, sudo=True)
+
+
 def sudo_set_password(username, password):
     """
     Set a user's password using sudo and chpasswd.
