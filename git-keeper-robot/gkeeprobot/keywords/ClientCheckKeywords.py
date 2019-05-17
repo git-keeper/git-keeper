@@ -88,3 +88,15 @@ class ClientCheckKeywords:
             raise GkeepRobotException(error)
         except ExitCodeException:
             pass
+
+    def gkeep_upload_succeeds(self, faculty, course_name, assignment_name):
+        client_control.run(faculty, 'gkeep upload {} {}'.format(course_name, assignment_name))
+
+    def gkeep_upload_fails(self, faculty, course_name, assignment_name):
+        try:
+            client_control.run(faculty, 'gkeep upload {} {}'.format(course_name, assignment_name))
+            error = 'gkeep upload should have non-zero return'
+            raise GkeepRobotException(error)
+        except ExitCodeException:
+            pass
+
