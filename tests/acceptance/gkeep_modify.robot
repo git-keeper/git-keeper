@@ -25,7 +25,7 @@ Add Student
     Establish Course    washington    cs1    @{cs1_students}
     Add To Class    faculty=washington    class_name=cs1    student=piggy
     Gkeep Modify Succeeds    faculty=washington    class_name=cs1
-    User Exists    piggy
+    User Exists On Server    piggy
     Email Exists    to_user=piggy    contains=Password
     Gkeep Query Contains    washington    students    piggy
 

@@ -27,8 +27,8 @@ Valid Class
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Add To Class    faculty=washington    class_name=cs1    student=gonzo
     Gkeep Add Succeeds    faculty=washington    class_name=cs1
-    User Exists    kermit
-    User Exists    gonzo
+    User Exists On Server    kermit
+    User Exists On Server    gonzo
     Email Exists    to_user=kermit    contains=Password
     Email Exists    to_user=gonzo    contains=Password
     Gkeep Query Contains    washington    classes    cs1
@@ -46,8 +46,8 @@ Existing Student
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Add To Class    faculty=washington    class_name=cs1    student=gonzo
     Gkeep Add Succeeds    faculty=washington    class_name=cs1
-    User Exists    kermit
-    User Exists    gonzo
+    User Exists On Server    kermit
+    User Exists On Server    gonzo
     Email Exists    to_user=kermit    contains=Password
     Email Does Not Exist    to_user=gonzo
     Gkeep Query Contains    washington    classes    cs1

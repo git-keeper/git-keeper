@@ -29,7 +29,7 @@ Force Tags    gkeep_add_faculty
 Add One Faculty
     [Tags]    happy_path
     Add Faculty    prof2
-    User Exists    prof2
+    User Exists On Server    prof2
     Email Exists    to_user=prof2    contains=Password
 
 Duplicate Faculty

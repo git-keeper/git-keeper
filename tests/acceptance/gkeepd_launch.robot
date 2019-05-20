@@ -26,34 +26,35 @@ Valid Setup
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     Email Exists    to_user=admin_prof    contains=Password
-    User Exists    admin_prof
-    User Exists    tester
+    User Exists On Server    admin_prof
+    User Exists On Server   tester
     Gkeepd Is Running
 
 Admin Account Already Exists
-    [Tags]    error
+    [Tags]    happy_path
     Add Account On Server    admin_prof
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     Email Does Not Exist    admin_prof
+    Gkeepd Is Running
 
 Admin Named Faculty
     [Tags]    error
     Add File To Server    keeper    files/admin_named_faculty_server.cfg    server.cfg
     Start gkeepd
     Gkeepd Is Not Running
-    User Does Not Exist    faculty
+    User Does Not Exist On Server    faculty
     Email Does Not Exist    faculty
 
 Missing server cfg
     [Tags]    error
     Start gkeepd
     Gkeepd Is Not Running
-    User Does Not Exist    admin_prof
+    User Does Not Exist On Server    admin_prof
 
 Malformed server cfg
     [Tags]    error
     Add File To Server    keeper    files/malformed_server.cfg    server.cfg
     Start gkeepd
     Gkeepd Is Not Running
-    User Does Not Exist    admin_prof
+    User Does Not Exist On Server    admin_prof
