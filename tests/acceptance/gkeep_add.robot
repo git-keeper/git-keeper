@@ -80,12 +80,20 @@ Student Named Student
     Add To Class    faculty=faculty1    class_name=cs1    student=student
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
-Duplicate Class Name
+Same Class Name From Different Faculty
     [Tags]    happy_path
     Add To Class    faculty=faculty1    class_name=cs1    student=student1
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
     Add To Class    faculty=faculty2    class_name=cs1    student=student2
     Gkeep Add Succeeds    faculty=faculty2    class_name=cs1
+
+Faculty Adds Class Twice With Different Enrollment
+    [Tags]  fatal error
+    Add To Class    faculty=faculty1    class_name=cs1    student=student1
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    Add To Class    faculty=faculty1    class_name=cs1    student=student2
+    Gkeep Add Fails    faculty=faculty1    class_name=cs1
+
 
 Empty CSV
     [Tags]    happy_path
