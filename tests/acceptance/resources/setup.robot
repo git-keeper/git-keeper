@@ -29,22 +29,28 @@ Reset And Launch Gkeepd
     Start gkeepd
     Wait For Gkeepd
     Wait For Email    to_user=admin_prof    contains=Password
-    Setup Faculty Accounts    admin_prof
-
-Add Faculty
-    [Arguments]    @{faculty_names}
-    :FOR    ${username}    IN    @{faculty_names}
-    \        Gkeep Add Faculty Succeeds    admin_prof    ${username}
-    \        Wait For Email    to_user=${username}    contains=Password
+    Create Accounts On Client    admin_prof
 
 Launch Gkeepd With Faculty
     [Arguments]    @{faculty_names}
     Reset And Launch Gkeepd
-    Add Faculty    @{faculty_names}
+    :FOR    ${username}    IN    @{faculty_names}
+    \        Gkeep Add Faculty Succeeds    admin_prof    ${username}
+    \        Wait For Email    to_user=${username}    contains=Password
 
-Setup Faculty Accounts
+Create Accounts On Client
     [Arguments]    @{usernames}
     :FOR    ${username}    IN    @{usernames}
-    \    Create Accounts    ${username}
-    \    Establish SSH Keys    ${username}
-    \    Create Gkeep Config File    ${username}
+    \       Create Account    ${username}
+    \       Establish SSH Keys    ${username}
+    \       Create Gkeep Config File    ${username}
+
+Launch Gkeepd And Configure Admin Account on Client
+    Reset Server
+    Reset Client
+    Add File To Server    keeper    files/valid_server.cfg    server.cfg
+    Start gkeepd
+    Wait For Gkeepd
+    Wait For Email    to_user=admin_prof    contains=Password
+    Create Accounts On Client    admin_prof
+

@@ -21,26 +21,28 @@ Library    gkeeprobot.keywords.ServerWaitKeywords
 Library    gkeeprobot.keywords.ClientSetupKeywords
 Library    gkeeprobot.keywords.ClientCheckKeywords
 Resource    resources/setup.robot
-Test Setup    Reset And Launch Gkeepd
+Test Setup    Launch Gkeepd And Configure Admin Account on Client
 Force Tags    gkeep_add_faculty
 
 *** Test Cases ***
 
 Add One Faculty
     [Tags]    happy_path
-    Add Faculty    prof2
-    User Exists On Server    prof2
+    Gkeep Add Faculty Succeeds    admin_prof    prof2
     Email Exists    to_user=prof2    contains=Password
+    User Exists On Server    prof2
 
 Duplicate Faculty
     [Tags]    error
-    Add Faculty    prof2
+    Gkeep Add Faculty Succeeds    admin_prof    prof2
+    Wait For Email      to_user=prof2    contains=Password
     Gkeep Add Faculty Fails    admin_prof    prof2
     Gkeepd Is Running
 
 Add Faculty As Non Admin
     [Tags]    error
-    Add Faculty    prof2
-    Setup Faculty Accounts    prof2
+    Gkeep Add Faculty Succeeds    admin_prof    prof2
+    Wait For Email      to_user=prof2    contains=Password
+    Create Accounts On Client    prof2
     Gkeep Add Faculty Fails    prof2    prof3
     Gkeepd Is Running

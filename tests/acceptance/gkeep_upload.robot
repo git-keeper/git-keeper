@@ -19,10 +19,10 @@ Resource    resources/setup.robot
 Test Setup    Launch Gkeepd With Faculty    washington    adams
 Force Tags    gkeep_upload
 
-*** *** Keywords ***
+*** Keywords ***
 
 Setup CS1 Class
-    Setup Faculty Accounts    washington
+    Create Accounts On Client    washington
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Add To Class    faculty=washington    class_name=cs1    student=gonzo
     Gkeep Add Succeeds    faculty=washington    class_name=cs1

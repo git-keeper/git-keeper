@@ -52,7 +52,7 @@ Malformed CSV
 
 Establish Course
     [Arguments]    ${faculty}    ${class}    @{students}
-    Setup Faculty Accounts    ${faculty}
+    Create Accounts On Client    ${faculty}
     :FOR     ${student}    IN    @{students}
     \    Add To Class    faculty=${faculty}    class_name=${class}    student=${student}
     Gkeep Add Succeeds    faculty=washington    class_name=cs1
