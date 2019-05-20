@@ -42,7 +42,7 @@ Establish Course
     [Arguments]    ${faculty}    ${class}    @{students}
     :FOR     ${student}    IN    @{students}
     \    Add To Class    faculty=${faculty}    class_name=${class}    student=${student}
-    Gkeep Add Succeeds    faculty=washington    class_name=cs1
+    Gkeep Add Succeeds    faculty=${faculty}   class_name=cs1
 
 
 Create Accounts On Client

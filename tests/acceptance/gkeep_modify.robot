@@ -22,33 +22,33 @@ Force Tags    gkeep_modify
 
 Setup Server and Client Accounts
     Launch Gkeepd And Configure Admin Account on Client
-    Add Faculty and Configure Accounts on Client    washington
-    Establish Course    washington    cs1   kermit    gonzo
+    Add Faculty and Configure Accounts on Client    faculty1
+    Establish Course    faculty1    cs1   student1    student2
 
 *** Test Cases ***
 
 Add Student
     [Tags]    happy_path
-    Add To Class    faculty=washington    class_name=cs1    student=piggy
-    Gkeep Modify Succeeds    faculty=washington    class_name=cs1
-    User Exists On Server    piggy
-    Email Exists    to_user=piggy    contains=Password
-    Gkeep Query Contains    washington    students    piggy
+    Add To Class    faculty=faculty1    class_name=cs1    student=student3
+    Gkeep Modify Succeeds    faculty=faculty1    class_name=cs1
+    User Exists On Server    student3
+    Email Exists    to_user=student3    contains=Password
+    Gkeep Query Contains    faculty1    students    student3
 
 Remove Student
     [Tags]    happy_path
-    Remove From Class    faculty=washington    class_name=cs1    student=gonzo
-    Gkeep Modify Succeeds    faculty=washington    class_name=cs1
-    Gkeep Query Does Not Contain    washington    students    gonzo
+    Remove From Class    faculty=faculty1    class_name=cs1    student=student2
+    Gkeep Modify Succeeds    faculty=faculty1    class_name=cs1
+    Gkeep Query Does Not Contain    faculty1    students    student2
 
 Add Student Twice
     [Tags]    error
-    Add To Class    faculty=washington  class_name=cs1  student=kermit
-    Gkeep Modify Fails   faculty=washington    class_name=cs1
+    Add To Class    faculty=faculty1  class_name=cs1  student=student1
+    Gkeep Modify Fails   faculty=faculty1    class_name=cs1
 
 Malformed CSV
     [Tags]    error
-    Add File To Client    washington    files/malformed_cs1.csv    cs1.csv
-    Gkeep Modify Fails    faculty=washington    class_name=cs1
+    Add File To Client    faculty1    files/malformed_cs1.csv    cs1.csv
+    Gkeep Modify Fails    faculty=faculty1    class_name=cs1
 
 

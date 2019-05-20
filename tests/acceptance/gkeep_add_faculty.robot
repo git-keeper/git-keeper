@@ -28,21 +28,21 @@ Force Tags    gkeep_add_faculty
 
 Add One Faculty
     [Tags]    happy_path
-    Gkeep Add Faculty Succeeds    admin_prof    prof2
-    Email Exists    to_user=prof2    contains=Password
-    User Exists On Server    prof2
+    Gkeep Add Faculty Succeeds    admin_prof    faculty1
+    Email Exists    to_user=faculty1    contains=Password
+    User Exists On Server    faculty1
 
 Duplicate Faculty
     [Tags]    error
-    Gkeep Add Faculty Succeeds    admin_prof    prof2
-    Wait For Email      to_user=prof2    contains=Password
-    Gkeep Add Faculty Fails    admin_prof    prof2
+    Gkeep Add Faculty Succeeds    admin_prof    faculty1
+    Wait For Email      to_user=faculty1    contains=Password
+    Gkeep Add Faculty Fails    admin_prof    faculty1
     Gkeepd Is Running
 
 Add Faculty As Non Admin
     [Tags]    error
-    Gkeep Add Faculty Succeeds    admin_prof    prof2
-    Wait For Email      to_user=prof2    contains=Password
-    Create Accounts On Client    prof2
-    Gkeep Add Faculty Fails    prof2    prof3
+    Gkeep Add Faculty Succeeds    admin_prof    faculty1
+    Wait For Email      to_user=faculty1    contains=Password
+    Create Accounts On Client    faculty1
+    Gkeep Add Faculty Fails    faculty1    prof3
     Gkeepd Is Running
