@@ -24,17 +24,11 @@ Force Tags    gkeep_upload
 Setup Server and Client Accounts
     Launch Gkeepd And Configure Admin Account on Client
     Add Faculty and Configure Accounts on Client    washington
-
-Setup CS1 Class
-    Add To Class    faculty=washington    class_name=cs1    student=kermit
-    Add To Class    faculty=washington    class_name=cs1    student=gonzo
-    Gkeep Add Succeeds    faculty=washington    class_name=cs1
-
+    Establish Course  washington    cs1     kermit  gonzo
 
 *** Test Cases ***
 Valid Assignment Upload
     [Tags]  happy_path
-    Setup CS1 Class
     Add Assignment  washington  good_simple
     Gkeep Upload Succeeds   washington   cs1    good_simple
     Email Exists  washington    good_simple
@@ -43,24 +37,20 @@ Valid Assignment Upload
 
 Missing Email
     [Tags]  error
-    Setup CS1 Class
     Add Assignment  washington  missing_email
     Gkeep Upload Fails   washington   cs1    missing_email
 
 Missing Base Code
     [Tags]  error
-    Setup CS1 Class
     Add Assignment  washington  missing_base
     Gkeep Upload Fails   washington   cs1    missing_base
 
 Missing Base Action_sh
     [Tags]  error
-    Setup CS1 Class
     Add Assignment  washington  missing_action
     Gkeep Upload Fails   washington   cs1    missing_action
 
 Missing Base Tests
     [Tags]  error
-    Setup CS1 Class
     Add Assignment  washington  missing_tests
     Gkeep Upload Fails   washington   cs1    missing_tests

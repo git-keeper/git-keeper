@@ -38,6 +38,13 @@ Launch Gkeepd And Configure Admin Account on Client
     Wait For Email    to_user=admin_prof    contains=Password
     Create Accounts On Client    admin_prof
 
+Establish Course
+    [Arguments]    ${faculty}    ${class}    @{students}
+    :FOR     ${student}    IN    @{students}
+    \    Add To Class    faculty=${faculty}    class_name=${class}    student=${student}
+    Gkeep Add Succeeds    faculty=washington    class_name=cs1
+
+
 Create Accounts On Client
     [Arguments]    @{usernames}
     :FOR    ${username}    IN    @{usernames}

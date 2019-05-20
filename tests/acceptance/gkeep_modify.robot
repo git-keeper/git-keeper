@@ -23,16 +23,7 @@ Force Tags    gkeep_modify
 Setup Server and Client Accounts
     Launch Gkeepd And Configure Admin Account on Client
     Add Faculty and Configure Accounts on Client    washington
-    Establish Course    washington    cs1    @{cs1_students}
-
-Establish Course
-    [Arguments]    ${faculty}    ${class}    @{students}
-    :FOR     ${student}    IN    @{students}
-    \    Add To Class    faculty=${faculty}    class_name=${class}    student=${student}
-    Gkeep Add Succeeds    faculty=washington    class_name=cs1
-
-*** Variables ***
-@{cs1_students}    kermit    gonzo
+    Establish Course    washington    cs1   kermit    gonzo
 
 *** Test Cases ***
 
