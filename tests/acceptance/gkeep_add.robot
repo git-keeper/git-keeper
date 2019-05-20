@@ -16,14 +16,19 @@
 
 *** Settings ***
 Resource    resources/setup.robot
-Test Setup    Launch Gkeepd With Faculty    washington    adams
+Test Setup      Setup Server and Client Accounts
 Force Tags    gkeep_add
+
+*** Keywords ***
+
+Setup Server and Client Accounts
+    Launch Gkeepd And Configure Admin Account on Client
+    Add Faculty and Configure Accounts on Client    washington  adams
 
 *** Test Cases ***
 
 Valid Class
     [Tags]    happy_path
-    Create Accounts On Client    washington
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Add To Class    faculty=washington    class_name=cs1    student=gonzo
     Gkeep Add Succeeds    faculty=washington    class_name=cs1
@@ -36,12 +41,10 @@ Valid Class
 
 Missing CSV
     [Tags]    error
-    Create Accounts On Client    washington
     Gkeep Add Fails    faculty=washington    class_name=cs1
 
 Existing Student
     [Tags]    error
-    Create Accounts On Client    washington
     Add Account on Server    gonzo
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Add To Class    faculty=washington    class_name=cs1    student=gonzo
@@ -55,7 +58,6 @@ Existing Student
 
 Call Add Twice
     [Tags]    error
-    Create Accounts On Client    washington
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Gkeep Add Succeeds    faculty=washington    class_name=cs1
     Gkeep Add Fails    faculty=washington    class_name=cs1
@@ -64,26 +66,22 @@ Call Add Twice
 
 Duplicate Student
     [Tags]    error
-    Create Accounts On Client    washington
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Gkeep Add Fails    faculty=washington    class_name=cs1
 
 Malformed CSV
     [Tags]    error
-    Create Accounts On Client    washington
     Add File To Client    washington    files/malformed_cs1.csv    cs1.csv
     Gkeep Add Fails    faculty=washington    class_name=cs1
 
 Student Named Student
     [Tags]    error
-    Create Accounts On Client    washington
     Add To Class    faculty=washington    class_name=cs1    student=student
     Gkeep Add Fails    faculty=washington    class_name=cs1
 
 Duplicate Class Name
     [Tags]    happy_path
-    Create Accounts On Client    washington     adams
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Gkeep Add Succeeds    faculty=washington    class_name=cs1
     Add To Class    faculty=adams    class_name=cs1    student=gonzo
@@ -91,12 +89,10 @@ Duplicate Class Name
 
 Empty CSV
     [Tags]    happy_path
-    Create Accounts On Client    washington
     Make Empty File    washington    cs1.csv
     Gkeep Add Succeeds    faculty=washington    class_name=cs1
 
 No CSV
     [Tags]  happy_path
-    Create Accounts On Client    washington
     Make Empty File    washington    cs1.csv
     Gkeep Add No CSV Succeeds    faculty=washington    class_name=cs1

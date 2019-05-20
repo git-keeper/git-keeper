@@ -15,14 +15,29 @@
 
 *** Settings ***
 Resource    resources/setup.robot
-Test Setup    Launch Gkeepd With Faculty    washington
+Test Setup    Setup Server and Client Accounts
 Force Tags    gkeep_modify
+
+*** Keywords ***
+
+Setup Server and Client Accounts
+    Launch Gkeepd And Configure Admin Account on Client
+    Add Faculty and Configure Accounts on Client    washington
+    Establish Course    washington    cs1    @{cs1_students}
+
+Establish Course
+    [Arguments]    ${faculty}    ${class}    @{students}
+    :FOR     ${student}    IN    @{students}
+    \    Add To Class    faculty=${faculty}    class_name=${class}    student=${student}
+    Gkeep Add Succeeds    faculty=washington    class_name=cs1
+
+*** Variables ***
+@{cs1_students}    kermit    gonzo
 
 *** Test Cases ***
 
 Add Student
     [Tags]    happy_path
-    Establish Course    washington    cs1    @{cs1_students}
     Add To Class    faculty=washington    class_name=cs1    student=piggy
     Gkeep Modify Succeeds    faculty=washington    class_name=cs1
     User Exists On Server    piggy
@@ -31,31 +46,18 @@ Add Student
 
 Remove Student
     [Tags]    happy_path
-    Establish Course    washington    cs1    @{cs1_students}
     Remove From Class    faculty=washington    class_name=cs1    student=gonzo
     Gkeep Modify Succeeds    faculty=washington    class_name=cs1
     Gkeep Query Does Not Contain    washington    students    gonzo
 
 Add Student Twice
     [Tags]    error
-    Establish Course  washington    cs1     @{cs1_students}
     Add To Class    faculty=washington  class_name=cs1  student=kermit
     Gkeep Modify Fails   faculty=washington    class_name=cs1
 
 Malformed CSV
     [Tags]    error
-    Establish Course  washington    cs1     @{cs1_students}
     Add File To Client    washington    files/malformed_cs1.csv    cs1.csv
     Gkeep Modify Fails    faculty=washington    class_name=cs1
 
-*** Keywords ***
 
-Establish Course
-    [Arguments]    ${faculty}    ${class}    @{students}
-    Create Accounts On Client    ${faculty}
-    :FOR     ${student}    IN    @{students}
-    \    Add To Class    faculty=${faculty}    class_name=${class}    student=${student}
-    Gkeep Add Succeeds    faculty=washington    class_name=cs1
-
-*** Variables ***
-@{cs1_students}    kermit    gonzo

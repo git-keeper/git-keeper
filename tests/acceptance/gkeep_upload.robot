@@ -16,13 +16,16 @@
 
 *** Settings ***
 Resource    resources/setup.robot
-Test Setup    Launch Gkeepd With Faculty    washington    adams
+Test Setup    Setup Server and Client Accounts
 Force Tags    gkeep_upload
 
 *** Keywords ***
 
+Setup Server and Client Accounts
+    Launch Gkeepd And Configure Admin Account on Client
+    Add Faculty and Configure Accounts on Client    washington
+
 Setup CS1 Class
-    Create Accounts On Client    washington
     Add To Class    faculty=washington    class_name=cs1    student=kermit
     Add To Class    faculty=washington    class_name=cs1    student=gonzo
     Gkeep Add Succeeds    faculty=washington    class_name=cs1
