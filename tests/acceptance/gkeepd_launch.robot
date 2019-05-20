@@ -31,7 +31,7 @@ Valid Setup
     Gkeepd Is Running
 
 Admin Account Already Exists
-    [Tags]    error
+    [Tags]    happy_path
     Add Account On Server    admin_prof
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
