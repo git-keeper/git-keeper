@@ -26,23 +26,21 @@ server_control = ServerControl()
 
 class ClientSetupKeywords:
 
-    def create_accounts(self, *names):
-        for name in names:
-            client_control.run_vm_bash_script('keeper',
-                                              'make_user_with_password.sh',
-                                              name)
+    def create_account(self, name):
+        client_control.run_vm_bash_script('keeper',
+                                          'make_user_with_password.sh',
+                                          name)
 
-    def establish_ssh_keys(self, *names):
+    def establish_ssh_keys(self, name):
         temp_dir_name = client_control.vm_control.temp_dir.name
-        for name in names:
-            client_control.run_vm_bash_script('keeper',
-                                              'make_ssh_keys.sh',
-                                              name,
-                                              temp_dir_name)
-            server_control.run_vm_bash_script('keeper',
-                                              'make_authorized_keys.sh',
-                                              name,
-                                              temp_dir_name)
+        client_control.run_vm_bash_script('keeper',
+                                          'make_ssh_keys.sh',
+                                          name,
+                                          temp_dir_name)
+        server_control.run_vm_bash_script('keeper',
+                                          'make_authorized_keys.sh',
+                                          name,
+                                          temp_dir_name)
 
     def add_to_class(self, faculty, class_name, student):
         line = 'Last,First,{}@gitkeeper.edu'.format(student)
