@@ -16,48 +16,41 @@
 
 *** Settings ***
 Resource    resources/setup.robot
-Test Setup    Launch Gkeepd With Faculty    washington    adams
+Test Setup    Setup Server and Client Accounts
 Force Tags    gkeep_upload
 
-*** *** Keywords ***
+*** Keywords ***
 
-Setup CS1 Class
-    Setup Faculty Accounts    washington
-    Add To Class    faculty=washington    class_name=cs1    student=kermit
-    Add To Class    faculty=washington    class_name=cs1    student=gonzo
-    Gkeep Add Succeeds    faculty=washington    class_name=cs1
-
+Setup Server and Client Accounts
+    Launch Gkeepd And Configure Admin Account on Client
+    Add Faculty and Configure Accounts on Client    faculty1
+    Establish Course  faculty1    cs1     student1  student2
 
 *** Test Cases ***
 Valid Assignment Upload
     [Tags]  happy_path
-    Setup CS1 Class
-    Add Assignment  washington  good_simple
-    Gkeep Upload Succeeds   washington   cs1    good_simple
-    Email Exists  washington    good_simple
-    Clone Assignment    washington  washington  cs1  good_simple
-    gkeep query contains  washington    assignments  U good_simple
+    Add Assignment  faculty1  good_simple
+    Gkeep Upload Succeeds   faculty1   cs1    good_simple
+    Email Exists  faculty1    good_simple
+    Clone Assignment    faculty1  faculty1  cs1  good_simple
+    gkeep query contains  faculty1    assignments  U good_simple
 
 Missing Email
     [Tags]  error
-    Setup CS1 Class
-    Add Assignment  washington  missing_email
-    Gkeep Upload Fails   washington   cs1    missing_email
+    Add Assignment  faculty1  missing_email
+    Gkeep Upload Fails   faculty1   cs1    missing_email
 
 Missing Base Code
     [Tags]  error
-    Setup CS1 Class
-    Add Assignment  washington  missing_base
-    Gkeep Upload Fails   washington   cs1    missing_base
+    Add Assignment  faculty1  missing_base
+    Gkeep Upload Fails   faculty1   cs1    missing_base
 
 Missing Base Action_sh
     [Tags]  error
-    Setup CS1 Class
-    Add Assignment  washington  missing_action
-    Gkeep Upload Fails   washington   cs1    missing_action
+    Add Assignment  faculty1  missing_action
+    Gkeep Upload Fails   faculty1   cs1    missing_action
 
 Missing Base Tests
     [Tags]  error
-    Setup CS1 Class
-    Add Assignment  washington  missing_tests
-    Gkeep Upload Fails   washington   cs1    missing_tests
+    Add Assignment  faculty1  missing_tests
+    Gkeep Upload Fails   faculty1   cs1    missing_tests

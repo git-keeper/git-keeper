@@ -40,12 +40,12 @@ class ServerCheckKeywords:
                                               username)
         assert result == 'True'
 
-    def user_exists(self, username):
+    def user_exists_on_server(self, username):
         result = control.run_vm_python_script('keeper', 'user_exists.py',
                                               username)
         assert result == 'True'
 
-    def user_does_not_exist(self, username):
+    def user_does_not_exist_on_server(self, username):
         result = control.run_vm_python_script('keeper',
                                               'user_does_not_exist.py',
                                               username)

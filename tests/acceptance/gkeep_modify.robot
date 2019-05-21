@@ -15,47 +15,40 @@
 
 *** Settings ***
 Resource    resources/setup.robot
-Test Setup    Launch Gkeepd With Faculty    washington
+Test Setup    Setup Server and Client Accounts
 Force Tags    gkeep_modify
+
+*** Keywords ***
+
+Setup Server and Client Accounts
+    Launch Gkeepd And Configure Admin Account on Client
+    Add Faculty and Configure Accounts on Client    faculty1
+    Establish Course    faculty1    cs1   student1    student2
 
 *** Test Cases ***
 
 Add Student
     [Tags]    happy_path
-    Establish Course    washington    cs1    @{cs1_students}
-    Add To Class    faculty=washington    class_name=cs1    student=piggy
-    Gkeep Modify Succeeds    faculty=washington    class_name=cs1
-    User Exists    piggy
-    Email Exists    to_user=piggy    contains=Password
-    Gkeep Query Contains    washington    students    piggy
+    Add To Class    faculty=faculty1    class_name=cs1    student=student3
+    Gkeep Modify Succeeds    faculty=faculty1    class_name=cs1
+    User Exists On Server    student3
+    Email Exists    to_user=student3    contains=Password
+    Gkeep Query Contains    faculty1    students    student3
 
 Remove Student
     [Tags]    happy_path
-    Establish Course    washington    cs1    @{cs1_students}
-    Remove From Class    faculty=washington    class_name=cs1    student=gonzo
-    Gkeep Modify Succeeds    faculty=washington    class_name=cs1
-    Gkeep Query Does Not Contain    washington    students    gonzo
+    Remove From Class    faculty=faculty1    class_name=cs1    student=student2
+    Gkeep Modify Succeeds    faculty=faculty1    class_name=cs1
+    Gkeep Query Does Not Contain    faculty1    students    student2
 
 Add Student Twice
     [Tags]    error
-    Establish Course  washington    cs1     @{cs1_students}
-    Add To Class    faculty=washington  class_name=cs1  student=kermit
-    Gkeep Modify Fails   faculty=washington    class_name=cs1
+    Add To Class    faculty=faculty1  class_name=cs1  student=student1
+    Gkeep Modify Fails   faculty=faculty1    class_name=cs1
 
 Malformed CSV
     [Tags]    error
-    Establish Course  washington    cs1     @{cs1_students}
-    Add File To Client    washington    files/malformed_cs1.csv    cs1.csv
-    Gkeep Modify Fails    faculty=washington    class_name=cs1
+    Add File To Client    faculty1    files/malformed_cs1.csv    cs1.csv
+    Gkeep Modify Fails    faculty=faculty1    class_name=cs1
 
-*** Keywords ***
 
-Establish Course
-    [Arguments]    ${faculty}    ${class}    @{students}
-    Setup Faculty Accounts    ${faculty}
-    :FOR     ${student}    IN    @{students}
-    \    Add To Class    faculty=${faculty}    class_name=${class}    student=${student}
-    Gkeep Add Succeeds    faculty=washington    class_name=cs1
-
-*** Variables ***
-@{cs1_students}    kermit    gonzo

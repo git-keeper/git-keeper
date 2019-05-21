@@ -16,87 +16,91 @@
 
 *** Settings ***
 Resource    resources/setup.robot
-Test Setup    Launch Gkeepd With Faculty    washington    adams
+Test Setup      Setup Server and Client Accounts
 Force Tags    gkeep_add
+
+*** Keywords ***
+
+Setup Server and Client Accounts
+    Launch Gkeepd And Configure Admin Account on Client
+    Add Faculty and Configure Accounts on Client    faculty1  faculty2
 
 *** Test Cases ***
 
 Valid Class
     [Tags]    happy_path
-    Setup Faculty Accounts    washington
-    Add To Class    faculty=washington    class_name=cs1    student=kermit
-    Add To Class    faculty=washington    class_name=cs1    student=gonzo
-    Gkeep Add Succeeds    faculty=washington    class_name=cs1
-    User Exists    kermit
-    User Exists    gonzo
-    Email Exists    to_user=kermit    contains=Password
-    Email Exists    to_user=gonzo    contains=Password
-    Gkeep Query Contains    washington    classes    cs1
-    Gkeep Query Contains    washington    students    kermit    gonzo
+    Add To Class    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class    faculty=faculty1    class_name=cs1    student=student2
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    User Exists On Server    student1
+    User Exists On Server    student2
+    Email Exists    to_user=student1    contains=Password
+    Email Exists    to_user=student2    contains=Password
+    Gkeep Query Contains    faculty1    classes    cs1
+    Gkeep Query Contains    faculty1    students    student1    student2
 
 Missing CSV
     [Tags]    error
-    Setup Faculty Accounts    washington
-    Gkeep Add Fails    faculty=washington    class_name=cs1
+    Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
 Existing Student
     [Tags]    error
-    Setup Faculty Accounts    washington
-    Add Account on Server    gonzo
-    Add To Class    faculty=washington    class_name=cs1    student=kermit
-    Add To Class    faculty=washington    class_name=cs1    student=gonzo
-    Gkeep Add Succeeds    faculty=washington    class_name=cs1
-    User Exists    kermit
-    User Exists    gonzo
-    Email Exists    to_user=kermit    contains=Password
-    Email Does Not Exist    to_user=gonzo
-    Gkeep Query Contains    washington    classes    cs1
-    Gkeep Query Contains    washington    students    kermit    gonzo
+    Add Account on Server    student2
+    Add To Class    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class    faculty=faculty1    class_name=cs1    student=student2
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    User Exists On Server    student1
+    User Exists On Server    student2
+    Email Exists    to_user=student1    contains=Password
+    Email Does Not Exist    to_user=student2
+    Gkeep Query Contains    faculty1    classes    cs1
+    Gkeep Query Contains    faculty1    students    student1    student2
 
 Call Add Twice
     [Tags]    error
-    Setup Faculty Accounts    washington
-    Add To Class    faculty=washington    class_name=cs1    student=kermit
-    Gkeep Add Succeeds    faculty=washington    class_name=cs1
-    Gkeep Add Fails    faculty=washington    class_name=cs1
-    Gkeep Query Contains    washington    classes    cs1
-    Gkeep Query Contains    washington    students    kermit
+    Add To Class    faculty=faculty1    class_name=cs1    student=student1
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    Gkeep Add Fails    faculty=faculty1    class_name=cs1
+    Gkeep Query Contains    faculty1    classes    cs1
+    Gkeep Query Contains    faculty1    students    student1
 
 Duplicate Student
     [Tags]    error
-    Setup Faculty Accounts    washington
-    Add To Class    faculty=washington    class_name=cs1    student=kermit
-    Add To Class    faculty=washington    class_name=cs1    student=kermit
-    Gkeep Add Fails    faculty=washington    class_name=cs1
+    Add To Class    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class    faculty=faculty1    class_name=cs1    student=student1
+    Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
 Malformed CSV
     [Tags]    error
-    Setup Faculty Accounts    washington
-    Add File To Client    washington    files/malformed_cs1.csv    cs1.csv
-    Gkeep Add Fails    faculty=washington    class_name=cs1
+    Add File To Client    faculty1    files/malformed_cs1.csv    cs1.csv
+    Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
 Student Named Student
     [Tags]    error
-    Setup Faculty Accounts    washington
-    Add To Class    faculty=washington    class_name=cs1    student=student
-    Gkeep Add Fails    faculty=washington    class_name=cs1
+    Add To Class    faculty=faculty1    class_name=cs1    student=student
+    Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
-Duplicate Class Name
+Same Class Name From Different Faculty
     [Tags]    happy_path
-    Setup Faculty Accounts    washington    adams
-    Add To Class    faculty=washington    class_name=cs1    student=kermit
-    Gkeep Add Succeeds    faculty=washington    class_name=cs1
-    Add To Class    faculty=adams    class_name=cs1    student=gonzo
-    Gkeep Add Succeeds    faculty=adams    class_name=cs1
+    Add To Class    faculty=faculty1    class_name=cs1    student=student1
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    Add To Class    faculty=faculty2    class_name=cs1    student=student2
+    Gkeep Add Succeeds    faculty=faculty2    class_name=cs1
+
+Faculty Adds Class Twice With Different Enrollment
+    [Tags]  fatal error
+    Add To Class    faculty=faculty1    class_name=cs1    student=student1
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    Add To Class    faculty=faculty1    class_name=cs1    student=student2
+    Gkeep Add Fails    faculty=faculty1    class_name=cs1
+
 
 Empty CSV
     [Tags]    happy_path
-    Setup Faculty Accounts    washington
-    Make Empty File    washington    cs1.csv
-    Gkeep Add Succeeds    faculty=washington    class_name=cs1
+    Make Empty File    faculty1    cs1.csv
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
 
 No CSV
     [Tags]  happy_path
-    Setup Faculty Accounts    washington
-    Make Empty File    washington    cs1.csv
-    Gkeep Add No CSV Succeeds    faculty=washington    class_name=cs1
+    Make Empty File    faculty1    cs1.csv
+    Gkeep Add No CSV Succeeds    faculty=faculty1    class_name=cs1

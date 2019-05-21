@@ -21,7 +21,7 @@ vagrant = VagrantControl()
 server = ServerSetupKeywords()
 client = ClientSetupKeywords()
 
-print('Checking that gkserver is running...')
+print('Checking that gkserver is running')
 if not vagrant.is_server_running():
     print("Server not running.  Run 'vagrant up' first.")
     exit(1)

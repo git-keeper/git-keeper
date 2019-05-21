@@ -22,29 +22,33 @@ Library    gkeeprobot.keywords.ClientCheckKeywords
 
 *** Keywords ***
 
-Reset And Launch Gkeepd
+Add Faculty and Configure Accounts on Client
+    [Arguments]    @{faculty_names}
+    :FOR    ${username}    IN    @{faculty_names}
+    \        Gkeep Add Faculty Succeeds    admin_prof    ${username}
+    \        Wait For Email    to_user=${username}    contains=Password
+    Create Accounts On Client  @{faculty_names}
+
+Launch Gkeepd And Configure Admin Account on Client
     Reset Server
     Reset Client
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     Wait For Gkeepd
     Wait For Email    to_user=admin_prof    contains=Password
-    Setup Faculty Accounts    admin_prof
+    Create Accounts On Client    admin_prof
 
-Add Faculty
-    [Arguments]    @{faculty_names}
-    :FOR    ${username}    IN    @{faculty_names}
-    \        Gkeep Add Faculty Succeeds    admin_prof    ${username}
-    \        Wait For Email    to_user=${username}    contains=Password
+Establish Course
+    [Arguments]    ${faculty}    ${class}    @{students}
+    :FOR     ${student}    IN    @{students}
+    \    Add To Class    faculty=${faculty}    class_name=${class}    student=${student}
+    Gkeep Add Succeeds    faculty=${faculty}   class_name=cs1
 
-Launch Gkeepd With Faculty
-    [Arguments]    @{faculty_names}
-    Reset And Launch Gkeepd
-    Add Faculty    @{faculty_names}
 
-Setup Faculty Accounts
+Create Accounts On Client
     [Arguments]    @{usernames}
     :FOR    ${username}    IN    @{usernames}
-    \    Create Accounts    ${username}
-    \    Establish SSH Keys    ${username}
-    \    Create Gkeep Config File    ${username}
+    \       Create Account    ${username}
+    \       Establish SSH Keys    ${username}
+    \       Create Gkeep Config File    ${username}
+
