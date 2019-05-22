@@ -88,7 +88,7 @@ Same Class Name From Different Faculty
     Gkeep Add Succeeds    faculty=faculty2    class_name=cs1
 
 Faculty Adds Class Twice With Different Enrollment
-    [Tags]  fatal error
+    [Tags]  error
     Add To Class    faculty=faculty1    class_name=cs1    student=student1
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
     Add To Class    faculty=faculty1    class_name=cs1    student=student2
