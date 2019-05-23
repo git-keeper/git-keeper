@@ -29,8 +29,8 @@ Setup Server and Client Accounts
 
 Valid Class
     [Tags]    happy_path
-    Add To Class    faculty=faculty1    class_name=cs1    student=student1
-    Add To Class    faculty=faculty1    class_name=cs1    student=student2
+    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student2
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
     User Exists On Server    student1
     User Exists On Server    student2
@@ -46,8 +46,8 @@ Missing CSV
 Existing Student
     [Tags]    error
     Add Account on Server    student2
-    Add To Class    faculty=faculty1    class_name=cs1    student=student1
-    Add To Class    faculty=faculty1    class_name=cs1    student=student2
+    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student2
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
     User Exists On Server    student1
     User Exists On Server    student2
@@ -58,7 +58,7 @@ Existing Student
 
 Call Add Twice
     [Tags]    error
-    Add To Class    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
     Gkeep Query Contains    faculty1    classes    cs1
@@ -66,8 +66,8 @@ Call Add Twice
 
 Duplicate Student
     [Tags]    error
-    Add To Class    faculty=faculty1    class_name=cs1    student=student1
-    Add To Class    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
 Malformed CSV
@@ -77,21 +77,21 @@ Malformed CSV
 
 Student Named Student
     [Tags]    error
-    Add To Class    faculty=faculty1    class_name=cs1    student=student
+    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
 Same Class Name From Different Faculty
     [Tags]    happy_path
-    Add To Class    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
-    Add To Class    faculty=faculty2    class_name=cs1    student=student2
+    Add To Class CSV    faculty=faculty2    class_name=cs1    student=student2
     Gkeep Add Succeeds    faculty=faculty2    class_name=cs1
 
 Faculty Adds Class Twice With Different Enrollment
     [Tags]  error
-    Add To Class    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
-    Add To Class    faculty=faculty1    class_name=cs1    student=student2
+    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student2
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
 

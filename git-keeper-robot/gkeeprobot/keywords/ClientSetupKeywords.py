@@ -42,7 +42,7 @@ class ClientSetupKeywords:
                                           name,
                                           temp_dir_name)
 
-    def add_to_class(self, faculty, class_name, student):
+    def add_to_class_csv(self, faculty, class_name, student):
         line = 'Last,First,{}@gitkeeper.edu'.format(student)
         client_control.run_vm_python_script(faculty, 'add_to_file.py',
                                             '{}.csv'.format(class_name), line)
