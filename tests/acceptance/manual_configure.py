@@ -49,5 +49,10 @@ client.create_account('prof1')
 client.establish_ssh_keys('prof1')
 client.create_gkeep_config_file('prof1')
 
+print('Creating CS1 class with 2 students')
+client.add_to_class_csv('prof1', 'cs1', 'student1')
+client.add_to_class_csv('prof1', 'cs1', 'student2')
+client.run_gkeep_command('prof1', 'add cs1 cs1.csv')
+client.add_assignment_to_client('prof1', 'good_simple')
 
 
