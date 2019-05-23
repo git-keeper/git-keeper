@@ -54,3 +54,9 @@ Missing Base Tests
     [Tags]  error
     Add Assignment to Client  faculty1  missing_tests
     Gkeep Upload Fails   faculty1   cs1    missing_tests
+
+Double Assignment Upload
+    [Tags]  error
+    Add Assignment to Client  faculty1  good_simple
+    Gkeep Upload Succeeds   faculty1   cs1    good_simple
+    Gkeep Upload Fails   faculty1   cs1    good_simple
