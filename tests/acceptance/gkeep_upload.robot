@@ -29,7 +29,7 @@ Setup Server and Client Accounts
 *** Test Cases ***
 Valid Assignment Upload
     [Tags]  happy_path
-    Add Assignment  faculty1  good_simple
+    Add Assignment to Client  faculty1  good_simple
     Gkeep Upload Succeeds   faculty1   cs1    good_simple
     Email Exists  faculty1    good_simple
     Clone Assignment    faculty1  faculty1  cs1  good_simple
@@ -37,20 +37,20 @@ Valid Assignment Upload
 
 Missing Email
     [Tags]  error
-    Add Assignment  faculty1  missing_email
+    Add Assignment to Client  faculty1  missing_email
     Gkeep Upload Fails   faculty1   cs1    missing_email
 
 Missing Base Code
     [Tags]  error
-    Add Assignment  faculty1  missing_base
+    Add Assignment to Client  faculty1  missing_base
     Gkeep Upload Fails   faculty1   cs1    missing_base
 
 Missing Base Action_sh
     [Tags]  error
-    Add Assignment  faculty1  missing_action
+    Add Assignment to Client  faculty1  missing_action
     Gkeep Upload Fails   faculty1   cs1    missing_action
 
 Missing Base Tests
     [Tags]  error
-    Add Assignment  faculty1  missing_tests
+    Add Assignment to Client  faculty1  missing_tests
     Gkeep Upload Fails   faculty1   cs1    missing_tests
