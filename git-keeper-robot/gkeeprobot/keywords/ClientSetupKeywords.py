@@ -42,7 +42,7 @@ class ClientSetupKeywords:
                                           name,
                                           temp_dir_name)
 
-    def add_to_class(self, faculty, class_name, student):
+    def add_to_class_csv(self, faculty, class_name, student):
         line = 'Last,First,{}@gitkeeper.edu'.format(student)
         client_control.run_vm_python_script(faculty, 'add_to_file.py',
                                             '{}.csv'.format(class_name), line)
@@ -69,7 +69,7 @@ class ClientSetupKeywords:
         client_control.close_user_connections()
         client_control.run_vm_python_script('keeper', 'reset_client.py')
 
-    def add_assignment(self, faculty, assignment_name):
+    def add_assignment_to_client(self, faculty, assignment_name):
         cmd = 'cp -r /vagrant/assignments/{}/ ~'.format(assignment_name)
         client_control.run(faculty, cmd)
 

@@ -29,7 +29,7 @@ Setup Server and Client Accounts
 
 Add Student
     [Tags]    happy_path
-    Add To Class    faculty=faculty1    class_name=cs1    student=student3
+    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student3
     Gkeep Modify Succeeds    faculty=faculty1    class_name=cs1
     User Exists On Server    student3
     Email Exists    to_user=student3    contains=Password
@@ -43,7 +43,7 @@ Remove Student
 
 Add Student Twice
     [Tags]    error
-    Add To Class    faculty=faculty1  class_name=cs1  student=student1
+    Add To Class CSV    faculty=faculty1  class_name=cs1  student=student1
     Gkeep Modify Fails   faculty=faculty1    class_name=cs1
 
 Malformed CSV
