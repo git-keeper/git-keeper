@@ -17,7 +17,7 @@
 *** Settings ***
 Resource    resources/setup.robot
 Test Setup    Setup Server and Client Accounts
-Force Tags    gkeep_upload
+Force Tags    gkeep_publish
 
 *** Keywords ***
 
@@ -25,6 +25,7 @@ Setup Server and Client Accounts
     Launch Gkeepd And Configure Admin Account on Client
     Add Faculty and Configure Accounts on Client    faculty1
     Establish Course  faculty1    cs1     student1  student2
+    Create Accounts On Client   student1    student2
     Add Assignment to Client  faculty1  good_simple
     Gkeep Upload Succeeds   faculty1   cs1    good_simple
 
@@ -32,6 +33,10 @@ Setup Server and Client Accounts
 Valid Assignment Publish
     [Tags]  happy_path
     Gkeep Publish Succeeds  faculty1    cs1     good_simple
+    Email Exists    student1    good_simple
+    Email Exists    student2    good_simple
+    Clone Assignment  student1  faculty1    cs1     good_simple
+    Clone Assignment  student2  faculty1    cs1     good_simple
 
 Bad Assignment Name In Publish
     [Tags]  error
