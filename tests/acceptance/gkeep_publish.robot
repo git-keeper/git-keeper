@@ -46,3 +46,40 @@ Bad Course Name In Publish
     [Setup]     NONE
     Add Assignment to Client  faculty1  good_simple
     gkeep publish fails     faculty1    unknown_course      good_simple
+
+Publish Twice
+    [Tags]  error
+    Gkeep Publish Succeeds  faculty1    cs1     good_simple
+    Gkeep Publish Fails     faculty1    cs1     good_simple
+
+Double Upload Then Double Publish
+    add assignment to client  faculty1  good_simple2
+    Gkeep Upload Succeeds   faculty1   cs1    good_simple2
+    # Publish 1st assignment
+    Gkeep Publish Succeeds  faculty1    cs1     good_simple
+    Email Exists    student1    good_simple
+    Email Exists    student2    good_simple
+    Clone Assignment  student1  faculty1    cs1     good_simple
+    Clone Assignment  student2  faculty1    cs1     good_simple
+    # Publish 2nd assignment
+    Gkeep Publish Succeeds  faculty1    cs1     good_simple2
+    Email Exists    student1    good_simple2
+    Email Exists    student2    good_simple2
+    Clone Assignment  student1  faculty1    cs1     good_simple2
+    Clone Assignment  student2  faculty1    cs1     good_simple2
+
+Interleave Upload and Publish
+    add assignment to client  faculty1  good_simple2
+    Gkeep Upload Succeeds   faculty1   cs1    good_simple2
+    # Publish 2nd assignment
+    Gkeep Publish Succeeds  faculty1    cs1     good_simple2
+    Email Exists    student1    good_simple2
+    Email Exists    student2    good_simple2
+    Clone Assignment  student1  faculty1    cs1     good_simple2
+    Clone Assignment  student2  faculty1    cs1     good_simple2
+    # Publish 1st assignment
+    Gkeep Publish Succeeds  faculty1    cs1     good_simple
+    Email Exists    student1    good_simple
+    Email Exists    student2    good_simple
+    Clone Assignment  student1  faculty1    cs1     good_simple
+    Clone Assignment  student2  faculty1    cs1     good_simple
