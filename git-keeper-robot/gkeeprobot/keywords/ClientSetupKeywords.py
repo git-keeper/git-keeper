@@ -73,7 +73,7 @@ class ClientSetupKeywords:
         cmd = 'cp -r /vagrant/assignments/{}/ ~'.format(assignment_name)
         client_control.run(faculty, cmd)
 
-    def clone_assignment(self, student, faculty, class_name,assignment_name):
+    def clone_assignment(self, student, faculty, class_name, assignment_name):
         client_control.run(student, 'mkdir -p assignments')
         url = '{}@gkserver:/home/{}/{}/{}/{}.git'.format(student, student, faculty, class_name, assignment_name)
         command = 'git clone {} assignments'.format(url)
