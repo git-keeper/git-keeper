@@ -45,7 +45,7 @@ Bad Assignment Name In Publish
 Bad Course Name In Publish
     [Setup]     NONE
     Add Assignment to Client  faculty1  good_simple
-    gkeep publish fails     faculty1    unknown_course      good_simple
+    Gkeep Publish Fails     faculty1    unknown_course      good_simple
 
 Publish Twice
     [Tags]  error
@@ -53,7 +53,8 @@ Publish Twice
     Gkeep Publish Fails     faculty1    cs1     good_simple
 
 Double Upload Then Double Publish
-    add assignment to client  faculty1  good_simple2
+    [Tags]  happy_path
+    Add Assignment To Client  faculty1  good_simple2
     Gkeep Upload Succeeds   faculty1   cs1    good_simple2
     # Publish 1st assignment
     Gkeep Publish Succeeds  faculty1    cs1     good_simple
@@ -69,7 +70,8 @@ Double Upload Then Double Publish
     Clone Assignment  student2  faculty1    cs1     good_simple2
 
 Interleave Upload and Publish
-    add assignment to client  faculty1  good_simple2
+    [Tags]  happy_path
+    Add Assignment To Client  faculty1  good_simple2
     Gkeep Upload Succeeds   faculty1   cs1    good_simple2
     # Publish 2nd assignment
     Gkeep Publish Succeeds  faculty1    cs1     good_simple2
