@@ -18,6 +18,8 @@
 Provides functions for querying the server for information and printing the
 query results.
 """
+
+import json
 from time import time, localtime, strftime
 
 from gkeepclient.client_function_decorators import config_parsed, \
@@ -27,76 +29,111 @@ from gkeepclient.server_interface import server_interface
 
 @config_parsed
 @server_interface_connected
-def list_classes():
+def list_classes(output_json: bool):
     """Print the names of all the classes owned by the faculty."""
 
     class_list = sorted(server_interface.get_info().class_list())
 
-    for class_name in class_list:
-        print(class_name)
+    if output_json:
+        print(json.dumps(class_list))
+    else:
+        for class_name in class_list:
+            print(class_name)
 
 
 @config_parsed
 @server_interface_connected
-def list_assignments():
+def list_assignments(output_json: bool):
     """
     Print the names of all the assignments owned by the faculty, grouped by
     class.
+
+    :param output_json: True if the output should be JSON, False otherwise
     """
 
     info = server_interface.get_info()
 
+    text_output = ''
+    json_output = {}
+
     for class_name in sorted(info.class_list()):
-        print(class_name, ':', sep='')
+        text_output += '{}:\n'.format(class_name)
+        json_output[class_name] = []
 
         for assignment_name in sorted(info.assignment_list(class_name)):
             published = info.is_published(class_name, assignment_name)
+
+            json_assignment = {
+                'name': assignment_name,
+                'published': published,
+            }
 
             if published:
                 published_prefix = 'P'
             else:
                 published_prefix = 'U'
 
-            print(published_prefix, assignment_name)
+            text_output += '{} {}\n'.format(published_prefix, assignment_name)
+            json_output[class_name].append(json_assignment)
 
-        print()
+        text_output += '\n'
+
+    if output_json:
+        print(json.dumps(json_output))
+    else:
+        print(text_output, end='')
 
 
 @config_parsed
 @server_interface_connected
-def list_students():
+def list_students(output_json: bool):
     """
     Print all the students in classes owned by the faculty, grouped by class.
+
+    :param output_json: True if the output should be JSON, False otherwise
     """
+
+    text_output = ''
+    json_output = {}
 
     class_list = server_interface.get_info().class_list()
 
     for class_name in sorted(class_list):
-        print(class_name, ':', sep='')
+        text_output += '{}:\n'.format(class_name)
 
         student_list = server_interface.get_info().student_list(class_name)
 
         for student in sorted(student_list):
-            print(student)
+            text_output += '{}\n'.format(student)
 
-        print()
+        text_output += '\n'
+
+        json_output[class_name] = student_list
+
+    if output_json:
+        print(json.dumps(json_output))
+    else:
+        print(text_output, end='')
 
 
 @config_parsed
 @server_interface_connected
-def list_recent(number_of_days):
+def list_recent(number_of_days, output_json: bool):
     """
     Print recent submissions.
 
     :param number_of_days: submissions past this number of days ago are not
      recent
+    :param output_json: True if the output should be JSON, False otherwise
     """
+
+    text_output = ''
+    json_output = {}
 
     if number_of_days is None:
         number_of_days = 1
 
-    print('Recent submissions:')
-    print()
+    text_output += 'Recent submissions:\n\n'
 
     info = server_interface.get_info()
 
@@ -133,14 +170,29 @@ def list_recent(number_of_days):
                 recent.sort()
 
                 if not class_name_printed:
-                    print(class_name, ':', sep='')
+                    text_output += '{}:\n'.format(class_name)
+                    json_output[class_name] = []
                     class_name_printed = True
 
-                print('  ', assignment_name, ':', sep='')
+                text_output += '  {}:\n'.format(assignment_name)
 
                 for timestamp, first_name, last_name in recent:
                     human_timestamp = strftime('%Y-%m-%d %H:%M:%S',
                                                localtime(timestamp))
-                    print('   ', human_timestamp, first_name, last_name)
+                    text_output += '   {} {} {}\n'.format(human_timestamp,
+                                                          first_name,
+                                                          last_name)
+                    json_entry = {
+                        'time': timestamp,
+                        'human_time': human_timestamp,
+                        'first_name': first_name,
+                        'last_name': last_name,
+                    }
+                    json_output[class_name].append(json_entry)
 
-                print()
+                text_output += '\n'
+
+    if output_json:
+        print(json.dumps(json_output))
+    else:
+        print(text_output)
