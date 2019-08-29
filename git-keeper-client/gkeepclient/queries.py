@@ -96,19 +96,30 @@ def list_students(output_json: bool):
     text_output = ''
     json_output = {}
 
-    class_list = server_interface.get_info().class_list()
+    info = server_interface.get_info()
+    class_list = info.class_list()
 
     for class_name in sorted(class_list):
         text_output += '{}:\n'.format(class_name)
+        json_output[class_name] = []
 
-        student_list = server_interface.get_info().student_list(class_name)
+        student_list = info.student_list(class_name)
 
-        for student in sorted(student_list):
-            text_output += '{}\n'.format(student)
+        lines = []
 
-        text_output += '\n'
+        for username in sorted(student_list):
+            first_name = info.student_first_name(class_name, username)
+            last_name = info.student_last_name(class_name, username)
 
-        json_output[class_name] = student_list
+            lines.append('{}, {} ({})'.format(last_name, first_name, username))
+            json_output[class_name].append({
+                'first_name': first_name,
+                'last_name': last_name,
+                'username': username,
+            })
+
+        text_output += '\n'.join(sorted(lines))
+        text_output += '\n\n'
 
     if output_json:
         print(json.dumps(json_output))
@@ -152,7 +163,6 @@ def list_recent(number_of_days, output_json: bool):
             recent = []
 
             for username in students_submitted:
-
                 if info.student_submission_count(
                         class_name, assignment_name, username) == 0:
                     continue
@@ -164,31 +174,35 @@ def list_recent(number_of_days, output_json: bool):
                 if submission_time >= cutoff_time:
                     first_name = info.student_first_name(class_name, username)
                     last_name = info.student_last_name(class_name, username)
-                    recent.append((submission_time, first_name, last_name))
+                    recent.append((submission_time, first_name, last_name,
+                                   username))
 
             if len(recent) > 0:
                 recent.sort()
 
                 if not class_name_printed:
                     text_output += '{}:\n'.format(class_name)
-                    json_output[class_name] = []
+                    json_output[class_name] = {}
                     class_name_printed = True
 
                 text_output += '  {}:\n'.format(assignment_name)
+                json_output[class_name][assignment_name] = []
 
-                for timestamp, first_name, last_name in recent:
+                for timestamp, first_name, last_name, username in recent:
                     human_timestamp = strftime('%Y-%m-%d %H:%M:%S',
                                                localtime(timestamp))
-                    text_output += '   {} {} {}\n'.format(human_timestamp,
-                                                          first_name,
-                                                          last_name)
+                    text_output += '   {} {} {} ({})\n'.format(human_timestamp,
+                                                               first_name,
+                                                               last_name,
+                                                               username)
                     json_entry = {
                         'time': timestamp,
                         'human_time': human_timestamp,
                         'first_name': first_name,
                         'last_name': last_name,
+                        'username': username,
                     }
-                    json_output[class_name].append(json_entry)
+                    json_output[class_name][assignment_name].append(json_entry)
 
                 text_output += '\n'
 
