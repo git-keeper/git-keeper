@@ -152,6 +152,9 @@ def list_recent(number_of_days, output_json: bool):
         class_name_printed = False
 
         for assignment_name in sorted(info.assignment_list(class_name)):
+            if not info.is_published(class_name, assignment_name):
+                continue
+
             students_submitted = info.students_submitted_list(class_name,
                                                               assignment_name)
 
