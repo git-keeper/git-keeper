@@ -103,7 +103,7 @@ class ClientCheckKeywords:
     def gkeep_publish_succeeds(self, faculty, course_name, assignment_name):
         client_control.run(faculty, 'gkeep publish {} {}'.format(course_name, assignment_name))
 
-    def gkeep_upload_fails(self, faculty, course_name, assignment_name):
+    def gkeep_publish_fails(self, faculty, course_name, assignment_name):
         try:
             client_control.run(faculty, 'gkeep publish {} {}'.format(course_name, assignment_name))
             error = 'gkeep publish should have non-zero return'
