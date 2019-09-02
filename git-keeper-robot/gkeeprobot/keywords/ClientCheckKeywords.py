@@ -66,6 +66,15 @@ class ClientCheckKeywords:
         for forbidden in forbidden_strings:
             assert forbidden not in results
 
+    def gkeep_query_json_produces_results(self, faculty, sub_command, expected_results):
+        cmd = 'gkeep query --json {}'.format(sub_command)
+        results = client_control.run(faculty, cmd)
+        import pprint
+        import json
+        pp_results = pprint.pformat(json.loads(results.strip()))
+        pp_expected = pprint.pformat(json.loads(expected_results))
+        assert pp_results == pp_expected
+
     def gkeep_add_faculty_succeeds(self, admin, new_faculty):
         last_name = 'Professor'
         first_name = 'Doctor'
