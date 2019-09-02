@@ -1,4 +1,4 @@
-# Copyright 2018 Nathan Sommer and Ben Coleman
+# Copyright 2019 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 *** Settings ***
 Resource    resources/setup.robot
 Test Setup    Setup Server and Client Accounts
-Force Tags    gkeep_modify
+Force Tags    gkeep_trigger
 
 *** Keywords ***
 
