@@ -14,6 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from robot.utils.asserts import assert_equal
+
 from gkeeprobot.control.ClientControl import ClientControl
 from gkeeprobot.exceptions import GkeepRobotException
 from gkeeprobot.control.VMControl import ExitCodeException
@@ -73,7 +75,7 @@ class ClientCheckKeywords:
         import json
         pp_results = pprint.pformat(json.loads(results.strip()))
         pp_expected = pprint.pformat(json.loads(expected_results))
-        assert pp_results == pp_expected
+        assert_equal(pp_results, pp_expected)
 
     def gkeep_add_faculty_succeeds(self, admin, new_faculty):
         last_name = 'Professor'
