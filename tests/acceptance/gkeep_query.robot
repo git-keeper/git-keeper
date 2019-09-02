@@ -1,4 +1,4 @@
-# Copyright 2018 Nathan Sommer and Ben Coleman
+# Copyright 2019 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -42,5 +42,4 @@ Class With Assignment Results in JSON
     Gkeep Query JSON Produces Results    faculty1   classes   ["cs1"]
     Gkeep Query JSON Produces Results    faculty1   assignments   {"cs1":[{"name":"good_simple","published":false}]}
     Gkeep Query JSON Produces Results    faculty1   students   {"cs1":[{"first_name":"First","last_name":"Last","username":"student1"}]}
-    Gkeep Query JSON Produces Results    faculty1   recent   {"cs1":{"good_simple":[]}}
-
+    Gkeep Query JSON Produces Results    faculty1   recent   {}
