@@ -222,6 +222,8 @@ def add_query_subparser(subparsers):
     """
 
     subparser = subparsers.add_parser('query', help='query the server')
+    subparser.add_argument('--json', '-j', action='store_true',
+                           help='output JSON')
     subparser.add_argument('query_type', metavar='<query type>',
                            help='classes, assignments, recent, or students',
                            choices=['classes', 'assignments', 'recent',
@@ -333,21 +335,24 @@ def initialize_action_parser() -> GraderParser:
     return parser
 
 
-def run_query(query_type: str, number_of_days: int):
+def run_query(query_type: str, number_of_days: int, output_json: bool):
     """
     Run the query specified by query_type.
 
     :param query_type: type of the query
+    :param number_of_days: specifies the number of days to use when querying
+      for recent assignments
+    :param output_json: whether or not to print output as JSON
     """
 
     if query_type == 'classes':
-        list_classes()
+        list_classes(output_json)
     elif query_type == 'assignments':
-        list_assignments()
+        list_assignments(output_json)
     elif query_type == 'students':
-        list_students()
+        list_students(output_json)
     elif query_type == 'recent':
-        list_recent(number_of_days)
+        list_recent(number_of_days, output_json)
 
 
 def main():
@@ -426,7 +431,8 @@ def take_action(parsed_args):
         fetch_submissions(class_name, assignment_name,
                           dest_path)
     elif action_name == 'query':
-        run_query(parsed_args.query_type, parsed_args.number_of_days)
+        run_query(parsed_args.query_type, parsed_args.number_of_days,
+                  parsed_args.json)
     elif action_name == 'trigger':
         trigger_tests(class_name, assignment_name,
                       parsed_args.student_usernames)

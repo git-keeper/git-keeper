@@ -14,6 +14,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from robot.utils.asserts import assert_equal
+
 from gkeeprobot.control.ClientControl import ClientControl
 from gkeeprobot.exceptions import GkeepRobotException
 from gkeeprobot.control.VMControl import ExitCodeException
@@ -66,6 +68,15 @@ class ClientCheckKeywords:
         for forbidden in forbidden_strings:
             assert forbidden not in results
 
+    def gkeep_query_json_produces_results(self, faculty, sub_command, expected_results):
+        cmd = 'gkeep query --json {}'.format(sub_command)
+        results = client_control.run(faculty, cmd)
+        import pprint
+        import json
+        pp_results = pprint.pformat(json.loads(results.strip()))
+        pp_expected = pprint.pformat(json.loads(expected_results))
+        assert_equal(pp_results, pp_expected)
+
     def gkeep_add_faculty_succeeds(self, admin, new_faculty):
         last_name = 'Professor'
         first_name = 'Doctor'
@@ -107,6 +118,25 @@ class ClientCheckKeywords:
         try:
             client_control.run(faculty, 'gkeep publish {} {}'.format(course_name, assignment_name))
             error = 'gkeep publish should have non-zero return'
+            raise GkeepRobotException(error)
+        except ExitCodeException:
+            pass
+
+    def gkeep_trigger_succeeds(self, faculty, course_name, assignment_name, student_name=None):
+        if student_name is None:
+            client_control.run(faculty, 'gkeep trigger {} {}'.format(course_name, assignment_name))
+        else:
+            client_control.run(faculty, 'gkeep trigger {} {} {}'.format(course_name, assignment_name, student_name))
+
+    def gkeep_trigger_fails(self, faculty, course_name, assignment_name, student_name=None):
+        if student_name is None:
+            cmd = 'gkeep trigger {} {}'.format(course_name, assignment_name)
+        else:
+            cmd = 'gkeep trigger {} {} {}'.format(course_name, assignment_name, student_name)
+
+        try:
+            client_control.run(faculty, cmd)
+            error = 'gkeep trigger should have non-zero return'
             raise GkeepRobotException(error)
         except ExitCodeException:
             pass
