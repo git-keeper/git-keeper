@@ -18,6 +18,8 @@ Provides TriggerHandler, the handler for triggering assignment tests
 
 Event type: TRIGGER
 """
+
+from gkeepcore.git_commands import git_head_hash
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_home_dir, faculty_assignment_dir_path, \
     user_log_path, student_assignment_repo_path
@@ -96,7 +98,9 @@ class TriggerHandler(EventHandler):
                                              self._class_name,
                                              self._assignment_name, home_dir)
 
-            submission = Submission(student, submission_repo_path,
+            commit_hash = git_head_hash(submission_repo_path)
+
+            submission = Submission(student, submission_repo_path, commit_hash,
                                     assignment_dir, self._faculty_username,
                                     faculty_email)
             new_submission_queue.put(submission)
