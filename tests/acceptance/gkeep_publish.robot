@@ -43,8 +43,6 @@ Bad Assignment Name In Publish
     Gkeep Publish Fails     faculty1    cs1     unknown_name
 
 Bad Course Name In Publish
-    [Setup]     NONE
-    Add Assignment to Client  faculty1  good_simple
     Gkeep Publish Fails     faculty1    unknown_course      good_simple
 
 Publish Twice
