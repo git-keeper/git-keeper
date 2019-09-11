@@ -122,7 +122,6 @@ class ClientCheckKeywords:
         except ExitCodeException:
             pass
 
-
     def gkeep_trigger_succeeds(self, faculty, course_name, assignment_name, student_name=None):
         if student_name is None:
             client_control.run(faculty, 'gkeep trigger {} {}'.format(course_name, assignment_name))
