@@ -16,10 +16,12 @@
 from gkeeprobot.control.VagrantControl import VagrantControl
 from gkeeprobot.keywords.ServerSetupKeywords import ServerSetupKeywords
 from gkeeprobot.keywords.ClientSetupKeywords import ClientSetupKeywords
+from gkeeprobot.keywords.ClientCheckKeywords import ClientCheckKeywords
 
 vagrant = VagrantControl()
 server = ServerSetupKeywords()
 client = ClientSetupKeywords()
+client_check = ClientCheckKeywords()
 
 print('Checking that gkserver is running')
 if not vagrant.is_server_running():
@@ -55,4 +57,17 @@ client.add_to_class_csv('prof1', 'cs1', 'student2')
 client.run_gkeep_command('prof1', 'add cs1 cs1.csv')
 client.add_assignment_to_client('prof1', 'good_simple')
 
+print('Making student1 and student2 accounts on gkclient')
+client.create_account('student1')
+client.establish_ssh_keys('student1')
+client.create_git_config('student1')
+client.create_account('student2')
+client.establish_ssh_keys('student2')
+client.create_git_config('student2')
 
+print('Prof1 Uploads and Publishes Assignment')
+client_check.gkeep_upload_succeeds('prof1', 'cs1', 'good_simple')
+client_check.gkeep_publish_succeeds('prof1', 'cs1', 'good_simple')
+
+print('Student1 Clones Assignment')
+client.clone_assignment('student1', 'prof1', 'cs1', 'good_simple')
