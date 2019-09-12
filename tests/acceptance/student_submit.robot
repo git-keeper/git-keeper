@@ -37,7 +37,7 @@ Student Submits Correct Solution
     Gkeep Publish Succeeds  faculty1    cs1     good_simple
     Clone Assignment  student1  faculty1    cs1     good_simple
     Student Submits Correct Solution    student1    faculty1    cs1    good_simple
-    Email Exists    student1    "[cs1] good_simple submission test results"
+    Email Exists    student1    subject_contains="[cs1] good_simple submission test results"    body_contains="Done"
 
 Bad Action.sh
     [Tags]  error
@@ -46,6 +46,6 @@ Bad Action.sh
     Gkeep Publish Succeeds  faculty1    cs1     bad_action
     Clone Assignment  student1  faculty1    cs1     bad_action
     Student Submits Correct Solution    student1    faculty1    cs1    bad_action
-    Email Exists    student1    "bad_action: Failed to process submission - contact instructor"
+    Email Exists    student1    subject_contains="bad_action: Failed to process submission - contact instructor"    body_contains="instructor"
 
 

@@ -26,9 +26,9 @@ class ServerWaitKeywords:
         result = control.run_vm_python_script('keeper', 'server_is_running.py')
         assert result == 'True'
 
-    def wait_for_email(self, to_user, contains):
+    def wait_for_email(self, to_user, subject_contains, body_contains):
         result = control.run_vm_python_script('keeper', 'email_to.py',
-                                              to_user, contains)
+                                              to_user, subject_contains, body_contains)
         assert result == 'True'
 
     def wait_for_user(self, username):

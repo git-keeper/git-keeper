@@ -25,7 +25,7 @@ Valid Setup
     [Tags]    happy_path
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
-    Email Exists    to_user=admin_prof    contains=Password
+    Email Exists    to_user=admin_prof    subject_contains="New git-keeper account"    body_contains=Password
     User Exists On Server    admin_prof
     User Exists On Server   tester
     Gkeepd Is Running

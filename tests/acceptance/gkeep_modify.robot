@@ -32,7 +32,7 @@ Add Student
     Add To Class CSV    faculty=faculty1    class_name=cs1    student=student3
     Gkeep Modify Succeeds    faculty=faculty1    class_name=cs1
     User Exists On Server    student3
-    Email Exists    to_user=student3    contains=Password
+    Email Exists    to_user=student3    subject_contains="New git-keeper account"    body_contains=Password
     Gkeep Query Contains    faculty1    students    student3
 
 Remove Student

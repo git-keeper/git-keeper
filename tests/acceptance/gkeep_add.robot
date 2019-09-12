@@ -34,8 +34,8 @@ Valid Class
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
     User Exists On Server    student1
     User Exists On Server    student2
-    Email Exists    to_user=student1    contains=Password
-    Email Exists    to_user=student2    contains=Password
+    Email Exists    to_user=student1    subject_contains="New git-keeper account"    body_contains=Password
+    Email Exists    to_user=student2    subject_contains="New git-keeper account"    body_contains=Password
     Gkeep Query Contains    faculty1    classes    cs1
     Gkeep Query Contains    faculty1    students    student1    student2
 
@@ -51,7 +51,7 @@ Existing Student
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
     User Exists On Server    student1
     User Exists On Server    student2
-    Email Exists    to_user=student1    contains=Password
+    Email Exists    to_user=student1    subject_contains="New git-keeper account"    body_contains=Password
     Email Does Not Exist    to_user=student2
     Gkeep Query Contains    faculty1    classes    cs1
     Gkeep Query Contains    faculty1    students    student1    student2
