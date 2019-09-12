@@ -42,6 +42,12 @@ class ClientSetupKeywords:
                                           name,
                                           temp_dir_name)
 
+    def create_git_config(self, username):
+        name_cmd = 'git config --global user.name "{}"'.format(username)
+        client_control.run(username, name_cmd)
+        email_cmd = 'git config --global user.email {}@gitkeeper.edu'.format(username)
+        client_control.run(username, email_cmd)
+
     def add_to_class_csv(self, faculty, class_name, student):
         line = 'Last,First,{}@gitkeeper.edu'.format(student)
         client_control.run_vm_python_script(faculty, 'add_to_file.py',
@@ -78,3 +84,12 @@ class ClientSetupKeywords:
         url = '{}@gkserver:/home/{}/{}/{}/{}.git'.format(student, student, faculty, class_name, assignment_name)
         command = 'git clone {} assignments/{}'.format(url, assignment_name)
         client_control.run(student, command)
+
+    def student_submits_correct_solution(self, student, faculty, class_name, assignment_name):
+        assignment_folder = '~/assignments/{}'.format(assignment_name)
+        cp_cmd = 'cp /vagrant/assignments/{}/correct_solution/* {}'.format(assignment_name, assignment_folder)
+        client_control.run(student, cp_cmd)
+        commit_cmd = 'cd {}; git commit -am "done"'.format(assignment_folder)
+        client_control.run(student, commit_cmd)
+        push_cmd = 'cd {}; git push origin master'.format(assignment_folder)
+        client_control.run(student, push_cmd)
