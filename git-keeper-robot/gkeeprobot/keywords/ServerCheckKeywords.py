@@ -30,9 +30,9 @@ class ServerCheckKeywords:
         result = control.run_vm_python_script('keeper', 'server_terminated.py')
         assert result == 'True'
 
-    def email_exists(self, to_user, contains):
+    def email_exists(self, to_user, subject_contains=None, body_contains=None):
         result = control.run_vm_python_script('keeper', 'email_to.py',
-                                              to_user, contains)
+                                              to_user, subject_contains, body_contains)
         assert result == 'True'
 
     def email_does_not_exist(self, username):

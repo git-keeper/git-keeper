@@ -26,7 +26,7 @@ Add Faculty and Configure Accounts on Client
     [Arguments]    @{faculty_names}
     :FOR    ${username}    IN    @{faculty_names}
     \        Gkeep Add Faculty Succeeds    admin_prof    ${username}
-    \        Wait For Email    to_user=${username}    contains=Password
+    \        Wait For Email    to_user=${username}    subject_contains="New git-keeper account"    body_contains=Password
     Create Accounts On Client  @{faculty_names}
 
 Launch Gkeepd And Configure Admin Account on Client
@@ -35,7 +35,7 @@ Launch Gkeepd And Configure Admin Account on Client
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     Wait For Gkeepd
-    Wait For Email    to_user=admin_prof    contains=Password
+    Wait For Email    to_user=admin_prof    subject_contains="New git-keeper account"    body_contains=Password
     Create Accounts On Client    admin_prof
 
 Establish Course

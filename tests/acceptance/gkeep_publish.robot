@@ -33,8 +33,8 @@ Setup Server and Client Accounts
 Valid Assignment Publish
     [Tags]  happy_path
     Gkeep Publish Succeeds  faculty1    cs1     good_simple
-    Email Exists    student1    good_simple
-    Email Exists    student2    good_simple
+    Email Exists    student1    subject_contains="[cs1] New assignment: good_simple"    body_contains=good_simple
+    Email Exists    student2    subject_contains="[cs1] New assignment: good_simple"    body_contains=good_simple
     Clone Assignment  student1  faculty1    cs1     good_simple
     Clone Assignment  student2  faculty1    cs1     good_simple
 
@@ -56,14 +56,14 @@ Double Upload Then Double Publish
     Gkeep Upload Succeeds   faculty1   cs1    good_simple2
     # Publish 1st assignment
     Gkeep Publish Succeeds  faculty1    cs1     good_simple
-    Email Exists    student1    good_simple
-    Email Exists    student2    good_simple
+    Email Exists    student1    subject_contains="[cs1] New assignment: good_simple"    body_contains=good_simple
+    Email Exists    student2    subject_contains="[cs1] New assignment: good_simple"    body_contains=good_simple
     Clone Assignment  student1  faculty1    cs1     good_simple
     Clone Assignment  student2  faculty1    cs1     good_simple
     # Publish 2nd assignment
     Gkeep Publish Succeeds  faculty1    cs1     good_simple2
-    Email Exists    student1    good_simple2
-    Email Exists    student2    good_simple2
+    Email Exists    student1    subject_contains="[cs1] New assignment: good_simple2"    body_contains=good_simple2
+    Email Exists    student2    subject_contains="[cs1] New assignment: good_simple2"    body_contains=good_simple2
     Clone Assignment  student1  faculty1    cs1     good_simple2
     Clone Assignment  student2  faculty1    cs1     good_simple2
 
@@ -73,13 +73,13 @@ Interleave Upload and Publish
     Gkeep Upload Succeeds   faculty1   cs1    good_simple2
     # Publish 2nd assignment
     Gkeep Publish Succeeds  faculty1    cs1     good_simple2
-    Email Exists    student1    good_simple2
-    Email Exists    student2    good_simple2
+    Email Exists    student1    subject_contains="[cs1] New assignment: good_simple2"    body_contains=good_simple2
+    Email Exists    student2    subject_contains="[cs1] New assignment: good_simple2"    body_contains=good_simple2
     Clone Assignment  student1  faculty1    cs1     good_simple2
     Clone Assignment  student2  faculty1    cs1     good_simple2
     # Publish 1st assignment
     Gkeep Publish Succeeds  faculty1    cs1     good_simple
-    Email Exists    student1    good_simple
-    Email Exists    student2    good_simple
+    Email Exists    student1    subject_contains="[cs1] New assignment: good_simple"    body_contains=good_simple
+    Email Exists    student2    subject_contains="[cs1] New assignment: good_simple"    body_contains=good_simple
     Clone Assignment  student1  faculty1    cs1     good_simple
     Clone Assignment  student2  faculty1    cs1     good_simple
