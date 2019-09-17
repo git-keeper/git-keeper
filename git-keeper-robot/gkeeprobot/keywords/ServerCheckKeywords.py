@@ -25,17 +25,20 @@ control = ServerControl()
 class ServerCheckKeywords:
     def gkeepd_is_running(self):
         result = control.run_vm_python_script('keeper', 'server_is_running.py')
-        assert result == 'True'
+        if result != 'True':
+            raise GkeepRobotException('Server should be running')
 
     def gkeepd_is_not_running(self):
         result = control.run_vm_python_script('keeper', 'server_terminated.py')
-        assert result == 'True'
+        if result != 'True':
+            raise GkeepRobotException('Server should not be running')
 
     def new_account_email_exists(self, username):
         result = control.run_vm_python_script('keeper', 'email_to.py',
                                               username, 'New git-keeper account',
                                               'Password')
-        assert result == 'True'
+        if result != 'True':
+            raise GkeepRobotException('No new account email for {}'.format(username))
 
     def new_assignment_email_exists(self, username, course_name, assignment_name):
         # assignment name is in the body of the message
