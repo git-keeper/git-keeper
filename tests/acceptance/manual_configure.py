@@ -69,5 +69,9 @@ print('Prof1 Uploads and Publishes Assignment')
 client_check.gkeep_upload_succeeds('prof1', 'cs1', 'good_simple')
 client_check.gkeep_publish_succeeds('prof1', 'cs1', 'good_simple')
 
-print('Student1 Clones Assignment')
+print('Student1 Clones and Submits Assignment')
 client.clone_assignment('student1', 'prof1', 'cs1', 'good_simple')
+client.student_submits_correct_solution('student1', 'prof1', 'cs1', 'good_simple')
+
+print('Prof1 fetches assignment')
+client.fetch_assignment('prof1', 'cs1', 'good_simple', 'fetched_assignments')
