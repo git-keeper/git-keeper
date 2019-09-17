@@ -80,13 +80,13 @@ class ClientSetupKeywords:
         client_control.run(faculty, cmd)
 
     def clone_assignment(self, student, faculty, class_name, assignment_name):
-        client_control.run(student, 'mkdir -p assignments')
+        client_control.run(student, 'mkdir -p assignments/{}'.format(class_name))
         url = '{}@gkserver:/home/{}/{}/{}/{}.git'.format(student, student, faculty, class_name, assignment_name)
-        command = 'git clone {} assignments/{}'.format(url, assignment_name)
+        command = 'git clone {} assignments/{}/{}'.format(url, class_name, assignment_name)
         client_control.run(student, command)
 
     def student_submits_correct_solution(self, student, faculty, class_name, assignment_name):
-        assignment_folder = '~/assignments/{}'.format(assignment_name)
+        assignment_folder = '~/assignments/{}/{}'.format(class_name, assignment_name)
         cp_cmd = 'cp /vagrant/assignments/{}/correct_solution/* {}'.format(assignment_name, assignment_folder)
         client_control.run(student, cp_cmd)
         commit_cmd = 'cd {}; git commit -am "done"'.format(assignment_folder)

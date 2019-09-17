@@ -29,7 +29,7 @@ Force Tags    gkeep_add_faculty
 Add One Faculty
     [Tags]    happy_path
     Gkeep Add Faculty Succeeds    admin_prof    faculty1
-    Email Exists    to_user=faculty1    subject_contains="New git-keeper account"    body_contains=Password
+    New Account Email Exists    faculty1
     User Exists On Server    faculty1
 
 Duplicate Faculty
