@@ -30,6 +30,21 @@ class ServerCheckKeywords:
         result = control.run_vm_python_script('keeper', 'server_terminated.py')
         assert result == 'True'
 
+    def new_account_email_exists(self, username):
+        result = control.run_vm_python_script('keeper', 'email_to.py',
+                                              username, 'New git-keeper account',
+                                              'Password')
+        assert result == 'True'
+
+    def new_assignment_email_exists(self, username, assignment_name):
+        # assignment name is in the body of the message
+        result = control.run_vm_python_script('keeper', 'email_to.py',
+                                              username, 'New assignment',
+                                              assignment_name)
+
+        assert result == 'True'
+
+
     def email_exists(self, to_user, subject_contains=None, body_contains=None):
         result = control.run_vm_python_script('keeper', 'email_to.py',
                                               to_user, subject_contains, body_contains)
