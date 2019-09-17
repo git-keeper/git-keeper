@@ -36,14 +36,22 @@ class ServerCheckKeywords:
                                               'Password')
         assert result == 'True'
 
-    def new_assignment_email_exists(self, username, assignment_name):
+    def new_assignment_email_exists(self, username, course_name, assignment_name):
         # assignment name is in the body of the message
+        subject = '[{}] New Assignment: {}'.format(course_name, assignment_name)
         result = control.run_vm_python_script('keeper', 'email_to.py',
                                               username, 'New assignment',
                                               assignment_name)
 
         assert result == 'True'
 
+    def submission_test_results_email_exists(self, username, course_name, assignment_name, body_contains):
+        subject = '[{}] {} submission test results'.format(course_name, assignment_name)
+        result = control.run_vm_python_script('keeper', 'email_to.py',
+                                              username, subject,
+                                              body_contains)
+
+        assert result == 'True'
 
     def email_exists(self, to_user, subject_contains=None, body_contains=None):
         result = control.run_vm_python_script('keeper', 'email_to.py',

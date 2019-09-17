@@ -31,7 +31,7 @@ Valid Assignment Upload
     [Tags]  happy_path
     Add Assignment to Client  faculty1  good_simple
     Gkeep Upload Succeeds   faculty1   cs1    good_simple
-    New Assignment Email Exists    faculty1    good_simple
+    New Assignment Email Exists    faculty1    cs1    good_simple
     Clone Assignment    faculty1  faculty1  cs1  good_simple
     gkeep query contains  faculty1    assignments  U good_simple
 

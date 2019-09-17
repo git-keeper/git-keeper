@@ -37,7 +37,7 @@ Student Submits Correct Solution
     Gkeep Publish Succeeds  faculty1    cs1     good_simple
     Clone Assignment  student1  faculty1    cs1     good_simple
     Student Submits Correct Solution    student1    faculty1    cs1    good_simple
-    Email Exists    student1    subject_contains="[cs1] good_simple submission test results"    body_contains="Done"
+    Submission Test Results Email Exists    student1    cs1    good_simple    Done
 
 Bad Action.sh
     [Tags]  error
