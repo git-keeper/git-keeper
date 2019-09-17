@@ -48,4 +48,19 @@ Bad Action.sh
     Student Submits Correct Solution    student1    faculty1    cs1    bad_action
     Email Exists    student1    subject_contains="bad_action: Failed to process submission - contact instructor"    body_contains="instructor"
 
-
+Duplicate Assignment Name Across Courses Managed
+    [Tags]    happy_path
+    Establish Course    faculty1   cs2    student1
+    Add Assignment to Client  faculty1  good_simple
+    # good_simple used in cs1
+    Gkeep Upload Succeeds   faculty1   cs1    good_simple
+    Gkeep Publish Succeeds  faculty1    cs1     good_simple
+    Clone Assignment  student1  faculty1    cs1     good_simple
+    Student Submits Correct Solution    student1    faculty1    cs1    good_simple
+    Submission Test Results Email Exists    student1    cs1    good_simple    Done
+    # good_simple used in cs2
+    Gkeep Upload Succeeds   faculty1   cs2    good_simple
+    Gkeep Publish Succeeds  faculty1    cs2     good_simple
+    Clone Assignment  student1  faculty1    cs2     good_simple
+    Student Submits Correct Solution    student1    faculty1    cs2    good_simple
+    Submission Test Results Email Exists    student1    cs2    good_simple    Done
