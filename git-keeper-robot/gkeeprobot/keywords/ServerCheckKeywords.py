@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from gkeeprobot.control.ServerControl import ServerControl
+from gkeeprobot.exceptions import GkeepRobotException
 
 """Provides keywords for robotframework to check the state of gkserver
 and gkeepd."""
@@ -42,8 +43,9 @@ class ServerCheckKeywords:
         result = control.run_vm_python_script('keeper', 'email_to.py',
                                               username, 'New assignment',
                                               assignment_name)
-
-        assert result == 'True'
+        if result != 'True':
+            raise GkeepRobotException('No new assignment email exists for {}, {}, {}'.format(username, course_name,
+                                                                                   assignment_name))
 
     def submission_test_results_email_exists(self, username, course_name, assignment_name, body_contains):
         subject = '[{}] {} submission test results'.format(course_name, assignment_name)
@@ -51,25 +53,32 @@ class ServerCheckKeywords:
                                               username, subject,
                                               body_contains)
 
-        assert result == 'True'
+        if result != 'True':
+            raise GkeepRobotException('No submission test result email for {}, {}, {}'.format(username, course_name,
+                                                                                    assignment_name))
 
     def email_exists(self, to_user, subject_contains=None, body_contains=None):
         result = control.run_vm_python_script('keeper', 'email_to.py',
                                               to_user, subject_contains, body_contains)
-        assert result == 'True'
+        if result != 'True':
+            raise GkeepRobotException('No email to {} containing subject {} and body {}'.format(to_user, subject_contains,
+                                                                                      body_contains))
 
     def email_does_not_exist(self, username):
         result = control.run_vm_python_script('keeper', 'no_email_to.py',
                                               username)
-        assert result == 'True'
+        if result != 'True':
+            raise GkeepRobotException('Email exists to {}'.format(username))
 
     def user_exists_on_server(self, username):
         result = control.run_vm_python_script('keeper', 'user_exists.py',
                                               username)
-        assert result == 'True'
+        if result != 'True':
+            raise GkeepRobotException('User {} does not exist'.format(username))
 
     def user_does_not_exist_on_server(self, username):
         result = control.run_vm_python_script('keeper',
                                               'user_does_not_exist.py',
                                               username)
-        assert result == 'True'
+        if result != 'True':
+            raise GkeepRobotException('User {} exists but should not'.format(username))
