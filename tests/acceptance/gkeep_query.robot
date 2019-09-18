@@ -17,7 +17,7 @@
 *** Settings ***
 Resource    resources/setup.robot
 Test Setup    Setup Server and Client Accounts
-Force Tags    gkeep_fetch
+Force Tags    gkeep_query
 
 *** Keywords ***
 

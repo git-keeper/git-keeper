@@ -93,3 +93,16 @@ class ClientSetupKeywords:
         client_control.run(student, commit_cmd)
         push_cmd = 'cd {}; git push origin master'.format(assignment_folder)
         client_control.run(student, push_cmd)
+
+    def fetch_assignment(self, faculty, class_name, assignment_name, target_dir=None):
+        if target_dir is not None:
+            folder_name = '{}/{}'.format(target_dir, class_name)
+            cmd = 'yes | gkeep fetch {} {} {}'.format(class_name, assignment_name, folder_name)
+        else:
+            # Yes to force directories to be created
+            cmd = 'yes | gkeep fetch {} {}'.format(class_name, assignment_name)
+        client_control.run(faculty, cmd)
+
+    def add_submissions_folder_to_config(self, faculty, directory):
+        client_control.run(faculty, 'echo [local] >> .config/git-keeper/client.cfg')
+        client_control.run(faculty, 'echo submissions_path={} >> .config/git-keeper/client.cfg'.format(directory))
