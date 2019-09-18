@@ -93,3 +93,7 @@ class ClientSetupKeywords:
         client_control.run(student, commit_cmd)
         push_cmd = 'cd {}; git push origin master'.format(assignment_folder)
         client_control.run(student, push_cmd)
+
+    def add_submissions_folder_to_config(self, faculty, directory):
+        client_control.run(faculty, 'echo [local] >> .config/git-keeper/client.cfg')
+        client_control.run(faculty, 'echo submissions_path={} >> .config/git-keeper/client.cfg'.format(directory))
