@@ -217,6 +217,11 @@ class ClientConfiguration:
         if self._parser.has_option('local', 'submissions_path'):
             self.submissions_path = self._parser.get('local',
                                                      'submissions_path')
+
+            if not os.path.isabs(self.submissions_path):
+                error = 'Submission path must be absolute: {}'.format(self.submissions_path)
+                raise ClientConfigurationError(error)
+
             self.submissions_path = os.path.expanduser(self.submissions_path)
             self.submissions_path = os.path.abspath(self.submissions_path)
 
