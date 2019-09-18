@@ -208,7 +208,6 @@ class ClientConfiguration:
 
     def _set_local_options(self):
         # Initialize all attributes related to the local client machine
-
         self.submissions_path = None
 
         if 'local' not in self._parser.sections():
@@ -218,12 +217,11 @@ class ClientConfiguration:
             self.submissions_path = self._parser.get('local',
                                                      'submissions_path')
 
+            self.submissions_path = os.path.expanduser(self.submissions_path)
+
             if not os.path.isabs(self.submissions_path):
                 error = 'Submission path must be absolute: {}'.format(self.submissions_path)
                 raise ClientConfigurationError(error)
-
-            self.submissions_path = os.path.expanduser(self.submissions_path)
-            self.submissions_path = os.path.abspath(self.submissions_path)
 
     def _set_class_aliases(self):
         # Initialize class aliases dictionary and fill it with any aliases
