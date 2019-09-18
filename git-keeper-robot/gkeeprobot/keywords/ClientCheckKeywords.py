@@ -77,6 +77,14 @@ class ClientCheckKeywords:
         pp_expected = pprint.pformat(json.loads(expected_results))
         assert_equal(pp_results, pp_expected)
 
+    def gkeep_query_fails(self, faculty, sub_command):
+        cmd = 'gkeep query --json {}'.format(sub_command)
+        try:
+            client_control.run(faculty, cmd)
+            raise GkeepRobotException('gkeep query should return non-zero')
+        except ExitCodeException:
+            pass
+
     def gkeep_add_faculty_succeeds(self, admin, new_faculty):
         last_name = 'Professor'
         first_name = 'Doctor'
