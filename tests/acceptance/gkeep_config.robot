@@ -30,3 +30,7 @@ Setup Server and Client Accounts
 Relative Submission Path Not Allow
     Add Submissions Folder to Config    faculty1    relative_dir
     Gkeep Query Fails    faculty1    classes
+
+Absoluate Path Accepted
+    Add Submissions Folder to Config    faculty1    ~/submissions
+    Gkeep Query JSON Produces Results    faculty1    classes    []
