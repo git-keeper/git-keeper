@@ -163,6 +163,14 @@ class Submission:
                 report_file_path = os.path.join(student_report_dir_path,
                                                 report_filename)
 
+                counter = 1
+                while os.path.exists(report_file_path):
+                    report_filename = 'report-{0}-{1}.txt'.format(timestamp,
+                                                                  counter)
+                    report_file_path = os.path.join(student_report_dir_path,
+                                                    report_filename)
+                    counter += 1
+
                 with open(report_file_path, 'w') as f:
                     f.write(body)
 
