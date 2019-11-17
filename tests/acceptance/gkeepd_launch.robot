@@ -35,7 +35,7 @@ Admin Account Already Exists
     Add Account On Server    admin_prof
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
-    Email Does Not Exist    admin_prof
+    New Account Email Does Not Exist    admin_prof
     Gkeepd Is Running
 
 Admin Named Faculty
@@ -44,7 +44,7 @@ Admin Named Faculty
     Start gkeepd
     Gkeepd Is Not Running
     User Does Not Exist On Server    faculty
-    Email Does Not Exist    faculty
+    New Account Email Does Not Exist    faculty
 
 Missing server cfg
     [Tags]    error
