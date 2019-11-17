@@ -28,6 +28,8 @@ Add Faculty and Configure Accounts on Client
     \        Gkeep Add Faculty Succeeds    admin_prof    ${username}
     \        Wait For Email    to_user=${username}    subject_contains="New git-keeper account"    body_contains=Password
     Create Accounts On Client  @{faculty_names}
+    :FOR    ${username}    IN    @{faculty_names}
+    \            Create Git Config    ${username}
 
 Launch Gkeepd And Configure Admin Account on Client
     Reset Server
@@ -51,4 +53,3 @@ Create Accounts On Client
     \       Create Account    ${username}
     \       Establish SSH Keys    ${username}
     \       Create Gkeep Config File    ${username}
-
