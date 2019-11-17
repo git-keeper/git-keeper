@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@ Event type: UPDATE
 
 import os
 
-from gkeepcore.faculty import faculty_from_username
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
@@ -31,8 +30,9 @@ from gkeepcore.upload_directory import UploadDirectory
 from gkeepserver.assignments import AssignmentDirectory, \
     create_base_code_repo, copy_email_txt_file, \
     copy_tests_dir, remove_student_assignment, setup_student_assignment, \
-    StudentAssignmentError
+    StudentAssignmentError, write_run_action_sh
 from gkeepserver.event_handler import EventHandler, HandlerException
+from gkeepserver.faculty import FacultyMembers
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.server_configuration import config
@@ -104,8 +104,7 @@ class UpdateHandler(EventHandler):
         # Remove and re-setup the bare repository so the faculty can test the
         # assignment, and email the faculty.
 
-        reader = LocalCSVReader(config.faculty_csv_path)
-        faculty = faculty_from_username(self._faculty_username, reader)
+        faculty = FacultyMembers().get_faculty_object(self._faculty_username)
 
         # remove existing test assignment and setup the new test assignment
         try:
@@ -130,8 +129,14 @@ class UpdateHandler(EventHandler):
             copy_email_txt_file(assignment_dir, upload_dir.email_path)
 
         if os.path.isdir(upload_dir.tests_path):
+            if upload_dir.action_script is None:
+                error = 'No action script in tests directory'
+                raise GkeepException(error)
+
             rm(assignment_dir.tests_path, recursive=True)
             copy_tests_dir(assignment_dir, upload_dir.tests_path)
+
+            write_run_action_sh(assignment_dir, upload_dir)
 
         # sanity check
         assignment_dir.check()

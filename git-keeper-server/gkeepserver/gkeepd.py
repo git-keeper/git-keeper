@@ -26,25 +26,27 @@ handler_assigner - EventHandlerAssignerThread for creating event handlers from
 submission_test_threads - list of SubmissionTestThread objects which run tests
 
 """
-
+import argparse
 import sys
 from queue import Queue, Empty
 from signal import signal, SIGINT, SIGTERM
 from traceback import extract_tb
 
-from gkeepcore.faculty import faculty_from_csv_file
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
-from gkeepserver.check_system import check_system, CheckSystemError
+from gkeepcore.version import __version__ as core_version
+from gkeepserver.check_system import check_system
 from gkeepserver.email_sender_thread import email_sender
-from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
-from gkeepserver.gkeepd_logger import gkeepd_logger as logger
-from gkeepserver.info_refresh_thread import info_refresher
-from gkeepserver.local_log_file_reader import LocalLogFileReader
 from gkeepserver.event_handler_assigner import EventHandlerAssignerThread
+from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
+from gkeepserver.faculty import FacultyMembers
+from gkeepserver.gkeepd_logger import gkeepd_logger as logger
+from gkeepserver.info_update_thread import info_updater
+from gkeepserver.local_log_file_reader import LocalLogFileReader
 from gkeepserver.log_polling import log_poller
 from gkeepserver.server_configuration import config, ServerConfigurationError
 from gkeepserver.submission_test_thread import SubmissionTestThread
+from gkeepserver.version import __version__ as server_version
 
 # switched to True by the signal handler on SIGINT or SIGTERM
 shutdown_flag = False
@@ -69,9 +71,21 @@ def main():
     """
     Entry point of the gkeepd process.
 
-    gkeepd takes no arguments.
-
+    If gkeepd is run with the --version or -v flags, it will print the current
+    version and exit.
     """
+
+    description = ('gkeepd, the git-keeper server, version {}'
+                   .format(server_version))
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('-v', '--version', action='store_true',
+                        help='Print gkeepd version')
+
+    args = parser.parse_args()
+
+    if args.version:
+        print('gkeepd version {}'.format(server_version))
+        sys.exit(0)
 
     # setup signal handling
     global shutdown_flag
@@ -88,7 +102,7 @@ def main():
     logger.initialize(config.log_file_path, log_level=config.log_level)
     logger.start()
 
-    logger.log_info('--- Starting gkeepd ---')
+    logger.log_info('--- Starting gkeepd version {}---'.format(server_version))
 
     # check for fatal errors in the system state, and correct correctable
     # issues including new faculty members
@@ -101,13 +115,12 @@ def main():
         sys.exit(1)
 
     # start the info refresher thread and refresh the info for each faculty
-    info_refresher.start()
+    info_updater.start()
 
-    reader = LocalCSVReader(config.faculty_csv_path)
-    faculty_list = faculty_from_csv_file(reader)
+    faculty_list = FacultyMembers().get_faculty_objects()
 
     for faculty in faculty_list:
-        info_refresher.enqueue(faculty.username)
+        info_updater.enqueue_full_scan(faculty.username)
 
     # queues for thread communication
     new_log_event_queue = Queue()
@@ -177,7 +190,7 @@ def main():
     for thread in submission_test_threads:
         thread.shutdown()
 
-    info_refresher.shutdown()
+    info_updater.shutdown()
 
     email_sender.shutdown()
 
@@ -189,4 +202,10 @@ def main():
 
 
 if __name__ == '__main__':
+    if server_version != core_version:
+        error = 'git-keeper-server and git-keeper-core versions must match.\n'
+        error += 'server version: {}\n'.format(server_version)
+        error += 'core version: {}'.format(core_version)
+        sys.exit(error)
+
     main()

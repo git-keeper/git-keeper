@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@ import os
 
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_home_dir, faculty_classes_dir_path, \
-    class_student_csv_path
-from gkeepcore.student import students_from_csv
+    class_student_csv_path, faculty_class_status_path
+from gkeepcore.student import students_from_csv, Student
 
 
 def get_faculty_class_names(faculty_username: str) -> list:
@@ -56,6 +56,26 @@ def get_faculty_class_names(faculty_username: str) -> list:
     return class_names
 
 
+def get_class_student(faculty_username: str, class_name: str,
+                      student_username: str) -> Student:
+    """
+    Get a Student object for a student in a class.
+
+    Returns None if the student does not exist.
+
+    :param faculty_username: username of the faculty
+    :param class_name: name of the class
+    :param student_username: username of the student
+    :return: list of Student objects
+    """
+
+    home_dir = user_home_dir(faculty_username)
+
+    for student in get_class_students(faculty_username, class_name):
+        if student.username == student_username:
+            return student
+
+
 def get_class_students(faculty_username: str, class_name: str) -> list:
     """
     Get a list of Student objects representing all the students in a class.
@@ -72,3 +92,20 @@ def get_class_students(faculty_username: str, class_name: str) -> list:
     students = students_from_csv(reader)
 
     return students
+
+
+def get_class_status(faculty_username: str, class_name: str) -> str:
+    """
+    Get the status of a class.
+
+    :param faculty_username: username of the faculty member who owns the
+     class
+    :param class_name: name of the class
+    :return: status of the class
+    """
+
+    home_dir = user_home_dir(faculty_username)
+    status_path = faculty_class_status_path(class_name, home_dir)
+
+    with open(status_path) as f:
+        return f.read().strip()

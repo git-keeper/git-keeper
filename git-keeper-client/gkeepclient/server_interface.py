@@ -62,6 +62,7 @@ from gkeepcore.path_utils import user_log_path, gkeepd_to_faculty_log_path, \
     faculty_class_dir_path, assignment_published_file_path, \
     faculty_classes_dir_path, class_student_csv_path, faculty_info_path
 from gkeepcore.student import Student
+from gkeepcore.faculty_class_info import FacultyClassInfo
 
 
 class ServerInterfaceError(GkeepException):
@@ -89,6 +90,9 @@ class ServerInterface:
 
         self._home_dir = None
         self._event_log_path = None
+
+        self._info_cache = None
+        self._info_cache_fetch_time = None
 
     def is_connected(self):
         """
@@ -126,7 +130,8 @@ class ServerInterface:
             self._ssh_client.connect(hostname=config.server_host,
                                      username=config.server_username,
                                      port=config.server_ssh_port,
-                                     timeout=5)
+                                     timeout=5,
+                                     compress=True)
             self._sftp_client = self._ssh_client.open_sftp()
 
             self._home_dir = self.user_home_dir(config.server_username)
@@ -252,6 +257,20 @@ class ServerInterface:
             self._sftp_client.put(local_path, remote_path)
         except Exception as e:
             raise ServerInterfaceError(e)
+
+    def create_empty_file(self, remote_path: str):
+        """
+        Create an empty file on the server.
+
+        It is the responsibility of the caller to ensure that the remote
+        path does not exist.
+
+        The remote_path is the full destination file path.
+
+        :param remote_path: full path on the server
+        """
+        cmd = ['touch', remote_path]
+        self.run_command(cmd)
 
     def create_directory(self, remote_path):
         """
@@ -414,6 +433,26 @@ class ServerInterface:
 
         return self.run_command(command).strip()
 
+    def users_home_dirs(self, usernames: list) -> dict:
+        """
+        Find multiple users' home directory paths on the server.
+
+        :param usernames: the users whose home directory we want
+        :return: dictionary of home directory paths indexed by usernames
+        """
+
+        tilde_home_dirs = ''
+
+        for username in usernames:
+            tilde_home_dirs += '~{0} '.format(username)
+
+        # expand each ~<username> into the full paths of the home directories
+        command = 'eval echo {0}'.format(tilde_home_dirs)
+
+        home_dirs = self.run_command(command).strip().split(' ')
+
+        return dict(zip(usernames, home_dirs))
+
     def me_to_gkeepd_log_path(self) -> str:
         """
         Build the path to a student or faculty's event log file path on the
@@ -470,6 +509,20 @@ class ServerInterface:
 
         path = faculty_class_dir_path(class_name, self._home_dir)
         return self.is_directory(path)
+
+    def class_status(self, class_name: str) -> str:
+        """
+        Get the current status of a class. Possible values are 'open' and
+        'closed'.
+
+        :param class_name: name of the class
+        :return: status of the class
+        """
+
+        class_path = faculty_class_dir_path(class_name, self._home_dir)
+        status_path = os.path.join(class_path, 'status')
+
+        return self.read_file_text(status_path).strip()
 
     def assignment_exists(self, class_name: str, assignment_name: str) -> bool:
         """
@@ -596,12 +649,25 @@ class ServerInterface:
 
         return students
 
-    def get_info(self) -> dict:
+    def get_info(self, freshness_threshold=5) -> FacultyClassInfo:
         """
-        Get the dictionary of info from the server.
+        Fetch info from the server and return it as an FacultyClassInfo object.
 
-        :return: dictionary of info
+        :param freshness_threshold: If the number of seconds since the last
+         fetch is smaller than freshness_threshold, the last cached fetch is
+         returned. If freshness_threshold is None, the cached version will be
+         used regardless of freshness.
+        :return: FacultyClassInfo object
         """
+
+        # If the cache exists and is fresh enough, return the cached info
+        if self._info_cache_fetch_time is not None:
+            if freshness_threshold is None:
+                return self._info_cache
+            else:
+                freshness = time() - self._info_cache_fetch_time
+                if freshness < freshness_threshold:
+                    return self._info_cache
 
         info_path = faculty_info_path(self._home_dir)
 
@@ -617,7 +683,10 @@ class ServerInterface:
             raise ServerInterfaceError('Error loading info from JSON: {0}'
                                        .format(e))
 
-        return info
+        self._info_cache = FacultyClassInfo(info)
+        self._info_cache_fetch_time = time()
+
+        return self._info_cache
 
 
 # Module-level interface instance. Someone must call connect() on this before

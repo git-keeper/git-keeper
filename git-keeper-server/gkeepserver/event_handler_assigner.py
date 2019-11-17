@@ -16,14 +16,13 @@
 
 """Provides a thread for assigning handlers to  new log events."""
 
-import re
 from queue import Queue, Empty
 from threading import Thread
 
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.log_file import LogEvent
 from gkeepserver.gkeepd_logger import gkeepd_logger
-from gkeepserver.event_handler import EventHandler, HandlerException
+from gkeepserver.event_handler import EventHandler
 
 
 class EventHandlerAssignerError(GkeepException):

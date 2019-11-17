@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,8 +21,9 @@ client.
 
 import os
 
+from gkeepcore.action_scripts import get_action_script_and_interpreter
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.path_utils import path_to_list
+from gkeepcore.path_utils import path_to_assignment_name
 
 
 class UploadDirectoryError(GkeepException):
@@ -55,7 +56,8 @@ class UploadDirectory:
         email_path - path to email.txt
         base_code_path - path to the base_code directory
         tests_path = path to the tests directory
-        action_sh_path - path to action.sh
+        action_script_path - path to action script
+        action_script_interpreter - name of interpreter to run action script
     """
 
     def __init__(self, path, check=True):
@@ -72,22 +74,30 @@ class UploadDirectory:
         self.email_path = os.path.join(self.path, 'email.txt')
         self.base_code_path = os.path.join(self.path, 'base_code')
         self.tests_path = os.path.join(self.path, 'tests')
-        self.action_sh_path = os.path.join(self.tests_path, 'action.sh')
 
-        self.assignment_name = path_to_list(self.path)[-1]
+        self.assignment_name = path_to_assignment_name(self.path)
+
+        self.action_script, self.action_script_interpreter = \
+            get_action_script_and_interpreter(self.tests_path)
+
+        if self.action_script is not None:
+            self.action_script_path = os.path.join(self.tests_path,
+                                                   self.action_script)
+        else:
+            self.action_script_path = None
 
         if check:
-            self._ensure_items_exist()
+            self.action_script, self.action_script_interpreter = \
+                get_action_script_and_interpreter(self.tests_path)
 
-    def _ensure_items_exist(self):
-        # Raise an exception if any required directories or files are missing
+            if self.action_script is None:
+                raise UploadDirectoryError('action script')
 
-        # ensure all required directories exist
-        for dir_path in (self.path, self.base_code_path, self.tests_path):
-            if not os.path.isdir(dir_path):
-                raise UploadDirectoryError(dir_path)
+            # ensure all required directories exist
+            for dir_path in (self.path, self.base_code_path, self.tests_path):
+                if not os.path.isdir(dir_path):
+                    raise UploadDirectoryError(dir_path)
 
-        # ensure all required files exist
-        for file_path in (self.email_path, self.action_sh_path):
-            if not os.path.isfile(file_path):
-                raise UploadDirectoryError(file_path)
+            # ensure email.txt exists
+            if not os.path.isfile(self.email_path):
+                raise UploadDirectoryError(self.email_path)

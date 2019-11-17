@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -53,6 +53,7 @@ Attributes:
 
     keeper_user - username of the user running gkeepd
     keeper_group - group name of the user running gkeepd
+    tester_user - username of the user that runs the tests
     faculty_group - group that all faculty accounts belong to
     student_group - group that all student accounts belong to
 
@@ -60,7 +61,7 @@ Attributes:
     log_snapshot_file_path - path to file containing current log file sizes
     log_level - how detailed the log messages should be
 
-    faculty_csv_path - path to file containing faculty members
+    faculty_json_path - path to file containing faculty members
     faculty_log_dir_path - path to directory containing faculty event logs
 
     DO NOT USE UNTIL FIXED
@@ -72,7 +73,7 @@ Attributes:
     smtp_port - SMTP server port
     email_username - username for the SMTP server
     email_password - password for the SMTP server
-
+    email_interval - minimum amount of time to wait between sending emails
 """
 
 import configparser
@@ -80,6 +81,7 @@ import os
 from getpass import getuser
 
 from gkeepcore.gkeep_exception import GkeepException
+from gkeepcore.path_utils import user_home_dir
 from gkeepserver.gkeepd_logger import LogLevel
 
 
@@ -148,18 +150,29 @@ class ServerConfiguration:
         self._set_email_options()
         self._set_gkeepd_options()
         self._set_server_options()
+        self._set_admin_options()
 
         self._parsed = True
+
+    @property
+    def run_action_sh_file_path(self):
+        """
+        Get the location of run_action.sh
+
+        run_action.sh is in the home directory of the tester user, so that user
+        must exist before this is called.
+
+        :return: location of run_action.sh
+        """
+
+        # path to run_action.sh
+        return os.path.join(user_home_dir(config.tester_user), 'run_action.sh')
 
     def _initialize_default_attributes(self):
         # Initialize attributes that have default values
 
         # path to .gitconfig
         self.gitconfig_file_path = os.path.join(self.home_dir, '.gitconfig')
-
-        # path to run_action.sh
-        self.run_action_sh_file_path = os.path.join(self.home_dir,
-                                                    'run_action.sh')
 
         # logging
         self.log_file_path = os.path.join(self.home_dir, 'gkeepd.log')
@@ -170,14 +183,17 @@ class ServerConfiguration:
         self.log_level = LogLevel.DEBUG
 
         # faculty info locations
-        self.faculty_csv_path = os.path.join(self.home_dir, 'faculty.csv')
+        self.faculty_json_path = os.path.join(self.home_dir, 'faculty.json')
 
         # testing student code
         self.test_thread_count = 1
+        self.tests_timeout = 300
+        self.tests_memory_limit = 1024
 
         # users and groups
         self.keeper_user = 'keeper'
         self.keeper_group = 'keeper'
+        self.tester_user = 'tester'
         self.faculty_group = 'faculty'
         self.student_group = 'student'
 
@@ -185,6 +201,14 @@ class ServerConfiguration:
         self.use_tls = True
         self.email_username = None
         self.email_password = None
+        self.email_interval = 2
+
+        # admin
+        self.admin_email = None
+        self.admin_first_name = None
+        self.admin_last_name = None
+
+        self.admin_username = None
 
     def _parse_config_file(self):
         # Use a ConfigParser object to parse the configuration file and store
@@ -225,7 +249,8 @@ class ServerConfiguration:
         optional_options = [
             'use_tls',
             'email_username',
-            'email_password'
+            'email_password',
+            'email_interval',
         ]
 
         for name in optional_options:
@@ -246,6 +271,16 @@ class ServerConfiguration:
                 error = 'use_tls must be true or false'
                 raise ServerConfigurationError(error)
 
+        # email_interval must be a non-negative number
+        if isinstance(self.email_interval, str):
+            try:
+                self.email_interval = float(self.email_interval)
+                if self.email_interval < 0:
+                    raise ValueError
+            except ValueError:
+                error = 'email_interval must be a non-negative number'
+                raise ServerConfigurationError(error)
+
         self._ensure_options_are_valid('email')
 
     def _set_server_options(self):
@@ -256,6 +291,42 @@ class ServerConfiguration:
         except configparser.NoOptionError as e:
             raise ServerConfigurationError(e.message)
 
+    def _set_admin_options(self):
+        # set admin-related attributes
+
+        self._ensure_section_is_present('admin')
+
+        try:
+            # Required fields
+            self.admin_email = self._parser.get('admin', 'admin_email')
+            self.admin_first_name = self._parser.get('admin',
+                                                     'admin_first_name')
+            self.admin_last_name = self._parser.get('admin', 'admin_last_name')
+        except configparser.NoOptionError as e:
+            raise ServerConfigurationError(e.message)
+
+        try:
+            self.admin_username, _ = self.admin_email.split('@')
+        except ValueError:
+            raise ServerConfigurationError('{} is not a valid email address'
+                                           .format(self.admin_email))
+
+        self._ensure_options_are_valid('admin')
+
+    def _ensure_positive_integer(self, name):
+        # raises an exception if the attribute specified by name is not a
+        # positive integer
+
+        try:
+            setattr(self, name, int(getattr(self, name)))
+        except:
+            error = '{} must be an integer'
+            raise ServerConfigurationError(error)
+
+        if getattr(self, name) <= 0:
+            error = '{} must be a positive integer'
+            raise ServerConfigurationError(error)
+
     def _set_gkeepd_options(self):
         # get any optional parameters from the parser and update the attributes
         # from their default values
@@ -265,8 +336,11 @@ class ServerConfiguration:
 
         optional_options = [
             'test_thread_count',
+            'tests_timeout',
+            'tests_memory_limit',
             'keeper_user',
             'keeper_group',
+            'tester_user',
             'faculty_group',
             'student_group'
         ]
@@ -279,12 +353,16 @@ class ServerConfiguration:
                 value = self._parser.get('gkeepd', name)
                 setattr(self, name, value)
 
-        # test_thread_count must be an integer
-        try:
-            self.test_thread_count = int(self.test_thread_count)
-        except ValueError:
-            error = 'test_thread_count must be an integer'
-            raise ServerConfigurationError(error)
+        # test_thread_count, tests_timeout, and tests_memory_limit must be
+        # positive integers
+        positive_integer_options = [
+            'test_thread_count',
+            'tests_timeout',
+            'tests_memory_limit'
+        ]
+
+        for name in positive_integer_options:
+            self._ensure_positive_integer(name)
 
         self._ensure_options_are_valid('gkeepd')
 

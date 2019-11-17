@@ -18,7 +18,7 @@
 Provides fetch_submissions() for fetching student submissions from the server.
 """
 
-
+import json
 import os
 import sys
 
@@ -33,6 +33,68 @@ from gkeepcore.git_commands import is_non_bare_repo, git_head_hash, \
     git_pull, git_clone_remote
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import student_assignment_repo_path
+from gkeepcore.faculty_class_info import FacultyClassInfo
+
+
+class FetchedHashCache:
+    """
+    Provides functionality to manage a cache of git commit hashes for fetched
+    assignment submissions.
+
+    The cache file is stored at <assignment_fetch_path>/.hash_cache
+    """
+    def __init__(self, fetched_assignment_path):
+        """
+        Initialize the cache dictionary and load the existing cache if it
+        exists.
+
+        :param fetched_assignment_path: path to where the assignment is fetched
+        """
+        self.cache_path = os.path.join(fetched_assignment_path, '.hash_cache')
+
+        self.hashes = {}
+
+        if os.path.isfile(self.cache_path):
+            try:
+                with open(self.cache_path) as f:
+                    self.hashes = json.load(f)
+            except Exception as e:
+                print('Error loading hash cache from {}'
+                      .format(self.cache_path))
+
+    def get_hash(self, path):
+        """
+        Get the git head hash for a repository.
+
+        :param path: path to the repository
+        :return: has of the head commit of the repository
+        """
+        return self.hashes[path]
+
+    def set_hash(self, path, hash):
+        """
+        Set the hash of a repository in the cache.
+
+        :param path: path to the repository
+        :param hash: git head hash of the repository
+        """
+        self.hashes[path] = hash
+
+    def write_cache(self):
+        """
+        Write the cache to the cache file.
+        """
+        with open(self.cache_path, 'w') as f:
+            json.dump(self.hashes, f)
+
+    def is_cached(self, local_repo_path):
+        """
+        Determine if a repository's hash is cached.
+
+        :param local_repo_path: path to the repository
+        :return: True if the hash is cached, False otherwise
+        """
+        return local_repo_path in self.hashes
 
 
 def clone_repo(local_repo_path, remote_url):
@@ -54,7 +116,8 @@ def clone_repo(local_repo_path, remote_url):
         print('error cloning: {0}'.format(e))
 
 
-def pull_repo_if_updated(local_repo_path, remote_url, remote_head_hash):
+def pull_repo_if_updated(local_repo_path, remote_url, remote_head_hash,
+                         hash_cache: FetchedHashCache):
     """
     Perform a git pull in a git repository if the remote has changed since
     the last pull.
@@ -62,6 +125,7 @@ def pull_repo_if_updated(local_repo_path, remote_url, remote_head_hash):
     :param local_repo_path: path to the local repository
     :param remote_url: git clone URL
     :param remote_head_hash: has of the HEAD commit of the remote repository
+    :param hash_cache: cache of git commit hashes of local repositories
     """
 
     if not is_non_bare_repo(local_repo_path):
@@ -69,13 +133,17 @@ def pull_repo_if_updated(local_repo_path, remote_url, remote_head_hash):
               .format(local_repo_path))
         return
 
-    # get the hash of the HEAD of the local repository
-    try:
-        local_head_hash = git_head_hash(local_repo_path)
-    except GkeepException as e:
-        print('Error reading local git repository {0}: {1}'
-              .format(local_repo_path, e))
-        return
+    if hash_cache.is_cached(local_repo_path):
+        local_head_hash = hash_cache.get_hash(local_repo_path)
+    else:
+        # get the hash of the HEAD of the local repository
+        try:
+            local_head_hash = git_head_hash(local_repo_path)
+            hash_cache.set_hash(local_repo_path, local_head_hash)
+        except GkeepException as e:
+            print('Error reading local git repository {0}: {1}'
+                  .format(local_repo_path, e))
+            return
 
     # no need to pull if the hashes are the same
     if local_head_hash == remote_head_hash:
@@ -86,6 +154,7 @@ def pull_repo_if_updated(local_repo_path, remote_url, remote_head_hash):
 
     try:
         git_pull(local_repo_path, remote_url)
+        hash_cache.set_hash(local_repo_path, remote_head_hash)
         print('success!')
     except GkeepException as e:
         print(str(e))
@@ -110,8 +179,9 @@ def build_clone_url(path):
 
 def fetch_student_submission(class_name: str, assignment_name: str,
                              assignment_submission_path: str,
-                             remote_head_hash: str, username: str,
-                             last_first_username: str):
+                             remote_head_hash: str, remote_repo_path: str,
+                             last_first_username: str,
+                             hash_cache: FetchedHashCache):
     """
     Fetch a student's submission for an assignment.
 
@@ -125,32 +195,28 @@ def fetch_student_submission(class_name: str, assignment_name: str,
     :param assignment_submission_path: path to the directory containing the
      assignment's submissions
     :param remote_head_hash: hash of the remote repo's HEAD commit
-    :param username: student's username
+    :param remote_repo_path: path to the student's remote assignment repo
     :param last_first_username: <last name>_<first name>_<username> for student
+    :param hash_cache: cache of git commit hashes of local repositories
     """
 
     student_submission_path = os.path.join(assignment_submission_path,
                                            last_first_username)
-
-    # paths on the server
-    student_home_dir = server_interface.user_home_dir(username)
-    remote_repo_path = student_assignment_repo_path(config.server_username,
-                                                    class_name,
-                                                    assignment_name,
-                                                    student_home_dir)
 
     remote_git_url = build_clone_url(remote_repo_path)
 
     # pull if the repo already exists, clone otherwise
     if os.path.isdir(student_submission_path):
         pull_repo_if_updated(student_submission_path, remote_git_url,
-                             remote_head_hash)
+                             remote_head_hash, hash_cache)
     else:
         clone_repo(student_submission_path, remote_git_url)
+        hash_cache.set_hash(student_submission_path, remote_head_hash)
 
 
 def fetch_assignment_submissions(class_name: str, assignment_name: str,
-                                 class_submission_path: str, info: dict):
+                                 class_submission_path: str,
+                                 info: FacultyClassInfo):
     """
     Fetch submissions for a single assignment.
 
@@ -164,47 +230,45 @@ def fetch_assignment_submissions(class_name: str, assignment_name: str,
     :param info: info dictionary
     """
 
-    assignment_info = info[class_name]['assignments'][assignment_name]
-
     print()
     print('Fetching submissions for {0} in class {1}'
           .format(assignment_name, class_name))
     print()
 
-    assignment_submissions_path = os.path.join(class_submission_path,
-                                               assignment_name, 'submissions')
+    assignment_path = os.path.join(class_submission_path, assignment_name)
+    assignment_submissions_path = os.path.join(assignment_path, 'submissions')
 
     create_dir_if_non_existent(assignment_submissions_path)
 
-    assignment_reports_path = os.path.join(class_submission_path,
-                                           assignment_name, 'reports')
+    assignment_reports_path = os.path.join(assignment_path, 'reports')
 
-    remote_reports_path = assignment_info['reports_repo']['path']
-    remote_reports_hash = assignment_info['reports_repo']['hash']
+    hash_cache = FetchedHashCache(assignment_path)
+
+    remote_reports_path = info.reports_path(class_name, assignment_name)
+    remote_reports_hash = info.reports_hash(class_name, assignment_name)
 
     remote_git_url = build_clone_url(remote_reports_path)
 
     if os.path.isdir(assignment_reports_path):
         pull_repo_if_updated(assignment_reports_path, remote_git_url,
-                             remote_reports_hash)
+                             remote_reports_hash, hash_cache)
     else:
         clone_repo(assignment_reports_path, remote_git_url)
 
-    class_assignments_info = info[class_name]['assignments']
-    class_students_info = info[class_name]['students']
-    assignment_info = class_assignments_info[assignment_name]
-    students_repos_info = assignment_info['students_repos']
-
     # fetch each student's submission
-    for username in info[class_name]['students']:
-        remote_head_hash = students_repos_info[username]['hash']
 
-        last_first_username = \
-            class_students_info[username]['last_first_username']
+    for username in info.student_list(class_name):
+        remote_head_hash = info.student_assignment_hash(class_name, assignment_name, username)
+        remote_repo_path = info.student_assignment_path(class_name, assignment_name, username)
+
+        last_first_username = info.student_last_first_username(class_name, username)
 
         fetch_student_submission(class_name, assignment_name,
                                  assignment_submissions_path, remote_head_hash,
-                                 username, last_first_username)
+                                 remote_repo_path, last_first_username,
+                                 hash_cache)
+
+    hash_cache.write_cache()
 
 
 def create_dir_if_non_existent(dir_path, confirm=False):
@@ -280,18 +344,24 @@ def fetch_submissions(class_name: str, assignment_name: str,
 
     create_dir_if_non_existent(destination_path, confirm=True)
 
-    # build list of assignments to fetch
+    assignments_to_fetch = []
+
     if assignment_name == 'all':
-        assignments = list(info[class_name]['assignments'].keys())
+        for assignment_name in info.assignment_list(class_name):
+            if info.is_published(class_name, assignment_name):
+                assignments_to_fetch.append(assignment_name)
     else:
-        if assignment_name not in info[class_name]['assignments']:
+        if assignment_name not in info.assignment_list(class_name):
             error = ('Assignment {0} does not exist in class {1}'
                      .format(assignment_name, class_name))
             raise GkeepException(error)
+        elif not info.is_published(class_name, assignment_name):
+            error = ('Assignment {0} in class {1} is not published'
+                     .format(assignment_name, class_name))
+            raise GkeepException(error)
 
-        assignments = [assignment_name]
+        assignments_to_fetch.append(assignment_name)
 
-    # fetch the submissions
-    for assignment_name in assignments:
+    for assignment_name in assignments_to_fetch:
         fetch_assignment_submissions(class_name, assignment_name,
                                      destination_path, info)

@@ -101,6 +101,24 @@ class ClientConfiguration:
 
         self._parsed = False
 
+    def set_config_path(self, config_path):
+        """
+        Set the path to the configuration file.
+
+        Must be called before calling parse().
+
+        Raises ClientConfigurationError
+
+        :param config_path: path to the configuration file
+        """
+
+        if self._parsed:
+            raise ClientConfigurationError('Config path must be set '
+                                           'before the configuration file is '
+                                           'parsed')
+
+        self._config_path = config_path
+
     def is_parsed(self):
         """
         Determine if the configuration file has been parsed.
@@ -109,7 +127,7 @@ class ClientConfiguration:
         """
         return self._parsed
 
-    def parse(self, config_path=None):
+    def parse(self):
         """
         Parse the configuration file and initialize the attributes.
 
@@ -123,12 +141,10 @@ class ClientConfiguration:
         if self._parsed:
             raise ClientConfigurationError('parse() may only be called once')
 
-        if config_path is None:
+        if self._config_path is None:
             relative_path = '.config/git-keeper/client.cfg'
             self._config_path = os.path.join(self.local_home_dir,
                                              relative_path)
-        else:
-            self._config_path = config_path
 
         if not os.path.isfile(self._config_path):
             error = '{0} does not exist'.format(self._config_path)
@@ -137,6 +153,7 @@ class ClientConfiguration:
         self._parse_config_file()
         self._set_server_options()
         self._set_local_options()
+        self._set_class_aliases()
 
         self._parsed = True
 
@@ -152,6 +169,9 @@ class ClientConfiguration:
             error = 'Error reading {0}: {1}'.format(self._config_path,
                                                     e.message)
             raise ClientConfigurationError(error)
+        except (configparser.DuplicateOptionError,
+                configparser.DuplicateSectionError) as e:
+            raise ClientConfigurationError(str(e))
 
     def _ensure_section_is_present(self, section):
         # Raise an exception if section is not in the config file
@@ -188,7 +208,6 @@ class ClientConfiguration:
 
     def _set_local_options(self):
         # Initialize all attributes related to the local client machine
-
         self.submissions_path = None
 
         if 'local' not in self._parser.sections():
@@ -197,8 +216,24 @@ class ClientConfiguration:
         if self._parser.has_option('local', 'submissions_path'):
             self.submissions_path = self._parser.get('local',
                                                      'submissions_path')
+
             self.submissions_path = os.path.expanduser(self.submissions_path)
-            self.submissions_path = os.path.abspath(self.submissions_path)
+
+            if not os.path.isabs(self.submissions_path):
+                error = 'Submission path must be absolute: {}'.format(self.submissions_path)
+                raise ClientConfigurationError(error)
+
+    def _set_class_aliases(self):
+        # Initialize class aliases dictionary and fill it with any aliases
+        # that are in the configuration file
+
+        self.class_aliases = dict()
+
+        if 'class_aliases' not in self._parser.sections():
+            return
+
+        for alias, class_name in self._parser['class_aliases'].items():
+            self.class_aliases[alias] = class_name
 
 
 # Module-level configuration instance. Someone must call parse() on this

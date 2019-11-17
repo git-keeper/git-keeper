@@ -23,6 +23,7 @@ from shutil import which
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_home_dir, user_log_path, \
     gkeepd_to_faculty_log_path
+from gkeepcore.student import Student
 from gkeepcore.system_commands import (sudo_add_user, sudo_set_password, chmod,
                                        sudo_chown, mkdir, make_symbolic_link)
 from gkeepserver.email_sender_thread import email_sender
@@ -125,16 +126,12 @@ def create_git_shell_commands(username: str, command_list: list):
     mkdir(git_shell_commands_path, sudo=True)
 
     for command in command_list:
-        path = which(command)
-        link_path = os.path.join(git_shell_commands_path, command)
-
-        make_symbolic_link(path, link_path, sudo=True)
-
-    sudo_chown(git_shell_commands_path, username, username, recursive=True)
+        command_path = which(command)
+        make_symbolic_link(command_path, git_shell_commands_path, sudo=True)
 
 
 def create_user(username, user_type, first_name, last_name, email_address=None,
-                additional_groups=None):
+                additional_groups=None, shell='bash'):
     """
     Create a faculty or a student user, email them their credentials, and start
     watching their log file for events.
@@ -150,17 +147,16 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
     :param email_address: email address of the user
     :param additional_groups: groups beyond the default group to add the user
      to
+    :param shell: name of the shell for the user
     """
 
     if username == config.faculty_group or username == config.student_group:
         error = ('{0} is not a valid username. A username may not have the '
-                 'same name as the faculty or student user groups')
+                 'same name as the faculty or student '
+                 'user groups').format(username)
         raise GkeepException(error)
 
     logger.log_info('Creating user {0}'.format(username))
-
-    # for now everyone gets bash, students may eventually get git-shell
-    shell = 'bash'
 
     sudo_add_user(username, additional_groups, shell)
 
@@ -174,8 +170,8 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
 
         create_faculty_dirs(username)
 
-    # if we start using git-shell for students, call
-    # create_git_shell_commands() here
+    if user_type == UserType.student:
+        create_git_shell_commands(username, ['passwd'])
 
     # email the credentials to the user if an email address was provided
     if email_address is not None:
@@ -196,3 +192,20 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
         body += 'Enjoy!'
 
         email_sender.enqueue(Email(email_address, subject, body))
+
+
+def create_student_user(student: Student):
+    """
+    Wrapper that calls create_user() to add a new student user.
+
+    The student is added to the student group specified in the server
+    configuration, and their shell is set to git-shell.
+
+    :param student: Student object representing the new student
+    """
+
+    groups = [config.student_group]
+    create_user(student.username, UserType.student,
+                student.first_name, student.last_name,
+                email_address=student.email_address,
+                additional_groups=groups, shell='git-shell')

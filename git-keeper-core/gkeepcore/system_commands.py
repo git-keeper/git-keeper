@@ -24,6 +24,7 @@ from grp import getgrgid, getgrnam
 from pwd import getpwuid, getpwnam
 from shutil import which
 
+from gkeepcore.path_utils import user_home_dir
 from gkeepcore.shell_command import run_command, CommandError
 
 
@@ -124,7 +125,7 @@ def sudo_add_group(group):
     run_command(cmd, sudo=True)
 
 
-def sudo_add_user(username, groups=None, shell=None):
+def sudo_add_user(username, groups=None, shell=None, home_dir_mode=755):
     """
     Add a new user to the system using sudo and useradd.
 
@@ -138,6 +139,8 @@ def sudo_add_user(username, groups=None, shell=None):
     :param username: username of the new user
     :param groups: additional groups that the user shoul be in
     :param shell: name of the user's shell, will be bash if None
+    :param home_dir_mode: read, write, and execute permissions for the user's
+     home directory, defaults to 755
     """
 
     if shell is None:
@@ -154,6 +157,9 @@ def sudo_add_user(username, groups=None, shell=None):
     cmd += [username]
 
     run_command(cmd, sudo=True)
+
+    home_dir_path = user_home_dir(username)
+    chmod(home_dir_path, home_dir_mode, sudo=True)
 
 
 def sudo_set_password(username, password):
@@ -343,3 +349,16 @@ def rm(path, recursive=False, sudo=False):
     cmd.append(path)
 
     run_command(cmd, sudo=sudo)
+
+
+def file_is_readable(path):
+    """
+    Check to see if a file is readable.
+
+    Returns True if the file is readable, False if it is not.
+
+    :param path: path to the file
+    :return: True if the file is readable, False if it is not
+    """
+
+    return os.access(path, os.R_OK)

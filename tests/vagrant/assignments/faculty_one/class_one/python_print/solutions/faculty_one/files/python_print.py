@@ -1,0 +1,2 @@
+print('faculty_one')
+

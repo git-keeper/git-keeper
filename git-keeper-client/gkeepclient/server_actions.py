@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,19 +15,16 @@
 
 
 """Provides functions that request action from the server."""
-
-
+import json
 import os
 import sys
 
 from gkeepcore.valid_names import validate_class_name, validate_assignment_name
 
 from gkeepclient.assignment_uploader import AssignmentUploader
-from gkeepclient.client_configuration import config
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_does_not_exist, class_exists, \
-    assignment_exists, assignment_not_published, assignment_does_not_exist, \
-    assignment_published
+    assignment_exists, assignment_not_published, assignment_published
 from gkeepclient.server_interface import server_interface
 from gkeepclient.server_response_poller import communicate_event
 from gkeepcore.gkeep_exception import GkeepException
@@ -39,34 +36,37 @@ from gkeepcore.upload_directory import UploadDirectory
 @config_parsed
 @server_interface_connected
 @class_does_not_exist
-def class_add(class_name: str, csv_file_path: str):
+def class_add(class_name: str, csv_file_path: str=None):
     """
     Add a class on the server.
 
     :param class_name: name of the class
     :param csv_file_path: path to the CSV file of students
+           or None if the user is creating an empty class
     """
 
     validate_class_name(class_name)
 
-    if not os.path.isfile(csv_file_path):
-        raise GkeepException('{0} does not exist'.format(csv_file_path))
+    if csv_file_path is not None:
+        if not os.path.isfile(csv_file_path):
+            raise GkeepException('{0} does not exist'.format(csv_file_path))
 
-    try:
         students = students_from_csv(LocalCSVReader(csv_file_path))
-    except GkeepException as e:
-        sys.exit(e)
 
-    print('Adding class {0} with the following students:'.format(class_name))
+        print('Adding class {0} with the following students:'.format(class_name))
 
-    for student in students:
-        print(student)
+        for student in students:
+            print(student)
 
-    # create directory and upload CSV
+    # create directory
     upload_dir_path = server_interface.create_new_upload_dir()
+
     remote_csv_file_path = os.path.join(upload_dir_path, 'students.csv')
 
-    server_interface.copy_file(csv_file_path, remote_csv_file_path)
+    if csv_file_path is None:
+        server_interface.create_empty_file(remote_csv_file_path)
+    else:
+        server_interface.copy_file(csv_file_path, remote_csv_file_path)
 
     print('CSV file uploaded')
 
@@ -93,10 +93,7 @@ def class_modify(class_name: str, csv_file_path: str):
     if not os.path.isfile(csv_file_path):
         raise GkeepException('{0} does not exist'.format(csv_file_path))
 
-    try:
-        students = students_from_csv(LocalCSVReader(csv_file_path))
-    except GkeepException as e:
-        sys.exit(e)
+    students = students_from_csv(LocalCSVReader(csv_file_path))
 
     print('Modifying class {0} with the following students:'
           .format(class_name))
@@ -119,6 +116,61 @@ def class_modify(class_name: str, csv_file_path: str):
                       error_message='Error modifying class:',
                       timeout_message='Server response timeout. '
                                       'Class modify status unknown')
+
+
+@config_parsed
+@server_interface_connected
+@class_exists
+def update_status(class_name: str, status: str):
+    """
+    Update the status of a class.
+
+    :param class_name: name of the class
+    :param status: new status for the class, 'open' or 'closed'
+    """
+
+    current_status = server_interface.class_status(class_name)
+
+    if status == current_status:
+        raise GkeepException('{} is already {}'.format(class_name,
+                                                       current_status))
+
+    payload = '{0} {1}'.format(class_name, status)
+
+    communicate_event('CLASS_STATUS', payload,
+                      success_message='Status updated successfully',
+                      error_message='Error updating status:',
+                      timeout_message='Server response timeout. '
+                                      'Status of status update unknown')
+
+
+@config_parsed
+@server_interface_connected
+def add_faculty(last_name: str, first_name: str, email_address: str,
+                admin=False):
+    """
+    Add a new faculty user.
+
+    :param admin:
+    :param email_address:
+    :param first_name:
+    :param last_name:
+    """
+
+    faculty_dictionary = {
+        'last_name': last_name,
+        'first_name': first_name,
+        'email_address': email_address,
+        'admin': admin,
+    }
+
+    payload = json.dumps(faculty_dictionary)
+
+    communicate_event('FACULTY_ADD', payload,
+                      success_message='Faculty added successfully',
+                      error_message='Error adding faculty:',
+                      timeout_message='Server response timeout. '
+                                      'Status of adding faculty unknown')
 
 
 @config_parsed
@@ -242,13 +294,20 @@ def update_assignment(class_name: str, upload_dir_path: str,
     upload, and waits for a logged confirmation of success or error from the
     server.
 
-    Raises UpdateAssignmentError if anything goes wrong.
+    Raises a GkeepException if anything goes wrong.
 
     :param class_name: name of the class the assignment belongs to
     :param upload_dir_path: path to the assignment
     :param items: tuple or list of items to update
     :param response_timeout: seconds to wait for server response
     """
+
+    valid_items = {'base_code', 'email', 'tests'}
+
+    for item in items:
+        if item not in valid_items:
+            error = '{} is not a valid update item'.format(item)
+            raise GkeepException(error)
 
     # expand any special path components, strip trailing slash
     upload_dir_path = os.path.abspath(upload_dir_path)
