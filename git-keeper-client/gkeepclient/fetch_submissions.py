@@ -344,18 +344,24 @@ def fetch_submissions(class_name: str, assignment_name: str,
 
     create_dir_if_non_existent(destination_path, confirm=True)
 
-    # build list of assignments to fetch
+    assignments_to_fetch = []
+
     if assignment_name == 'all':
-        assignments = info.assignment_list(class_name)
+        for assignment_name in info.assignment_list(class_name):
+            if info.is_published(class_name, assignment_name):
+                assignments_to_fetch.append(assignment_name)
     else:
         if assignment_name not in info.assignment_list(class_name):
             error = ('Assignment {0} does not exist in class {1}'
                      .format(assignment_name, class_name))
             raise GkeepException(error)
+        elif not info.is_published(class_name, assignment_name):
+            error = ('Assignment {0} in class {1} is not published'
+                     .format(assignment_name, class_name))
+            raise GkeepException(error)
 
-        assignments = [assignment_name]
+        assignments_to_fetch.append(assignment_name)
 
-    # fetch the submissions
-    for assignment_name in assignments:
+    for assignment_name in assignments_to_fetch:
         fetch_assignment_submissions(class_name, assignment_name,
                                      destination_path, info)

@@ -19,13 +19,12 @@ import vagrant
 
 
 class VagrantControl:
+    up_verified = False
+    client_port = -1
+    server_port = -1
 
     def __init__(self):
         self.v = vagrant.Vagrant()
-        self.up_verified = False
-
-    def run_on_client(self, username, cmd):
-        return self.run_on(username, cmd, self.get_client_port())
 
     def is_server_running(self):
         result = self.v.status(vm_name='gkserver')
@@ -35,19 +34,12 @@ class VagrantControl:
         result = self.v.status(vm_name='gkclient')
         return result[0].state == 'running'
 
-    def check_status(self):
-        if self.up_verified:
-            return
-        if not self.is_server_running():
-            raise AssertionError('gkserver not running')
-        if not self.is_client_running():
-            raise AssertionError('gkclient not running')
-        self.up_verified = True
-
     def get_client_port(self):
-        self.check_status()
-        return self.v.port(vm_name='gkclient')
+        if VagrantControl.client_port == -1:
+            VagrantControl.client_port = self.v.port(vm_name='gkclient')
+        return VagrantControl.client_port
 
     def get_server_port(self):
-        self.check_status()
-        return self.v.port(vm_name='gkserver')
+        if VagrantControl.server_port == -1:
+            VagrantControl.server_port = self.v.port(vm_name='gkserver')
+        return VagrantControl.server_port

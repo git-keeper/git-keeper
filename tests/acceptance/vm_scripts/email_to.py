@@ -20,12 +20,25 @@ import sys
 
 
 @polling
-def email(to, contains):
+def email(to, subject_contains=None, body_contains=None):
     for file in glob.glob('/email/{}_*.txt'.format(to)):
-        with open(file) as f:
-            if contains in f.read():
-                return True
+        if check_email_contains(file, subject_contains=subject_contains, body_contains=body_contains):
+            return True
     return False
 
+def check_email_contains(filename, subject_contains=None, body_contains=None):
+    with open(filename) as f:
+        from_line = f.readline()
+        subject_line = f.readline()
+        body = f.read()
 
-print(email(sys.argv[1], sys.argv[2]))
+        if subject_contains is not None and subject_contains not in subject_line:
+            return False
+
+        if body_contains is not None and body_contains not in body:
+            return False
+
+        return True
+
+
+print(email(sys.argv[1], subject_contains=sys.argv[2], body_contains=sys.argv[3]))

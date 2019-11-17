@@ -130,7 +130,9 @@ class Submission:
         # execute action.sh and capture the output
         try:
             cmd = ['sudo', '-u', config.tester_user, 'bash',
-                   temp_run_action_sh_path, temp_assignment_path]
+                   temp_run_action_sh_path, temp_assignment_path,
+                   self.student.username, self.student.email_address,
+                   self.student.last_name, self.student.first_name]
             body = run_command_in_directory(temp_tests_path, cmd)
 
             # send output as email
@@ -160,6 +162,14 @@ class Submission:
                 report_filename = 'report-{0}.txt'.format(timestamp)
                 report_file_path = os.path.join(student_report_dir_path,
                                                 report_filename)
+
+                counter = 1
+                while os.path.exists(report_file_path):
+                    report_filename = 'report-{0}-{1}.txt'.format(timestamp,
+                                                                  counter)
+                    report_file_path = os.path.join(student_report_dir_path,
+                                                    report_filename)
+                    counter += 1
 
                 with open(report_file_path, 'w') as f:
                     f.write(body)

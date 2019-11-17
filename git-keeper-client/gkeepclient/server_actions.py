@@ -36,31 +36,37 @@ from gkeepcore.upload_directory import UploadDirectory
 @config_parsed
 @server_interface_connected
 @class_does_not_exist
-def class_add(class_name: str, csv_file_path: str):
+def class_add(class_name: str, csv_file_path: str=None):
     """
     Add a class on the server.
 
     :param class_name: name of the class
     :param csv_file_path: path to the CSV file of students
+           or None if the user is creating an empty class
     """
 
     validate_class_name(class_name)
 
-    if not os.path.isfile(csv_file_path):
-        raise GkeepException('{0} does not exist'.format(csv_file_path))
+    if csv_file_path is not None:
+        if not os.path.isfile(csv_file_path):
+            raise GkeepException('{0} does not exist'.format(csv_file_path))
 
-    students = students_from_csv(LocalCSVReader(csv_file_path))
+        students = students_from_csv(LocalCSVReader(csv_file_path))
 
-    print('Adding class {0} with the following students:'.format(class_name))
+        print('Adding class {0} with the following students:'.format(class_name))
 
-    for student in students:
-        print(student)
+        for student in students:
+            print(student)
 
-    # create directory and upload CSV
+    # create directory
     upload_dir_path = server_interface.create_new_upload_dir()
+
     remote_csv_file_path = os.path.join(upload_dir_path, 'students.csv')
 
-    server_interface.copy_file(csv_file_path, remote_csv_file_path)
+    if csv_file_path is None:
+        server_interface.create_empty_file(remote_csv_file_path)
+    else:
+        server_interface.copy_file(csv_file_path, remote_csv_file_path)
 
     print('CSV file uploaded')
 

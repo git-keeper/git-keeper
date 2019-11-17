@@ -16,7 +16,6 @@
 
 from gkeeprobot.control.ClientControl import ClientControl
 from gkeeprobot.control.ServerControl import ServerControl
-from gkeepcore.shell_command import CommandError
 
 """Provides keywords for robotframework to configure faculty and student
 accounts before testing begins."""
@@ -27,25 +26,29 @@ server_control = ServerControl()
 
 class ClientSetupKeywords:
 
-    def create_accounts(self, *names):
-        for name in names:
-            client_control.run_vm_bash_script('keeper',
-                                              'make_user_with_password.sh',
-                                              name)
+    def create_account(self, name):
+        client_control.run_vm_bash_script('keeper',
+                                          'make_user_with_password.sh',
+                                          name)
 
-    def establish_ssh_keys(self, *names):
+    def establish_ssh_keys(self, name):
         temp_dir_name = client_control.vm_control.temp_dir.name
-        for name in names:
-            client_control.run_vm_bash_script('keeper',
-                                              'make_ssh_keys.sh',
-                                              name,
-                                              temp_dir_name)
-            server_control.run_vm_bash_script('keeper',
-                                              'make_authorized_keys.sh',
-                                              name,
-                                              temp_dir_name)
+        client_control.run_vm_bash_script('keeper',
+                                          'make_ssh_keys.sh',
+                                          name,
+                                          temp_dir_name)
+        server_control.run_vm_bash_script('keeper',
+                                          'make_authorized_keys.sh',
+                                          name,
+                                          temp_dir_name)
 
-    def add_to_class(self, faculty, class_name, student):
+    def create_git_config(self, username):
+        name_cmd = 'git config --global user.name "{}"'.format(username)
+        client_control.run(username, name_cmd)
+        email_cmd = 'git config --global user.email {}@gitkeeper.edu'.format(username)
+        client_control.run(username, email_cmd)
+
+    def add_to_class_csv(self, faculty, class_name, student):
         line = 'Last,First,{}@gitkeeper.edu'.format(student)
         client_control.run_vm_python_script(faculty, 'add_to_file.py',
                                             '{}.csv'.format(class_name), line)
@@ -69,4 +72,37 @@ class ClientSetupKeywords:
         client_control.run(faculty, cmd)
 
     def reset_client(self):
+        client_control.close_user_connections()
         client_control.run_vm_python_script('keeper', 'reset_client.py')
+
+    def add_assignment_to_client(self, faculty, assignment_name):
+        cmd = 'cp -r /vagrant/assignments/{}/ ~'.format(assignment_name)
+        client_control.run(faculty, cmd)
+
+    def clone_assignment(self, student, faculty, class_name, assignment_name):
+        client_control.run(student, 'mkdir -p assignments/{}'.format(class_name))
+        url = '{}@gkserver:/home/{}/{}/{}/{}.git'.format(student, student, faculty, class_name, assignment_name)
+        command = 'git clone {} assignments/{}/{}'.format(url, class_name, assignment_name)
+        client_control.run(student, command)
+
+    def student_submits_correct_solution(self, student, faculty, class_name, assignment_name):
+        assignment_folder = '~/assignments/{}/{}'.format(class_name, assignment_name)
+        cp_cmd = 'cp /vagrant/assignments/{}/correct_solution/* {}'.format(assignment_name, assignment_folder)
+        client_control.run(student, cp_cmd)
+        commit_cmd = 'cd {}; git commit -am "done"'.format(assignment_folder)
+        client_control.run(student, commit_cmd)
+        push_cmd = 'cd {}; git push origin master'.format(assignment_folder)
+        client_control.run(student, push_cmd)
+
+    def fetch_assignment(self, faculty, class_name, assignment_name, target_dir=None):
+        if target_dir is not None:
+            folder_name = '{}/{}'.format(target_dir, class_name)
+            cmd = 'yes | gkeep fetch {} {} {}'.format(class_name, assignment_name, folder_name)
+        else:
+            # Yes to force directories to be created
+            cmd = 'yes | gkeep fetch {} {}'.format(class_name, assignment_name)
+        client_control.run(faculty, cmd)
+
+    def add_submissions_folder_to_config(self, faculty, directory):
+        client_control.run(faculty, 'echo [local] >> .config/git-keeper/client.cfg')
+        client_control.run(faculty, 'echo submissions_path={} >> .config/git-keeper/client.cfg'.format(directory))
