@@ -40,6 +40,9 @@ from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, \
     upload_assignment, trigger_tests, update_status, add_faculty, \
     reset_password
+from gkeepclient.queries import list_classes, list_assignments, list_students, \
+    list_recent
+from gkeepclient.test_solution import test_solution
 from gkeepclient.queries import list_classes, list_assignments, \
     list_students, list_recent
 from gkeepcore.gkeep_exception import GkeepException
@@ -265,6 +268,23 @@ def add_passwd_subparser(subparsers):
                            help='username of the student')
 
 
+def add_test_subparser(subparsers):
+    """
+    Add a subparser for action 'test', which pushes a solution to the server
+    for testing.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('test',
+                                      help='push a solution for testing')
+    add_class_name_argument(subparser)
+    add_assignment_name_argument(subparser)
+    subparser.add_argument('solution_path',
+                           metavar='<solution path>',
+                           help='path to the solution directory')
+
+
 def add_config_subparser(subparsers):
     """
     Add a subparser for action 'config', which asks to create a new
@@ -342,6 +362,7 @@ def initialize_action_parser() -> GraderParser:
     add_query_subparser(subparsers)
     add_trigger_subparser(subparsers)
     add_passwd_subparser(subparsers)
+    add_test_subparser(subparsers)
     add_config_subparser(subparsers)
     add_status_subparser(subparsers)
     add_add_faculty_subparser(subparsers)
@@ -459,6 +480,9 @@ def take_action(parsed_args):
     elif action_name == 'add_faculty':
         add_faculty(parsed_args.last_name, parsed_args.first_name,
                     parsed_args.email_address)
+    elif action_name == 'test':
+        test_solution(class_name, parsed_args.assignment_name,
+                      parsed_args.solution_path)
 
 
 if __name__ == '__main__':
