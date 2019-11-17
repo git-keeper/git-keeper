@@ -420,3 +420,19 @@ def upload_assignment(class_name: str, upload_dir_path: str):
                       error_message='Error uploading assignment:',
                       timeout_message='Server response timeout. '
                                       'Upload status unknown')
+
+
+@config_parsed
+@server_interface_connected
+def reset_password(username: str):
+    """
+    Reset a user's password.
+
+    :param username: username of the user
+    """
+
+    communicate_event('PASSWD', username,
+                      success_message='Password reset successfully',
+                      error_message='Error resetting password: ',
+                      timeout_message='Server response timeout. '
+                                      'Password reset status unknown')

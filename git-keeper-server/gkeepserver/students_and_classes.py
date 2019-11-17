@@ -69,11 +69,11 @@ def get_class_student(faculty_username: str, class_name: str,
     :return: list of Student objects
     """
 
-    home_dir = user_home_dir(faculty_username)
-
     for student in get_class_students(faculty_username, class_name):
         if student.username == student_username:
             return student
+
+    return None
 
 
 def get_class_students(faculty_username: str, class_name: str) -> list:
@@ -92,6 +92,24 @@ def get_class_students(faculty_username: str, class_name: str) -> list:
     students = students_from_csv(reader)
 
     return students
+
+
+def get_student_from_username(faculty_username: str,
+                              student_username: str) -> Student:
+    """
+    Get a Student object for a student in a faculty member's class.
+
+    :param faculty_username: username of the faculty member
+    :param student_username: username of the student
+    :return: a Student object representing the student
+    """
+
+    for class_name in get_faculty_class_names(faculty_username):
+        for student in get_class_students(faculty_username, class_name):
+            if student.username == student_username:
+                return student
+
+    return None
 
 
 def get_class_status(faculty_username: str, class_name: str) -> str:

@@ -38,7 +38,8 @@ from gkeepclient.create_config import create_config
 from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
 from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, \
-    upload_assignment, trigger_tests, update_status, add_faculty
+    upload_assignment, trigger_tests, update_status, add_faculty, \
+    reset_password
 from gkeepclient.queries import list_classes, list_assignments, \
     list_students, list_recent
 from gkeepcore.gkeep_exception import GkeepException
@@ -252,6 +253,18 @@ def add_trigger_subparser(subparsers):
                                 'students')
 
 
+def add_passwd_subparser(subparsers):
+    """
+    Add a subparser for action 'passwd', which resets a student's password.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('passwd', help='reset student password')
+    subparser.add_argument('username', type=str, metavar='<username>',
+                           help='username of the student')
+
+
 def add_config_subparser(subparsers):
     """
     Add a subparser for action 'config', which asks to create a new
@@ -328,6 +341,7 @@ def initialize_action_parser() -> GraderParser:
     add_fetch_subparser(subparsers)
     add_query_subparser(subparsers)
     add_trigger_subparser(subparsers)
+    add_passwd_subparser(subparsers)
     add_config_subparser(subparsers)
     add_status_subparser(subparsers)
     add_add_faculty_subparser(subparsers)
@@ -436,6 +450,8 @@ def take_action(parsed_args):
     elif action_name == 'trigger':
         trigger_tests(class_name, assignment_name,
                       parsed_args.student_usernames)
+    elif action_name == 'passwd':
+        reset_password(parsed_args.username)
     elif action_name == 'config':
         create_config()
     elif action_name == 'status':

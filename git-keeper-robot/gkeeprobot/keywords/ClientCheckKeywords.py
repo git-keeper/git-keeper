@@ -149,6 +149,17 @@ class ClientCheckKeywords:
         except ExitCodeException:
             pass
 
+    def gkeep_passwd_succeeds(self, faculty, username):
+        client_control.run(faculty, 'gkeep passwd {}'.format(username))
+
+    def gkeep_passwd_fails(self, faculty, username):
+        try:
+            client_control.run(faculty, 'gkeep passwd {}'.format(username))
+            error = 'gkeep passwd should have non-zero exit code'
+            raise GkeepRobotException(error)
+        except ExitCodeException:
+            pass
+
     def verify_submission_count(self, faculty_name, submission_folder, class_name, assignment_name, student_name, submission_count):
         reports_dir = '{}/{}/{}/reports'.format(submission_folder, class_name, assignment_name)
         student_report_dir = reports_dir + '/last_first_{}'.format(student_name)
