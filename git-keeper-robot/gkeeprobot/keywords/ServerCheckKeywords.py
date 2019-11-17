@@ -68,6 +68,14 @@ class ServerCheckKeywords:
             raise GkeepRobotException('No submission test result email for {}, {}, {}'.format(username, course_name,
                                                                                     assignment_name))
 
+    def submission_test_results_email_does_not_exist(self, username, course_name, assignment_name):
+        subject = 'submission test results'
+        result = control.run_vm_python_script('keeper', 'email_to.py',
+                                              username, subject)
+        if result != 'False':
+            raise GkeepRobotException('Submission test result email exists for {}, {}, {}'.format(username, course_name,
+                                                                                    assignment_name))
+
     def email_exists(self, to_user, subject_contains=None, body_contains=None):
         result = control.run_vm_python_script('keeper', 'email_to.py',
                                               to_user, subject_contains, body_contains)
@@ -75,8 +83,8 @@ class ServerCheckKeywords:
             raise GkeepRobotException('No email to {} containing subject {} and body {}'.format(to_user, subject_contains,
                                                                                       body_contains))
 
-    def email_does_not_exist(self, username):
-        result = control.run_vm_python_script('keeper', 'no_email_to.py',
+    def new_account_email_does_not_exist(self, username):
+        result = control.run_vm_python_script('keeper', 'no_account_email_to.py',
                                               username)
         if result != 'True':
             raise GkeepRobotException('Email exists to {}'.format(username))
