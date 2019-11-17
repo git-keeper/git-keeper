@@ -58,3 +58,10 @@ Malformed server cfg
     Start gkeepd
     Gkeepd Is Not Running
     User Does Not Exist On Server    admin_prof
+
+Multiple instances not allowed
+    [Tags]    error
+    Add File To Server    keeper    files/valid_server.cfg    server.cfg
+    Start gkeepd
+    Gkeepd Is Running
+    Gkeepd fails
