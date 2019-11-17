@@ -156,3 +156,15 @@ class ClientCheckKeywords:
         if file_count != submission_count:
             raise GkeepRobotException('Expected {} files but found {}'.format(submission_count, file_count))
 
+    def gkeep_test_succeeds(self, faculty, course_name, assignment_name, solution_path):
+        cmd = 'gkeep test {} {} {}'.format(course_name, assignment_name, solution_path)
+        client_control.run(faculty, cmd)
+
+    def gkeep_test_fails(self, faculty, course_name, assignment_name, solution_path):
+        cmd = 'gkeep test {} {} {}'.format(course_name, assignment_name, solution_path)
+        try:
+            client_control.run(faculty, cmd)
+            error = 'gkeep test should have non-zero return'
+            raise GkeepRobotException(error)
+        except ExitCodeException:
+            pass
