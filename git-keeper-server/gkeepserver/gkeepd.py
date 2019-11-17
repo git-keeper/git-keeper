@@ -27,6 +27,7 @@ submission_test_threads - list of SubmissionTestThread objects which run tests
 
 """
 import argparse
+import fcntl
 import sys
 from queue import Queue, Empty
 from signal import signal, SIGINT, SIGTERM
@@ -97,6 +98,15 @@ def main():
         config.parse()
     except ServerConfigurationError as e:
         sys.exit(e)
+
+    # prevent multiple instances
+    try:
+        fp = open(config.lock_file_path, 'w')
+        fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        error_message = ('Could not lock {}, gkeepd may already be running'
+                         .format(config.lock_file_path))
+        sys.exit(error_message)
 
     # initialize and start system logger
     logger.initialize(config.log_file_path, log_level=config.log_level)

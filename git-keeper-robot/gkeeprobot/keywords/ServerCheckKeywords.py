@@ -15,6 +15,7 @@
 
 from gkeeprobot.control.ServerControl import ServerControl
 from gkeeprobot.exceptions import GkeepRobotException
+from gkeeprobot.control.VMControl import ExitCodeException
 
 """Provides keywords for robotframework to check the state of gkserver
 and gkeepd."""
@@ -32,6 +33,13 @@ class ServerCheckKeywords:
         result = control.run_vm_python_script('keeper', 'server_terminated.py')
         if result != 'True':
             raise GkeepRobotException('Server should not be running')
+
+    def gkeepd_fails(self):
+        try:
+            control.run('keeper', 'gkeepd')
+            raise GkeepRobotException('gkeepd should return non-zero')
+        except ExitCodeException:
+            pass
 
     def new_account_email_exists(self, username):
         result = control.run_vm_python_script('keeper', 'email_to.py',

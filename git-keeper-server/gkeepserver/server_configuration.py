@@ -185,6 +185,9 @@ class ServerConfiguration:
         # faculty info locations
         self.faculty_json_path = os.path.join(self.home_dir, 'faculty.json')
 
+        # lock file to prevent multiple instances
+        self.lock_file_path = os.path.join(self.home_dir, 'gkeepd.lock')
+
         # testing student code
         self.test_thread_count = 1
         self.tests_timeout = 300
