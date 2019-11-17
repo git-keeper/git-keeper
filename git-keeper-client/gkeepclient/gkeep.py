@@ -465,7 +465,7 @@ def take_action(parsed_args):
         add_faculty(parsed_args.last_name, parsed_args.first_name,
                     parsed_args.email_address)
     elif action_name == 'test':
-        test_solution(parsed_args.class_name, parsed_args.assignment_name,
+        test_solution(class_name, parsed_args.assignment_name,
                       parsed_args.solution_path)
 
 
