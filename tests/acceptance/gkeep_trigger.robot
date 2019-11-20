@@ -27,10 +27,44 @@ Setup Server and Client Accounts
     Establish Course    faculty1    cs1   student1    student2
     Add Assignment to Client  faculty1  good_simple
     Gkeep Upload Succeeds   faculty1   cs1    good_simple
-    Gkeep Publish Succeeds   faculty1   cs1    good_simple
 
 *** Test Cases ***
 
-Trigger Runs On New Assignment
+Published Assignment For All Students
+    [Tags]  happy_path
+    Gkeep Publish Succeeds   faculty1   cs1    good_simple
     Gkeep Trigger Succeeds   faculty1   cs1    good_simple
+    Submission Test Results Email Exists   student1   cs1   good_simple   Done
+    Submission Test Results Email Exists   student2   cs1   good_simple   Done
+    Submission Test Results Email Does Not Exist  faculty1   cs1    good_simple  Done
 
+Published Assignment For One Student
+    [Tags]  happy_path
+    Gkeep Publish Succeeds   faculty1   cs1    good_simple
+    Gkeep Trigger Succeeds   faculty1   cs1    good_simple    student1
+    Submission Test Results Email Exists    student1    cs1    good_simple    Done
+    Submission Test Results Email Does Not Exist  student2   cs1    good_simple    Done
+    Submission Test Results Email Does Not Exist  faculty1   cs1    good_simple    Done
+
+Published Assignment For Faculty
+    [Tags]  happy_path
+    Gkeep Publish Succeeds   faculty1   cs1    good_simple
+    Gkeep Trigger Succeeds   faculty1   cs1    good_simple    faculty1
+    Submission Test Results Email Exists    faculty1    cs1    good_simple    Done
+    Submission Test Results Email Does Not Exist  student1   cs1    good_simple    Done
+    Submission Test Results Email Does Not Exist  student2   cs1    good_simple    Done
+
+Unpublished Assignment For Faculty
+    [Tags]  happy_path
+    Gkeep Trigger Succeeds   faculty1   cs1    good_simple    faculty1
+    Submission Test Results Email Exists    faculty1    cs1    good_simple    Done
+    Submission Test Results Email Does Not Exist  student1   cs1    good_simple    Done
+    Submission Test Results Email Does Not Exist  student2   cs1    good_simple    Done
+
+Unpublished Assignment For All Students
+    [Tags]  error
+    Gkeep Trigger Fails   faculty1   cs1    good_simple
+
+Unpublished Assignment For One Student
+    [Tags]  error
+    Gkeep Trigger Fails   faculty1   cs1    good_simple    student1
