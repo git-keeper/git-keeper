@@ -29,21 +29,21 @@ Setup Server and Client Accounts
 
 Add Student
     [Tags]    happy_path
-    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student3
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student3
     Gkeep Modify Succeeds    faculty=faculty1    class_name=cs1
     User Exists On Server    student3
     New Account Email Exists    student3
-    Gkeep Query Contains    faculty1    students    student3
+    Class Contains Student    faculty1    cs1    student3
 
 Remove Student
     [Tags]    happy_path
     Remove From Class    faculty=faculty1    class_name=cs1    student=student2
     Gkeep Modify Succeeds    faculty=faculty1    class_name=cs1
-    Gkeep Query Does Not Contain    faculty1    students    student2
+    Class Does Not Contain Student    faculty1    cs1    student2
 
 Add Student Twice
     [Tags]    error
-    Add To Class CSV    faculty=faculty1  class_name=cs1  student=student1
+    Add To Class CSV    faculty=faculty1  class_name=cs1  username=student1
     Gkeep Modify Fails   faculty=faculty1    class_name=cs1
 
 Malformed CSV
