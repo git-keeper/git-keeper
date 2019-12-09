@@ -22,7 +22,7 @@ Event type: SUBMISSION
 
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
-    parse_submission_repo_path
+    parse_submission_repo_path, user_gitkeeper_path
 from gkeepcore.path_utils import user_home_dir, class_student_csv_path, \
     faculty_assignment_dir_path
 from gkeepcore.student import student_from_username
@@ -54,18 +54,18 @@ class SubmissionHandler(EventHandler):
         # paths to student repo, tests (not a repo), and reports repo.
 
         # The AssignmentDirectory object can provide the paths we need
-        faculty_home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
         faculty = FacultyMembers().get_faculty_object(self._faculty_username)
         faculty_email = faculty.email_address
 
         assignment_path = faculty_assignment_dir_path(self._class_name,
                                                       self._assignment_name,
-                                                      faculty_home_dir)
+                                                      gitkeeper_path)
         assignment_directory = AssignmentDirectory(assignment_path)
 
         reader = LocalCSVReader(class_student_csv_path(self._class_name,
-                                                       faculty_home_dir))
+                                                       gitkeeper_path))
 
         # if the student is the facutly testing the assignment, use the
         # faculty as the student

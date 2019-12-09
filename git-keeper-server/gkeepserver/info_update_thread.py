@@ -32,7 +32,7 @@ from time import time
 from gkeepcore.git_commands import git_head_hash, git_hashes_and_times
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_home_dir, student_assignment_repo_path, \
-    faculty_info_path
+    faculty_info_path, user_gitkeeper_path
 from gkeepcore.system_commands import sudo_chown, chmod, mv, mkdir, rm
 from gkeepserver.assignments import get_class_assignment_dirs, \
     AssignmentDirectory, get_assignment_dir
@@ -294,8 +294,8 @@ class InfoUpdateThread(Thread):
     def _write_info(self, faculty_username):
         # Write the info to the info file
 
-        home_dir = user_home_dir(faculty_username)
-        info_path = faculty_info_path(home_dir)
+        gitkeeper_path = user_gitkeeper_path(faculty_username)
+        info_path = faculty_info_path(gitkeeper_path)
 
         if not os.path.isdir(info_path):
             mkdir(info_path, sudo=True)

@@ -26,7 +26,7 @@ from gkeepcore.csv_files import CSVError
 from gkeepcore.git_commands import git_init, git_push, git_add_all, git_commit
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import faculty_assignment_dir_path, user_home_dir, \
-    class_student_csv_path
+    class_student_csv_path, user_gitkeeper_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.student import students_from_csv, StudentError, Student
 from gkeepcore.system_commands import touch, sudo_chown, mkdir
@@ -51,12 +51,12 @@ class PublishHandler(EventHandler):
         class.
         """
 
-        faculty_home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
         # path to the directory that the assignment's files are kept in
         assignment_path = faculty_assignment_dir_path(self._class_name,
                                                       self._assignment_name,
-                                                      faculty_home_dir)
+                                                      gitkeeper_path)
 
         print('Handling publish:')
         print(' Faculty:        ', self._faculty_username)
@@ -139,9 +139,10 @@ class PublishHandler(EventHandler):
         #
         # Return a list of Student objects
 
-        home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
-        student_csv_path = class_student_csv_path(self._class_name, home_dir)
+        student_csv_path = class_student_csv_path(self._class_name,
+                                                  gitkeeper_path)
 
         try:
             students = students_from_csv(LocalCSVReader(student_csv_path))

@@ -21,7 +21,7 @@ import os
 
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_home_dir, faculty_classes_dir_path, \
-    class_student_csv_path, faculty_class_status_path
+    class_student_csv_path, faculty_class_status_path, user_gitkeeper_path
 from gkeepcore.student import students_from_csv, Student
 
 
@@ -33,9 +33,9 @@ def get_faculty_class_names(faculty_username: str) -> list:
     :return: list of class names
     """
 
-    home_dir = user_home_dir(faculty_username)
+    gitkeeper_path = user_gitkeeper_path(faculty_username)
 
-    classes_path = faculty_classes_dir_path(home_dir)
+    classes_path = faculty_classes_dir_path(gitkeeper_path)
 
     if not os.path.isdir(classes_path):
         return []
@@ -50,7 +50,7 @@ def get_faculty_class_names(faculty_username: str) -> list:
         if os.path.isdir(item_path):
             class_name = item
 
-            if os.path.isfile(class_student_csv_path(class_name, home_dir)):
+            if os.path.isfile(class_student_csv_path(class_name, gitkeeper_path)):
                 class_names.append(class_name)
 
     return class_names
@@ -69,8 +69,6 @@ def get_class_student(faculty_username: str, class_name: str,
     :return: list of Student objects
     """
 
-    home_dir = user_home_dir(faculty_username)
-
     for student in get_class_students(faculty_username, class_name):
         if student.username == student_username:
             return student
@@ -85,9 +83,9 @@ def get_class_students(faculty_username: str, class_name: str) -> list:
     :return: list of Student objects
     """
 
-    home_dir = user_home_dir(faculty_username)
+    gitkeeper_path = user_gitkeeper_path(faculty_username)
 
-    reader = LocalCSVReader(class_student_csv_path(class_name, home_dir))
+    reader = LocalCSVReader(class_student_csv_path(class_name, gitkeeper_path))
 
     students = students_from_csv(reader)
 
@@ -104,8 +102,8 @@ def get_class_status(faculty_username: str, class_name: str) -> str:
     :return: status of the class
     """
 
-    home_dir = user_home_dir(faculty_username)
-    status_path = faculty_class_status_path(class_name, home_dir)
+    gitkeeper_path = user_gitkeeper_path(faculty_username)
+    status_path = faculty_class_status_path(class_name, gitkeeper_path)
 
     with open(status_path) as f:
         return f.read().strip()
