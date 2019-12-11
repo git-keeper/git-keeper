@@ -37,8 +37,8 @@ class PasswdHandler(EventHandler):
                                                 self._username)
 
             if student is None:
-                error = 'No student found with username {}'\
-                        .format(self._username)
+                error = ('No student found with username {} in any of your '
+                         'classes'.format(self._username))
                 raise HandlerException(error)
 
             password = generate_password()

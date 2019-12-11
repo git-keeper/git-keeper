@@ -263,7 +263,8 @@ def add_passwd_subparser(subparsers):
     :param subparsers: subparsers to add to
     """
 
-    subparser = subparsers.add_parser('passwd', help='reset student password')
+    help_message = 'reset the password of a student in your class'
+    subparser = subparsers.add_parser('passwd', help=help_message)
     subparser.add_argument('username', type=str, metavar='<username>',
                            help='username of the student')
 
