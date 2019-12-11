@@ -34,7 +34,7 @@ Valid Assignment Publish
     [Tags]  happy_path
     Gkeep Publish Succeeds  faculty1    cs1     good_simple
     New Assignment Email Exists    student1    cs1    good_simple
-    New Assignment Email Exists    student2    csw1    good_simple
+    New Assignment Email Exists    student2    cs1    good_simple
     Clone Assignment  student1  faculty1    cs1     good_simple
     Clone Assignment  student2  faculty1    cs1     good_simple
 
@@ -74,7 +74,7 @@ Interleave Upload and Publish
     # Publish 2nd assignment
     Gkeep Publish Succeeds  faculty1    cs1     good_simple2
     New Assignment Email Exists    student1    cs1    good_simple2
-    New Assignment Email Exists    student2    cs1    good_simpl2
+    New Assignment Email Exists    student2    cs1    good_simple2
     Clone Assignment  student1  faculty1    cs1     good_simple2
     Clone Assignment  student2  faculty1    cs1     good_simple2
     # Publish 1st assignment
