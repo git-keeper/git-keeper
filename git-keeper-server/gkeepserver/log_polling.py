@@ -215,8 +215,10 @@ class LogPollingThread(Thread):
 
         # start watching all the files from the snapshot file
         for log_file_path, byte_count in log_byte_counts.items():
-            self._logger.log_debug('Watching ' + log_file_path)
-            self._create_and_add_reader(log_file_path)
+            self._logger.log_debug('Watching {} from byte {}'
+                                   .format(log_file_path, byte_count))
+            self._create_and_add_reader(log_file_path,
+                                        seek_position=byte_count)
 
     def _write_snapshot(self):
         # Writes the current file byte counts to the snapshot file.
@@ -280,9 +282,15 @@ class LogPollingThread(Thread):
         # for each file reader, add any new events to the queue
         for reader in readers:
             try:
+                events_exist = False
                 for event in reader.get_new_events():
                     self._new_log_event_queue.put((reader.get_file_path(),
                                                    event))
+                    events_exist = True
+
+                if events_exist:
+                    self._write_snapshot()
+
             except LogFileException as e:
                 self._logger.log_warning(str(e))
                 # if something goes wrong we should not keep watching this file
