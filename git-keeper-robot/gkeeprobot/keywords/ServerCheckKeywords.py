@@ -84,7 +84,7 @@ class ServerCheckKeywords:
                                                                                       body_contains))
 
     def new_account_email_does_not_exist(self, username):
-        result = control.run_vm_python_script('keeper', 'no_account_email_to.py',
+        result = control.run_vm_python_script('keeper', 'no_email_to.py',
                                               username)
         if result != 'True':
             raise GkeepRobotException('Email exists to {}'.format(username))
