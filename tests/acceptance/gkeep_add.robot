@@ -52,7 +52,7 @@ Existing Student
     User Exists On Server    student1
     User Exists On Server    student2
     New Account Email Exists    student1
-    Email Does Not Exist    to_user=student2
+    New Account Email Does Not Exist    to_user=student2
     Gkeep Query Contains    faculty1    classes    cs1
     Gkeep Query Contains    faculty1    students    student1    student2
 

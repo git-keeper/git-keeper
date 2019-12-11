@@ -43,25 +43,25 @@ class ServerCheckKeywords:
 
     def new_account_email_exists(self, username):
         result = control.run_vm_python_script('keeper', 'email_to.py',
-                                              username, 'New git-keeper account',
+                                              username, '"New git-keeper account"',
                                               'Password')
         if result != 'True':
             raise GkeepRobotException('No new account email for {}'.format(username))
 
     def new_assignment_email_exists(self, username, course_name, assignment_name):
         # assignment name is in the body of the message
-        subject = '[{}] New Assignment: {}'.format(course_name, assignment_name)
+        subject = '"[{}] New assignment: {}"'.format(course_name, assignment_name)
         result = control.run_vm_python_script('keeper', 'email_to.py',
-                                              username, 'New assignment',
+                                              username, subject,
                                               assignment_name)
         if result != 'True':
             raise GkeepRobotException('No new assignment email exists for {}, {}, {}'.format(username, course_name,
                                                                                    assignment_name))
+
     def submission_test_results_email_exists(self, username, course_name, assignment_name, body_contains):
         subject = '"[{}] {} submission test results"'.format(course_name, assignment_name)
         result = control.run_vm_python_script('keeper', 'email_to.py',
-                                              username, subject,
-                                              body_contains)
+                                              username, subject, body_contains)
 
         if result != 'True':
             raise GkeepRobotException('No submission test result email for {}, {}, {}'.format(username, course_name,
@@ -71,8 +71,7 @@ class ServerCheckKeywords:
         subject = '"[{}] {} submission test results"'.format(course_name, assignment_name)
         result = control.run_vm_python_script('keeper', 'email_to.py',
                                               username, subject, body_contains)
-
-        if result == 'True':
+        if result != 'False':
             raise GkeepRobotException('Submission test result email exists for {}, {}, {}'.format(username, course_name,
                                                                                     assignment_name))
 
@@ -83,7 +82,7 @@ class ServerCheckKeywords:
             raise GkeepRobotException('No email to {} containing subject {} and body {}'.format(to_user, subject_contains,
                                                                                       body_contains))
 
-    def email_does_not_exist(self, username):
+    def new_account_email_does_not_exist(self, username):
         result = control.run_vm_python_script('keeper', 'no_email_to.py',
                                               username)
         if result != 'True':
