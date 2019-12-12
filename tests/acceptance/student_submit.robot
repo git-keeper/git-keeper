@@ -74,6 +74,6 @@ Submissions While Gkeepd is Down
     Stop Gkeepd
     gkeepd is not running
     Student Submits Correct Solution    student1    faculty1    cs1    good_simple
-    Submission Test Results Email Does Not Exist    student1    cs1    good_simple
+    Submission Test Results Email Does Not Exist    student1    cs1    good_simple    Done
     Start gkeepd
     Submission Test Results Email Exists    student1    cs1    good_simple    Done

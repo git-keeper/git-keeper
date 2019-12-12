@@ -68,17 +68,16 @@ class ServerCheckKeywords:
     def submission_test_results_email_exists(self, username, course_name, assignment_name, body_contains):
         subject = '"[{}] {} submission test results"'.format(course_name, assignment_name)
         result = control.run_vm_python_script('keeper', 'email_to.py',
-                                              username, subject,
-                                              body_contains)
+                                              username, subject, body_contains)
 
         if result != 'True':
             raise GkeepRobotException('No submission test result email for {}, {}, {}'.format(username, course_name,
                                                                                     assignment_name))
 
-    def submission_test_results_email_does_not_exist(self, username, course_name, assignment_name):
-        subject = 'submission test results'
+    def submission_test_results_email_does_not_exist(self, username, course_name, assignment_name, body_contains):
+        subject = '"[{}] {} submission test results"'.format(course_name, assignment_name)
         result = control.run_vm_python_script('keeper', 'email_to.py',
-                                              username, subject)
+                                              username, subject, body_contains)
         if result != 'False':
             raise GkeepRobotException('Submission test result email exists for {}, {}, {}'.format(username, course_name,
                                                                                     assignment_name))
