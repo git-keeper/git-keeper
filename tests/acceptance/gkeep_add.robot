@@ -29,45 +29,58 @@ Setup Server and Client Accounts
 
 Valid Class
     [Tags]    happy_path
-    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
-    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student2
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student2
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
     User Exists On Server    student1
     User Exists On Server    student2
     New Account Email Exists    student1
     New Account Email Exists    student2
-    Gkeep Query Contains    faculty1    classes    cs1
-    Gkeep Query Contains    faculty1    students    student1    student2
+    Class Exists    faculty1    cs1
+    Class Contains Student    faculty1    cs1    student1
+    Class Contains Student    faculty1    cs1    student2
+
+Byte Order Mark CSV
+    [Tags]    happy_path
+    Add File To Client    faculty1    files/byte_order_mark.csv   byte_order_mark.csv
+    Gkeep Add Succeeds    faculty=faculty1    class_name=byte_order_mark
+    User Exists On Server    student1
+    New Account Email Exists    student1
+    Class Contains Student    faculty1    byte_order_mark    student1
 
 Missing CSV
     [Tags]    error
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
+Invalid Username
+    [Tags]    error
+    Add File To Client    faculty1    files/invalid_username.csv   invalid_username.csv
+    Gkeep add Fails    faculty=faculty1    class_name=invalid_username
+
 Existing Student
     [Tags]    error
     Add Account on Server    student2
-    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
-    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student2
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student2
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
     User Exists On Server    student1
     User Exists On Server    student2
     New Account Email Exists    student1
     New Account Email Does Not Exist    to_user=student2
-    Gkeep Query Contains    faculty1    classes    cs1
-    Gkeep Query Contains    faculty1    students    student1    student2
+    Class Contains Student    faculty1    cs1    student1
+    Class Contains Student    faculty1    cs1    student2
 
 Call Add Twice
     [Tags]    error
-    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
-    Gkeep Query Contains    faculty1    classes    cs1
-    Gkeep Query Contains    faculty1    students    student1
+    Class Contains Student    faculty1    cs1    student1
 
 Duplicate Student
     [Tags]    error
-    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
-    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
 Malformed CSV
@@ -77,23 +90,22 @@ Malformed CSV
 
 Student Named Student
     [Tags]    error
-    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
 Same Class Name From Different Faculty
     [Tags]    happy_path
-    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
-    Add To Class CSV    faculty=faculty2    class_name=cs1    student=student2
+    Add To Class CSV    faculty=faculty2    class_name=cs1    username=student2
     Gkeep Add Succeeds    faculty=faculty2    class_name=cs1
 
 Faculty Adds Class Twice With Different Enrollment
     [Tags]  error
-    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
-    Add To Class CSV    faculty=faculty1    class_name=cs1    student=student2
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student2
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
-
 
 Empty CSV
     [Tags]    happy_path

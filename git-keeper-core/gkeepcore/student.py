@@ -18,11 +18,13 @@
 Provides a class for representing a student and a function for building a
 list of students from a CSV file.
 """
-
+import re
 import string
+import unicodedata
 
 from gkeepcore.csv_files import CSVReader
 from gkeepcore.gkeep_exception import GkeepException
+from gkeepcore.valid_names import validate_username
 
 
 class StudentError(GkeepException):
@@ -82,6 +84,8 @@ class Student:
                      .format(email_address))
             raise StudentError(error)
 
+        validate_username(username)
+
         return cls(last_name, first_name, username, email_address)
 
     def __repr__(self) -> str:
@@ -104,8 +108,9 @@ class Student:
 
             last_first_username
 
-        Spaces and punctuation are stripped out of the names and all characters
-        are converted to lowercase.
+        Spaces and punctuation are stripped out of the names, NFKD
+        normalization is applied, and all characters are converted to
+        lowercase.
 
         This can be used to create directories or filenames to store student
         data.
@@ -114,15 +119,16 @@ class Student:
         """
 
         def cleanup(s):
-            # convert s to lowercase and strip out all spaces and punctuation
-            s = s.lower().replace(' ', '')
-            s = s.translate(str.maketrans('', '', string.punctuation))
+            s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore')
+            s = s.decode('utf-8')
+            s = str(re.sub(r'[^\w\s-]', '', s).strip().lower())
+            s = str(re.sub(r'[-\s]+', '-', s))
             return s
 
-        lower_first_name = cleanup(self.first_name)
-        lower_last_name = cleanup(self.last_name)
+        clean_first_name = cleanup(self.first_name)
+        clean_last_name = cleanup(self.last_name)
 
-        return '{0}_{1}_{2}'.format(lower_last_name, lower_first_name,
+        return '{0}_{1}_{2}'.format(clean_last_name, clean_first_name,
                                     self.username)
 
 

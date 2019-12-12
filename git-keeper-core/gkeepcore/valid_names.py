@@ -18,8 +18,7 @@
 Provides functions for checking to see if names of classes and assignments
 are valid.
 """
-
-
+import re
 import string
 
 from gkeepcore.gkeep_exception import GkeepException
@@ -66,3 +65,18 @@ def validate_assignment_or_class_name_characters(name: str):
             error = ('Assignment and class names may only contain ASCII '
                      'letters, digits, -, and _')
             raise GkeepException(error)
+
+
+def validate_username(username: str):
+    """
+    Check that the provided string is a valid Linux username. Raises a
+    GkeepException if it is not.
+
+    :param username: username to validate
+    """
+
+    if not re.match(r'^[a-z][_\-.a-z0-9]*$', username):
+        raise GkeepException('{} is not a valid username'.format(username))
+
+    if len(username) > 32:
+        raise GkeepException('The username {} is too long'.format(username))

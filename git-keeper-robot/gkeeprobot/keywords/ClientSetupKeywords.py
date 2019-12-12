@@ -48,8 +48,9 @@ class ClientSetupKeywords:
         email_cmd = 'git config --global user.email {}@gitkeeper.edu'.format(username)
         client_control.run(username, email_cmd)
 
-    def add_to_class_csv(self, faculty, class_name, student):
-        line = 'Last,First,{}@gitkeeper.edu'.format(student)
+    def add_to_class_csv(self, faculty, class_name, username, last_name='Last',
+                         first_name='First'):
+        line = '{},{},{}@gitkeeper.edu'.format(last_name, first_name, username)
         client_control.run_vm_python_script(faculty, 'add_to_file.py',
                                             '{}.csv'.format(class_name), line)
 
