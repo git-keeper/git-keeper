@@ -20,6 +20,7 @@ Provides a class for representing a faculty member.
 
 from gkeepcore.csv_files import CSVReader
 from gkeepcore.gkeep_exception import GkeepException
+from gkeepcore.valid_names import validate_username
 
 
 class FacultyError(GkeepException):
@@ -76,6 +77,8 @@ class Faculty:
         except ValueError:
             raise FacultyError('Not a valid email address: {0}'
                                .format(email_address))
+
+        validate_username(username)
 
         return cls(last_name, first_name, username, email_address)
 

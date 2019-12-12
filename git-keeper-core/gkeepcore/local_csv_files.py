@@ -49,7 +49,7 @@ class LocalCSVReader(CSVReader):
         """
 
         try:
-            with open(file_path) as f:
+            with open(file_path, encoding='utf-8-sig') as f:
                 self._rows = list(csv.reader(f))
         except (csv.Error, OSError):
             raise CSVError('Error reading from {0}'.format(file_path))

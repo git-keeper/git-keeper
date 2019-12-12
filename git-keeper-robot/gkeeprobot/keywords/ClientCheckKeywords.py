@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import json
 from robot.utils.asserts import assert_equal
 
 from gkeeprobot.control.ClientControl import ClientControl
@@ -24,6 +25,25 @@ from gkeeprobot.control.VMControl import ExitCodeException
 user actions."""
 
 client_control = ClientControl()
+
+
+def run_gkeep_json_query(faculty, query):
+    cmd = 'gkeep query --json {}'.format(query)
+
+    try:
+        result = client_control.run(faculty, cmd)
+    except ExitCodeException:
+        raise GkeepRobotException('Running the following query as {} failed:\n'
+                                  '{}'.format(faculty, query))
+
+    try:
+        parsed_result = json.loads(result)
+    except json.decoder.JSONDecodeError as e:
+        raise GkeepRobotException('Running the following query as {} produced '
+                                  'invalid JSON:\n'
+                                  '{}'.format(faculty, query))
+
+    return parsed_result
 
 
 class ClientCheckKeywords:
@@ -69,11 +89,9 @@ class ClientCheckKeywords:
             assert forbidden not in results
 
     def gkeep_query_json_produces_results(self, faculty, sub_command, expected_results):
-        cmd = 'gkeep query --json {}'.format(sub_command)
-        results = client_control.run(faculty, cmd)
+        results = run_gkeep_json_query(faculty, sub_command)
         import pprint
-        import json
-        pp_results = pprint.pformat(json.loads(results.strip()))
+        pp_results = pprint.pformat(results)
         pp_expected = pprint.pformat(json.loads(expected_results))
         assert_equal(pp_results, pp_expected)
 
@@ -84,6 +102,47 @@ class ClientCheckKeywords:
             raise GkeepRobotException('gkeep query should return non-zero')
         except ExitCodeException:
             pass
+
+    def class_exists(self, faculty, class_name):
+        if class_name not in run_gkeep_json_query(faculty, 'classes'):
+            raise GkeepRobotException('{} has no class named {}'
+                                      .format(faculty, class_name))
+
+    def class_contains_student(self, faculty, class_name, username,
+                               first_name='First', last_name='Last'):
+        result = run_gkeep_json_query(faculty, 'students')
+        if class_name not in result:
+            raise GkeepRobotException('{} has no class {}'
+                                      .format(faculty, class_name))
+
+        expected_student_dict = {
+            'username': username,
+            'first_name': first_name,
+            'last_name': last_name,
+        }
+
+        if expected_student_dict not in result[class_name]:
+            error = ('Student "{},{},{}" not in {}'
+                     .format(last_name, first_name, username, class_name))
+            raise GkeepRobotException(error)
+
+    def class_does_not_contain_student(self, faculty, class_name, username,
+                                       first_name='First', last_name='Last'):
+        result = run_gkeep_json_query(faculty, 'students')
+        if class_name not in result:
+            raise GkeepRobotException('{} has no class {}'
+                                      .format(faculty, class_name))
+
+        expected_student_dict = {
+            'username': username,
+            'first_name': first_name,
+            'last_name': last_name,
+        }
+
+        if expected_student_dict in result[class_name]:
+            error = ('Student "{},{},{}" should not be in {}'
+                    .format(last_name, first_name, username, class_name))
+            raise GkeepRobotException(error)
 
     def gkeep_add_faculty_succeeds(self, admin, new_faculty):
         last_name = 'Professor'
@@ -145,6 +204,17 @@ class ClientCheckKeywords:
         try:
             client_control.run(faculty, cmd)
             error = 'gkeep trigger should have non-zero return'
+            raise GkeepRobotException(error)
+        except ExitCodeException:
+            pass
+
+    def gkeep_passwd_succeeds(self, faculty, username):
+        client_control.run(faculty, 'gkeep passwd {}'.format(username))
+
+    def gkeep_passwd_fails(self, faculty, username):
+        try:
+            client_control.run(faculty, 'gkeep passwd {}'.format(username))
+            error = 'gkeep passwd should have non-zero exit code'
             raise GkeepRobotException(error)
         except ExitCodeException:
             pass

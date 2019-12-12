@@ -58,12 +58,26 @@ class TriggerHandler(EventHandler):
 
         try:
             assignment_dir = AssignmentDirectory(assignment_path)
-            self._ensure_published(assignment_dir)
+
+            faculty_only = (len(self._student_usernames) == 1 and
+                            self._faculty_username in self._student_usernames)
+
+            if not assignment_dir.is_published() and not faculty_only:
+                error = ('This assignment is not published.\n'
+                         'Unpublished assignments may only be triggered for '
+                         'the faculty account')
+                raise HandlerException(error)
+
             students = get_class_students(self._faculty_username,
                                           self._class_name)
 
             students = [s for s in students
                         if s.username in self._student_usernames]
+
+            if self._faculty_username in self._student_usernames:
+                members = FacultyMembers()
+                faculty = members.get_faculty_object(self._faculty_username)
+                students.append(faculty)
 
             self._trigger_tests(students, assignment_dir)
 
@@ -79,11 +93,6 @@ class TriggerHandler(EventHandler):
                                   str(e))
             warning = 'Trigger failed: {0}'.format(e)
             gkeepd_logger.log_warning(warning)
-
-    def _ensure_published(self, assignment_dir: AssignmentDirectory):
-        # Throw an exception if the assignment is not published
-        if not assignment_dir.is_published():
-            raise HandlerException('Assignment is not published')
 
     def _trigger_tests(self, students, assignment_dir: AssignmentDirectory):
         faculty = FacultyMembers().get_faculty_object(self._faculty_username)

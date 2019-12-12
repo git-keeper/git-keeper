@@ -19,6 +19,7 @@ import json
 import os
 import sys
 
+from gkeepclient.client_configuration import config
 from gkeepcore.valid_names import validate_class_name, validate_assignment_name
 
 from gkeepclient.assignment_uploader import AssignmentUploader
@@ -230,7 +231,6 @@ def publish_assignment(class_name: str, assignment_name: str):
 @server_interface_connected
 @class_exists
 @assignment_exists
-@assignment_published
 def trigger_tests(class_name: str, assignment_name: str,
                   student_usernames: list, response_timeout=20):
     """
@@ -246,6 +246,17 @@ def trigger_tests(class_name: str, assignment_name: str,
     :param response_timeout: seconds to wait for server response
     """
 
+    published = server_interface.assignment_published(class_name,
+                                                      assignment_name)
+    faculty_only = (len(student_usernames) == 1 and
+                    config.server_username in student_usernames)
+
+    if not published and not faculty_only:
+        error = ('This assignment is not published.\n'
+                 'Unpublished assignments may only be triggered for the '
+                 'faculty account')
+        raise GkeepException(error)
+
     class_students = server_interface.get_students(class_name)
 
     class_student_usernames = [s.username for s in class_students]
@@ -254,7 +265,8 @@ def trigger_tests(class_name: str, assignment_name: str,
         student_usernames = class_student_usernames
     else:
         for username in student_usernames:
-            if username not in class_student_usernames:
+            if (username not in class_student_usernames and
+                    username != config.server_username):
                 error = ('No student {0} in {1}'.format(username, class_name))
                 raise GkeepException(error)
 
@@ -420,3 +432,19 @@ def upload_assignment(class_name: str, upload_dir_path: str):
                       error_message='Error uploading assignment:',
                       timeout_message='Server response timeout. '
                                       'Upload status unknown')
+
+
+@config_parsed
+@server_interface_connected
+def reset_password(username: str):
+    """
+    Reset a user's password.
+
+    :param username: username of the user
+    """
+
+    communicate_event('PASSWD', username,
+                      success_message='Password reset successfully',
+                      error_message='Error resetting password: ',
+                      timeout_message='Server response timeout. '
+                                      'Password reset status unknown')

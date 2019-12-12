@@ -43,7 +43,7 @@ Launch Gkeepd And Configure Admin Account on Client
 Establish Course
     [Arguments]    ${faculty}    ${class}    @{students}
     :FOR     ${student}    IN    @{students}
-    \    Add To Class CSV   faculty=${faculty}    class_name=${class}    student=${student}
+    \    Add To Class CSV   faculty=${faculty}    class_name=${class}    username=${student}
     Gkeep Add Succeeds    faculty=${faculty}   class_name=${class}
 
 

@@ -1,2 +1,0 @@
-print('student_one')
-
