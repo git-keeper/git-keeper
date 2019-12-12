@@ -182,6 +182,9 @@ class ServerConfiguration:
                                                    log_snapshot_filename)
         self.log_level = LogLevel.DEBUG
 
+        # database file location
+        self.db_path = os.path.join(self.home_dir, 'gkeepd_db.sqlite')
+
         # faculty info locations
         self.faculty_json_path = os.path.join(self.home_dir, 'faculty.json')
 
