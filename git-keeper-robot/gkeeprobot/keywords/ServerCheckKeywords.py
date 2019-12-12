@@ -48,6 +48,13 @@ class ServerCheckKeywords:
         if result != 'True':
             raise GkeepRobotException('No new account email for {}'.format(username))
 
+    def password_reset_email_exists(self, username):
+        result = control.run_vm_python_script('keeper', 'email_to.py',
+                                              username, 'New git-keeper password',
+                                              'Your git-keeper password has been reset to')
+        if result != 'True':
+            raise GkeepRobotException('No password reset email for {}'.format(username))
+
     def new_assignment_email_exists(self, username, course_name, assignment_name):
         # assignment name is in the body of the message
         subject = '"[{}] New assignment: {}"'.format(course_name, assignment_name)
