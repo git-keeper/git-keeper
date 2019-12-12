@@ -66,7 +66,7 @@ Existing Student
     User Exists On Server    student1
     User Exists On Server    student2
     New Account Email Exists    student1
-    Email Does Not Exist    to_user=student2
+    New Account Email Does Not Exist    to_user=student2
     Class Contains Student    faculty1    cs1    student1
     Class Contains Student    faculty1    cs1    student2
 

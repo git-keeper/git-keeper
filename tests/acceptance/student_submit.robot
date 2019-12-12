@@ -64,3 +64,16 @@ Duplicate Assignment Name Across Courses Managed
     Clone Assignment  student1  faculty1    cs2     good_simple
     Student Submits Correct Solution    student1    faculty1    cs2    good_simple
     Submission Test Results Email Exists    student1    cs2    good_simple    Done
+
+Submissions While Gkeepd is Down
+    [Tags]    happy_path
+    Add Assignment to Client  faculty1  good_simple
+    Gkeep Upload Succeeds   faculty1   cs1    good_simple
+    Gkeep Publish Succeeds  faculty1    cs1     good_simple
+    Clone Assignment  student1  faculty1    cs1     good_simple
+    Stop Gkeepd
+    gkeepd is not running
+    Student Submits Correct Solution    student1    faculty1    cs1    good_simple
+    Submission Test Results Email Does Not Exist    student1    cs1    good_simple
+    Start gkeepd
+    Submission Test Results Email Exists    student1    cs1    good_simple    Done
