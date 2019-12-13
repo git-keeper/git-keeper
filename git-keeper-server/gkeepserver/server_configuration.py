@@ -58,7 +58,7 @@ Attributes:
     student_group - group that all student accounts belong to
 
     log_file_path - path to system log
-    log_snapshot_file_path - path to file containing current log file sizes
+    db_path - path to gkeepd's SQLite database file
     log_level - how detailed the log messages should be
 
     faculty_json_path - path to file containing faculty members
@@ -177,9 +177,6 @@ class ServerConfiguration:
         # logging
         self.log_file_path = os.path.join(self.home_dir, 'gkeepd.log')
 
-        log_snapshot_filename = 'snapshot.json'
-        self.log_snapshot_file_path = os.path.join(self.home_dir,
-                                                   log_snapshot_filename)
         self.log_level = LogLevel.DEBUG
 
         # database file location

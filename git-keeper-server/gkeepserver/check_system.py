@@ -76,13 +76,12 @@ def check_paths_and_permissions():
         * the tester user does not exist
         * the faculty group does not exist
         * the faculty log directory does not exist
-        * the log snapshot file does not exist
         * run_action.sh does not exist
         * permissions are wrong on the following files/directories:
             * keeper user's home directory: 750
             * gkeepd.log: 600,
-            * log snapshot file: 600
             * faculty.json: 600
+            * gkeepd_db.sqlite: 600
 
     Raises a CheckSystemError exception on fatal errors.
 
@@ -131,12 +130,6 @@ def check_paths_and_permissions():
             except CommandError as e:
                 raise CheckSystemError(e)
 
-    if not os.path.isfile(config.log_snapshot_file_path):
-        gkeepd_logger.log_info('{0} does not exist, creating it now'
-                               .format(config.log_snapshot_file_path))
-        # we can create it as an empty file
-        touch(config.log_snapshot_file_path)
-
     if not os.path.isfile(config.faculty_json_path):
         gkeepd_logger.log_info('{} does not exist, creating it now'
                                .format(config.faculty_json_path))
@@ -147,8 +140,8 @@ def check_paths_and_permissions():
         config.home_dir: '750',
         tester_home_dir: '770',
         config.log_file_path: '600',
-        config.log_snapshot_file_path: '600',
         config.faculty_json_path: '600',
+        config.db_path: '600',
     }
 
     for path, required_mode in required_modes.items():

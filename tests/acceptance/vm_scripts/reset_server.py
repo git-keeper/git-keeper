@@ -39,9 +39,9 @@ def remove(filename):
 
 
 def remove_gkeepd_files():
-    # remove gkeepd.log, snapshot.json, server.cfg, and faculty.json
+    # remove gkeepd.log, gkeepd_db.sqlite, server.cfg, and faculty.json
     remove('gkeepd.log')
-    remove('snapshot.json')
+    remove('gkeepd_db.sqlite')
     remove('server.cfg')
     remove('faculty.json')
 
