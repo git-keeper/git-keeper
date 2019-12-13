@@ -78,10 +78,16 @@ class Assignment(pw.Model):
         )
 
 
+class ByteCount(BaseModel):
+    file_path = pw.CharField(unique=True)
+    byte_count = pw.IntegerField()
+
+
 class Database:
-    def __init__(self, db_filename):
+    def connect(self, db_filename):
         database.init(db_filename, pragmas={'foreign_keys': 1})
-        database.create_tables([User, Class, ClassStudent, Assignment])
+        database.create_tables([User, Class, ClassStudent, Assignment,
+                                ByteCount])
 
     def username_exists(self, username):
         query = User.select().where(User.username == username)
@@ -157,6 +163,40 @@ class Database:
 
         return students
 
+    def update_byte_counts(self, byte_counts_by_file_path: dict):
+        data = [
+            {'file_path': path, 'byte_count': byte_counts_by_file_path[path]}
+            for path in byte_counts_by_file_path
+        ]
+
+        ByteCount.replace_many(data).execute()
+
+    def get_byte_count(self, file_path: str):
+        try:
+            byte_count = ByteCount.get(ByteCount.file_path == file_path)
+            return byte_count.byte_count
+        except ByteCount.DoesNotExist:
+            raise DatabaseException('No byte count found for {}'
+                                    .format(file_path))
+
+    def get_byte_counts(self):
+        query = ByteCount.select()
+
+        byte_counts = [
+            (byte_count.file_path, byte_count.byte_count)
+            for byte_count in query
+        ]
+
+        return byte_counts
+
+    def delete_byte_count(self, file_path: str):
+        try:
+            byte_count = ByteCount.get(ByteCount.file_path == file_path)
+            byte_count.delete_instance()
+        except ByteCount.DoesNotExist:
+            raise DatabaseException('No byte count found for {}'
+                                    .format(file_path))
+
     def _get_class_id(self, class_name, faculty_username):
         selected_class = Class.select().join(User).where(
             (Class.name == class_name) &
@@ -195,7 +235,7 @@ class Database:
         return student.id
 
 
-
+db = Database()
 
 # class Database:
 #     def __init__(self, db_filename):

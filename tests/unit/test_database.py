@@ -5,7 +5,8 @@ from gkeepserver.database import Database, DatabaseException
 
 @pytest.fixture
 def db():
-    db = Database(':memory:')
+    db = Database()
+    db.connect(':memory:')
     return db
 
 
@@ -44,4 +45,33 @@ def test_insert_class(db):
     assert db.class_exists('class', 'faculty2')
 
 
-#def test_add_students_to_class(db):
+def test_byte_counts(db):
+    byte_counts = {
+        'first/path': 100,
+        'second/path': 200,
+    }
+
+    db.update_byte_counts(byte_counts)
+
+    assert db.get_byte_count('first/path') == 100
+    assert db.get_byte_count('second/path') == 200
+
+    with pytest.raises(DatabaseException):
+        db.get_byte_count('third/path')
+
+    assert (set(db.get_byte_counts()) ==
+            {('first/path', 100), ('second/path', 200)})
+
+    byte_counts['second/path'] = 300
+
+    db.update_byte_counts(byte_counts)
+
+    assert db.get_byte_count('first/path') == 100
+    assert db.get_byte_count('second/path') == 300
+
+    db.delete_byte_count('first/path')
+
+    assert db.get_byte_count('second/path') == 300
+
+    with pytest.raises(DatabaseException):
+        db.get_byte_count('first/path')

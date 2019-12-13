@@ -36,5 +36,5 @@ setup(
     package_data={
         'gkeepserver': ['data/*']
     },
-    install_requires=['git-keeper-core'],
+    install_requires=['git-keeper-core', 'peewee'],
 )

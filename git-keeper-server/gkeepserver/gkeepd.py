@@ -37,6 +37,7 @@ from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.version import __version__ as core_version
 from gkeepserver.check_system import check_system
+from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.event_handler_assigner import EventHandlerAssignerThread
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
@@ -114,6 +115,8 @@ def main():
 
     logger.log_info('--- Starting gkeepd version {}---'.format(server_version))
 
+    db.connect(config.db_path)
+
     # check for fatal errors in the system state, and correct correctable
     # issues including new faculty members
     try:
@@ -144,8 +147,7 @@ def main():
                                                   logger)
 
     # the log poller detects new events and passes them to the handler assigner
-    log_poller.initialize(new_log_event_queue, LocalLogFileReader,
-                          config.log_snapshot_file_path, logger)
+    log_poller.initialize(new_log_event_queue, LocalLogFileReader, logger)
 
     # start the rest of the threads
     email_sender.start()

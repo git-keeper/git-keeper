@@ -26,7 +26,7 @@ log are passed on to a parser and then an appropriate handler.
 It is possible to add files to be watched before calling initialize(), but no
 actions can be taken until the thread is initialized and started.
 
-A snapshot of the sizes of the log files is stored after every log
+The sizes of the log files are stored in the database after every log
 modification. This allows the poller to start where it left off if the process
 is restarted.
 
@@ -39,8 +39,7 @@ Example usage::
         # set up other stuff
 
         log_poller.initialize(new_log_event_queue, byte_count_function,
-                              read_bytes_function,
-                              config.log_snapshot_file_path, gkeepd_logger)
+                              read_bytes_function, gkeepd_logger)
 
         log_poller.start()
 
@@ -63,6 +62,7 @@ from time import time, sleep
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.log_file import LogFileReader, LogFileException
 from gkeepcore.system_commands import file_is_readable
+from gkeepserver.database import db
 from gkeepserver.gkeepd_logger import GkeepdLoggerThread
 
 
@@ -100,7 +100,6 @@ class LogPollingThread(Thread):
 
         self._new_log_event_queue = None
         self._reader_class = None
-        self._snapshot_file_path = None
         self._polling_interval = None
         self._last_poll_time = None
         self._logger = None
@@ -108,15 +107,13 @@ class LogPollingThread(Thread):
         self._shutdown_flag = None
 
     def initialize(self, new_log_event_queue: Queue, reader_class,
-                   snapshot_file_path: str, logger: GkeepdLoggerThread,
-                   polling_interval=0.5):
+                   logger: GkeepdLoggerThread, polling_interval=0.5):
         """
         Initialize the attributes.
 
         :param new_log_event_queue: the poller places (file_path, event) pairs
          into this queue
         :param reader_class: LogFileReader class to use for creating readers
-        :param snapshot_file_path: path to the snapshot file
         :param logger: the system logger, used to log runtime information
         :param polling_interval: number of seconds between polling files
 
@@ -126,8 +123,6 @@ class LogPollingThread(Thread):
 
         self._reader_class = reader_class
 
-        self._snapshot_file_path = snapshot_file_path
-
         self._polling_interval = polling_interval
         self._last_poll_time = 0
 
@@ -136,7 +131,7 @@ class LogPollingThread(Thread):
         # maps log file paths to log readers
         self._log_file_readers = {}
 
-        self._load_snapshot()
+        self._load_paths_from_db()
 
         self._shutdown_flag = False
 
@@ -183,49 +178,16 @@ class LogPollingThread(Thread):
                 self._logger.log_error('Error polling logs: {0}'
                                        .format(e))
 
-    def _load_snapshot(self):
-        # Called from initialize() and should not be called again.
-        # Loads byte counts from the snapshot file.
-
-        if not os.path.isfile(self._snapshot_file_path or ''):
-            self._logger.log_debug('Snapshot file does not exist')
-            return
-        if os.path.getsize(self._snapshot_file_path) == 0:
-            self._logger.log_debug('Snapshot file is empty')
-            return
-
-        self._logger.log_debug('Loading snapshot')
-
-        # snapshots are stored as JSON, and can be directly loaded into a
-        # dictionary
-        try:
-            with open(self._snapshot_file_path, 'r') as f:
-                json_data = f.read()
-                log_byte_counts = json.loads(json_data)
-        except OSError as e:
-            raise LogPollingThreadError('Error reading {0}: {1}'
-                                        .format(self._snapshot_file_path, e))
-
-        if not isinstance(log_byte_counts, dict):
-            error = ('{0} is not a valid snapshot file'
-                     .format(self._snapshot_file_path))
-            raise LogPollingThreadError(error)
-
-        self._logger.log_debug('Loaded ' + self._snapshot_file_path)
-
-        # start watching all the files from the snapshot file
-        for log_file_path, byte_count in log_byte_counts.items():
+    def _load_paths_from_db(self):
+        for log_file_path, byte_count in db.get_byte_counts():
             self._logger.log_debug('Watching {} from byte {}'
                                    .format(log_file_path, byte_count))
             self._create_and_add_reader(log_file_path,
                                         seek_position=byte_count)
 
-    def _write_snapshot(self):
-        # Writes the current file byte counts to the snapshot file.
+    def _write_byte_counts_to_db(self):
+        # Writes all of the current file byte counts to the database.
         # Called after updates.
-
-        if self._snapshot_file_path is None:
-            return
 
         byte_counts_by_file_path = {}
 
@@ -233,13 +195,19 @@ class LogPollingThread(Thread):
             byte_counts_by_file_path[file_path] = reader.get_seek_position()
 
         try:
-            with open(self._snapshot_file_path, 'w') as f:
-                json_data = json.dumps(byte_counts_by_file_path)
-                f.write(json_data)
-                self._logger.log_debug('Wrote ' + self._snapshot_file_path)
-        except OSError as e:
-            raise LogPollingThreadError('Error writing to {0}: {1}'
-                                        .format(self._snapshot_file_path, e))
+            db.update_byte_counts(byte_counts_by_file_path)
+        except GkeepException as e:
+            raise LogPollingThreadError('Error updating byte counts: {}'
+                                        .format(e))
+
+    def _write_byte_count_to_db(self, file_path):
+        # Writes a single file's byte count to the database.
+
+        update = {
+            file_path: self._log_file_readers[file_path].get_seek_position()
+        }
+
+        db.update_byte_counts(update)
 
     def _start_watching_log_file(self, file_path: str):
         # Start watching the file at file_path. This should only be called
@@ -247,8 +215,8 @@ class LogPollingThread(Thread):
 
         try:
             self._create_and_add_reader(file_path)
-            self._write_snapshot()
-        except LogFileException as e:
+            self._write_byte_count_to_db(file_path)
+        except GkeepException as e:
             self._logger.log_warning(str(e))
 
     def _create_and_add_reader(self, file_path: str, seek_position=None):
@@ -268,8 +236,10 @@ class LogPollingThread(Thread):
     def _stop_watching_log_file(self, log_file: LogFileReader):
         # Simply remove the file reader from the dictionary
 
-        del self._log_file_readers[log_file.get_file_path()]
-        self._write_snapshot()
+        file_path = log_file.get_file_path()
+
+        del self._log_file_readers[file_path]
+        self._write_byte_count_to_db(file_path)
 
     def _poll(self):
         # Poll once for changes in files, and check the queue for new files
@@ -282,14 +252,10 @@ class LogPollingThread(Thread):
         # for each file reader, add any new events to the queue
         for reader in readers:
             try:
-                events_exist = False
                 for event in reader.get_new_events():
-                    self._new_log_event_queue.put((reader.get_file_path(),
-                                                   event))
-                    events_exist = True
-
-                if events_exist:
-                    self._write_snapshot()
+                    file_path = reader.get_file_path()
+                    self._new_log_event_queue.put((file_path, event))
+                    self._write_byte_count_to_db(file_path)
 
             except LogFileException as e:
                 self._logger.log_warning(str(e))
