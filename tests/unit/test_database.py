@@ -5,9 +5,7 @@ from gkeepserver.database import Database, DatabaseException
 
 @pytest.fixture
 def db():
-    db = Database()
-    db.connect(':memory:')
-    db.initialize()
+    db = Database(':memory:')
     return db
 
 
@@ -46,4 +44,4 @@ def test_insert_class(db):
     assert db.class_exists('class', 'faculty2')
 
 
-def test_add_students_to_class(db):
+#def test_add_students_to_class(db):
