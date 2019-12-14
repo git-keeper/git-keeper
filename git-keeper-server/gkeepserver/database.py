@@ -16,6 +16,7 @@
 
 import peewee as pw
 
+from gkeepserver.faculty import Faculty
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.student import Student
 
@@ -27,7 +28,7 @@ class DatabaseException(GkeepException):
 def username_from_email(email_address: str):
     try:
         username, domain = email_address.split('@')
-    except:
+    except ValueError:
         error = ('{0} does not appear to be a valid email address'
                  .format(email_address))
         raise DatabaseException(error)
@@ -51,9 +52,14 @@ class User(BaseModel):
     last_name = pw.CharField()
 
 
+class Admin(BaseModel):
+    faculty_id = pw.ForeignKeyField(User, backref='faculty')
+
+
 class Class(pw.Model):
     name = pw.CharField()
     faculty_id = pw.ForeignKeyField(User, backref='faculty')
+    open = pw.BooleanField()
 
     class Meta:
         database = database
@@ -70,6 +76,7 @@ class ClassStudent(BaseModel):
 class Assignment(pw.Model):
     name = pw.CharField()
     class_id = pw.ForeignKeyField(Class, backref='class')
+    published = pw.BooleanField()
 
     class Meta:
         database = database
@@ -86,7 +93,7 @@ class ByteCount(BaseModel):
 class Database:
     def connect(self, db_filename):
         database.init(db_filename, pragmas={'foreign_keys': 1})
-        database.create_tables([User, Class, ClassStudent, Assignment,
+        database.create_tables([User, Admin, Class, ClassStudent, Assignment,
                                 ByteCount])
 
     def username_exists(self, username):
@@ -109,6 +116,11 @@ class Database:
         self.insert_user(student.email_address, student.first_name,
                          student.last_name, 'student')
 
+    def insert_faculty(self, faculty: Faculty):
+        username = self.insert_user(faculty.email_address, faculty.first_name,
+                                    faculty.last_name, 'faculty')
+        return username
+
     def insert_user(self, email_address: str, first_name: str,
                     last_name: str, role: str):
         if self.email_exists(email_address):
@@ -126,6 +138,8 @@ class Database:
         User.create(username=username, email=email_address,
                     first_name=first_name, last_name=last_name,
                     role=role)
+
+        return username
 
     def insert_class(self, class_name: str, faculty_username: str):
         faculty_id = self._get_faculty_id(faculty_username)

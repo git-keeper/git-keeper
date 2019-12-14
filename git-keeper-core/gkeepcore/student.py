@@ -24,7 +24,7 @@ import unicodedata
 
 from gkeepcore.csv_files import CSVReader
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.valid_names import validate_username
+from gkeepcore.valid_names import validate_username, cleanup_string
 
 
 class StudentError(GkeepException):
@@ -118,15 +118,8 @@ class Student:
         :return: a last_first_username string representation of a student
         """
 
-        def cleanup(s):
-            s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore')
-            s = s.decode('utf-8')
-            s = str(re.sub(r'[^\w\s-]', '', s).strip().lower())
-            s = str(re.sub(r'[-\s]+', '-', s))
-            return s
-
-        clean_first_name = cleanup(self.first_name)
-        clean_last_name = cleanup(self.last_name)
+        clean_first_name = cleanup_string(self.first_name)
+        clean_last_name = cleanup_string(self.last_name)
 
         return '{0}_{1}_{2}'.format(clean_last_name, clean_first_name,
                                     self.username)

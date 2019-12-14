@@ -20,6 +20,7 @@ are valid.
 """
 import re
 import string
+import unicodedata
 
 from gkeepcore.gkeep_exception import GkeepException
 
@@ -80,3 +81,22 @@ def validate_username(username: str):
 
     if len(username) > 32:
         raise GkeepException('The username {} is too long'.format(username))
+
+
+def cleanup_string(dirty_string: str):
+    """
+    Clean up a string for use as a username or part of a file or directory
+    name.
+
+    Spaces and punctuation are stripped string, NFKD normalization is applied,
+    and all characters are converted to lowercase.
+
+    :param dirty_string: string to clean up
+    :return: clean string
+    """
+
+    s = unicodedata.normalize('NFKD', dirty_string).encode('ascii', 'ignore')
+    s = s.decode('utf-8')
+    s = str(re.sub(r'[^\w\s-]', '', s).strip().lower())
+    s = str(re.sub(r'[-\s]+', '-', s))
+    return s
