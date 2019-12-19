@@ -23,7 +23,8 @@ Event type: DELETE
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
-    faculty_assignment_dir_path, user_home_dir, class_student_csv_path
+    faculty_assignment_dir_path, user_home_dir, class_student_csv_path, \
+    user_gitkeeper_path
 from gkeepcore.student import students_from_csv
 from gkeepcore.system_commands import rm
 from gkeepserver.assignments import AssignmentDirectory, \
@@ -47,12 +48,12 @@ class DeleteHandler(EventHandler):
         student repos for the assignment.
         """
 
-        faculty_home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
         # path to the directory that the assignment's files are kept in
         assignment_path = faculty_assignment_dir_path(self._class_name,
                                                       self._assignment_name,
-                                                      faculty_home_dir)
+                                                      gitkeeper_path)
 
         print('Handling delete:')
         print(' Faculty:        ', self._faculty_username)
@@ -86,12 +87,12 @@ class DeleteHandler(EventHandler):
         # Delete the assignment bare repos for the students and the faculty,
         # as well as the assignment directory itself.
 
-        home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
         assignment_name = assignment_dir.assignment_name
 
         reader = LocalCSVReader(class_student_csv_path(self._class_name,
-                                                       home_dir))
+                                                       gitkeeper_path))
         students_with_assignment = []
 
         faculty = FacultyMembers().get_faculty_object(self._faculty_username)

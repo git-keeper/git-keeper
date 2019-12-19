@@ -24,7 +24,7 @@ import os
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
-    faculty_assignment_dir_path, user_home_dir
+    faculty_assignment_dir_path, user_home_dir, user_gitkeeper_path
 from gkeepcore.system_commands import sudo_chown, rm
 from gkeepcore.upload_directory import UploadDirectory
 from gkeepserver.assignments import AssignmentDirectory, \
@@ -50,13 +50,13 @@ class UpdateHandler(EventHandler):
         updated.
         """
 
-        faculty_home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
         # path to the directory that the assignment's files are kept in on
         # the server
         assignment_path = faculty_assignment_dir_path(self._class_name,
                                                       self._assignment_name,
-                                                      faculty_home_dir)
+                                                      gitkeeper_path)
 
         print('Handling update:')
         print(' Faculty:        ', self._faculty_username)

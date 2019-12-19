@@ -22,7 +22,7 @@ from shutil import which
 
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_home_dir, user_log_path, \
-    gkeepd_to_faculty_log_path
+    gkeepd_to_faculty_log_path, user_gitkeeper_path
 from gkeepcore.student import Student
 from gkeepcore.system_commands import (sudo_add_user, sudo_set_password, chmod,
                                        sudo_chown, mkdir, make_symbolic_link)
@@ -54,8 +54,8 @@ def initialize_user_log(username):
     :param username: the user to make the log for
     """
 
-    home_dir = user_home_dir(username)
-    log_path = user_log_path(home_dir, username)
+    gitkeeper_path = user_gitkeeper_path(username)
+    log_path = user_log_path(gitkeeper_path, username)
 
     initialize_log(log_path, username, config.keeper_group, '640')
 
@@ -68,7 +68,7 @@ def initialize_gkeepd_to_faculty_log(username):
     Create the log file that gkeepd will write to in order to communicate with
     a faculty client.
 
-    It will be located at ~username/gkeepd.log
+    It will be located at <.gitkeeper path>/gkeepd.log
 
     It will be owned by the keeper user and the faculty group. The keeper user
     will have read/write permissions and the faculty group will have read
@@ -77,8 +77,8 @@ def initialize_gkeepd_to_faculty_log(username):
     :param username: faculty username
     """
 
-    home_dir = user_home_dir(username)
-    log_path = gkeepd_to_faculty_log_path(home_dir)
+    gitkeeper_path = user_gitkeeper_path(username)
+    log_path = gkeepd_to_faculty_log_path(gitkeeper_path)
 
     # this log will be owned and writable by keeper and readable by the
     # faculty's group
@@ -87,23 +87,27 @@ def initialize_gkeepd_to_faculty_log(username):
 
 def create_faculty_dirs(username: str):
     """
-    Create the classes and uploads directories in a faculty member's home
+    Create the classes and uploads directories in a faculty member's .gitkeeper
     directory.
 
     :param username: username of the faculty member
     """
 
-    home_dir = user_home_dir(username)
-    classes_dir_path = os.path.join(home_dir, 'classes')
+    gitkeeper_path = user_gitkeeper_path(username)
+    classes_dir_path = os.path.join(gitkeeper_path, 'classes')
 
-    mkdir(classes_dir_path, sudo=True)
+    if not os.path.isdir(classes_dir_path):
+        mkdir(classes_dir_path, sudo=True)
+
     # world readable for the handouts directory
     chmod(classes_dir_path, '755', sudo=True)
     sudo_chown(classes_dir_path, username, config.keeper_group)
 
-    uploads_dir_path = os.path.join(home_dir, 'uploads')
+    uploads_dir_path = os.path.join(gitkeeper_path, 'uploads')
 
-    mkdir(uploads_dir_path, sudo=True)
+    if not os.path.isdir(uploads_dir_path):
+        mkdir(uploads_dir_path, sudo=True)
+
     chmod(uploads_dir_path, '750', sudo=True)
     sudo_chown(uploads_dir_path, username, config.keeper_group)
 
@@ -128,6 +132,23 @@ def create_git_shell_commands(username: str, command_list: list):
     for command in command_list:
         command_path = which(command)
         make_symbolic_link(command_path, git_shell_commands_path, sudo=True)
+
+
+def create_gitkeeper_directory(username):
+    """
+    Create a user's .gitkeeper directory.
+
+    :param username: username of the user
+    """
+
+    gitkeeper_path = user_gitkeeper_path(username)
+
+    if not os.path.isdir(gitkeeper_path):
+        mkdir(gitkeeper_path, sudo=True)
+
+    # read/write for user and keeper
+    chmod(gitkeeper_path, '770', sudo=True)
+    sudo_chown(gitkeeper_path, username, config.keeper_group)
 
 
 def create_user(username, user_type, first_name, last_name, email_address=None,
@@ -163,6 +184,7 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
     password = generate_password()
     sudo_set_password(username, password)
 
+    create_gitkeeper_directory(username)
     initialize_user_log(username)
 
     if user_type == UserType.faculty:

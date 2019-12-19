@@ -22,7 +22,7 @@ Event type: TRIGGER
 from gkeepcore.git_commands import git_head_hash
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_home_dir, faculty_assignment_dir_path, \
-    user_log_path, student_assignment_repo_path
+    user_log_path, student_assignment_repo_path, user_gitkeeper_path
 from gkeepserver.assignments import AssignmentDirectory
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.faculty import FacultyMembers
@@ -43,12 +43,12 @@ class TriggerHandler(EventHandler):
         assignment.
         """
 
-        faculty_home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
         # path to the directory that the assignment's files are kept in
         assignment_path = faculty_assignment_dir_path(self._class_name,
                                                       self._assignment_name,
-                                                      faculty_home_dir)
+                                                      gitkeeper_path)
 
         print('Handling trigger:')
         print(' Faculty:        ', self._faculty_username)
@@ -101,7 +101,6 @@ class TriggerHandler(EventHandler):
         # trigger tests for all requested students
         for student in students:
             home_dir = user_home_dir(student.username)
-            log_path = user_log_path(home_dir, student.username)
             submission_repo_path = \
                 student_assignment_repo_path(self._faculty_username,
                                              self._class_name,
