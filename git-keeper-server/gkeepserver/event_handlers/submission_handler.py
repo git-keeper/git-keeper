@@ -28,7 +28,7 @@ from gkeepcore.path_utils import user_home_dir, class_student_csv_path, \
 from gkeepcore.student import student_from_username
 from gkeepserver.assignments import AssignmentDirectory
 from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.faculty import FacultyMembers
+from gkeepserver.faculty_members import FacultyMembers
 from gkeepserver.new_submission_queue import new_submission_queue
 from gkeepserver.server_configuration import config
 from gkeepserver.submission import Submission

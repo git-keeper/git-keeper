@@ -83,7 +83,7 @@ def validate_username(username: str):
         raise GkeepException('The username {} is too long'.format(username))
 
 
-def cleanup_string(dirty_string: str):
+def cleanup_string(dirty_string: str, is_username=False):
     """
     Clean up a string for use as a username or part of a file or directory
     name.
@@ -92,6 +92,7 @@ def cleanup_string(dirty_string: str):
     and all characters are converted to lowercase.
 
     :param dirty_string: string to clean up
+    :param is_username: True if the string is to be used as a username
     :return: clean string
     """
 
@@ -99,4 +100,11 @@ def cleanup_string(dirty_string: str):
     s = s.decode('utf-8')
     s = str(re.sub(r'[^\w\s-]', '', s).strip().lower())
     s = str(re.sub(r'[-\s]+', '-', s))
+
+    if is_username:
+        if s[0] not in string.ascii_letters:
+            s = 'a' + s
+        if len(s) > 31:
+            s = s[:31]
+
     return s

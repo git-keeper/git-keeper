@@ -35,7 +35,7 @@ from gkeepserver.assignments import AssignmentDirectory, \
     copy_tests_dir, setup_student_assignment, StudentAssignmentError, \
     write_run_action_sh
 from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.faculty import FacultyMembers
+from gkeepserver.faculty_members import FacultyMembers
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_update_thread import info_updater

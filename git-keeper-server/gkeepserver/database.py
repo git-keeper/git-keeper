@@ -16,6 +16,7 @@
 
 import peewee as pw
 
+from gkeepcore.valid_names import cleanup_string, validate_username
 from gkeepserver.faculty import Faculty
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.student import Student
@@ -53,16 +54,15 @@ class User(BaseModel):
 
 
 class Admin(BaseModel):
-    faculty_id = pw.ForeignKeyField(User, backref='faculty')
+    faculty_id = pw.ForeignKeyField(User, backref='faculty', unique=True)
 
 
-class Class(pw.Model):
+class Class(BaseModel):
     name = pw.CharField()
     faculty_id = pw.ForeignKeyField(User, backref='faculty')
     open = pw.BooleanField()
 
     class Meta:
-        database = database
         indexes = (
             (('name', 'faculty_id'), True),
         )
@@ -72,14 +72,18 @@ class ClassStudent(BaseModel):
     class_id = pw.ForeignKeyField(Class, backref='class')
     student_id = pw.ForeignKeyField(User, backref='student')
 
+    class Meta:
+        indexes = (
+            (('class_id', 'student_id'), True),
+        )
 
-class Assignment(pw.Model):
+
+class Assignment(BaseModel):
     name = pw.CharField()
     class_id = pw.ForeignKeyField(Class, backref='class')
     published = pw.BooleanField()
 
     class Meta:
-        database = database
         indexes = (
             (('name', 'class_id'), True),
         )
@@ -113,13 +117,14 @@ class Database:
         return query.exists()
 
     def insert_student(self, student: Student):
-        self.insert_user(student.email_address, student.first_name,
-                         student.last_name, 'student')
+        username = self.insert_user(student.email_address, student.first_name,
+                                    student.last_name, 'student')
+        return username
 
     def insert_faculty(self, faculty: Faculty):
-        username = self.insert_user(faculty.email_address, faculty.first_name,
-                                    faculty.last_name, 'faculty')
-        return username
+       username = self.insert_user(faculty.email_address, faculty.first_name,
+                                   faculty.last_name, 'faculty')
+       return username
 
     def insert_user(self, email_address: str, first_name: str,
                     last_name: str, role: str):
@@ -128,11 +133,15 @@ class Database:
             raise DatabaseException(error)
 
         original_username = username_from_email(email_address)
-        username = original_username
+        clean_username = cleanup_string(original_username, is_username=True)
+
+        validate_username(clean_username)
+
+        username = clean_username
 
         counter = 1
         while self.username_exists(username):
-            username = original_username + str(counter)
+            username = clean_username + str(counter)
             counter += 1
 
         User.create(username=username, email=email_address,
@@ -140,6 +149,61 @@ class Database:
                     role=role)
 
         return username
+
+    def get_faculty_by_username(self, username: str) -> Faculty:
+        try:
+            user = User.get((User.username == username) &
+                            (User.role == 'faculty'))
+            admin = self.is_admin(username)
+            return Faculty(user.last_name, user.first_name, user.username,
+                           user.email, admin)
+        except User.DoesNotExist:
+            error = 'No faculty user with the username {}'.format(username)
+            raise DatabaseException(error)
+
+    def get_all_faculty(self):
+        faculty_objects = []
+
+        query = (User.select().
+                 join(Admin, pw.JOIN.LEFT_OUTER, on=(User.id == Admin.faculty_id)))
+
+        for result in query:
+            admin = result.faculty_id is not None
+
+            faculty_objects.append(
+                Faculty(result.last_name, result.first_name, result.username,
+                        result.email_address, admin=admin)
+            )
+
+        return faculty_objects
+
+    def is_admin(self, username: str):
+        query = User.select().join(Admin).where(User.username == username)
+        return query.exists()
+
+    def set_admin(self, username: str):
+        try:
+            user = User.get(User.username == username)
+            Admin.create(faculty_id=user.id)
+        except User.DoesNotExist:
+            error = 'No faculty with the username {}'.format(username)
+            raise DatabaseException(error)
+        except pw.IntegrityError:
+            error = 'User {} is already an admin'.format(username)
+            raise DatabaseException(error)
+
+    def remove_admin(self, username: str):
+        try:
+            user = User.get((User.username == username) &
+                            (User.role == 'faculty'))
+            admin = Admin.get(Admin.id == user.id)
+            admin.delete_instance()
+        except User.DoesNotExist:
+            error = 'No faculty with the username {}'.format(username)
+            raise DatabaseException(error)
+        except Admin.DoesNotExist:
+            error = '{} is not an admin'.format(username)
+            raise DatabaseException(error)
 
     def insert_class(self, class_name: str, faculty_username: str):
         faculty_id = self._get_faculty_id(faculty_username)
@@ -149,28 +213,69 @@ class Database:
                      .format(faculty_username, class_name))
             raise DatabaseException(error)
 
-        Class.create(name=class_name, faculty_id=faculty_id)
+        Class.create(name=class_name, faculty_id=faculty_id, open=True)
+
+    def close_class(self, class_name: str, faculty_username: str):
+        faculty_id = self._get_faculty_id(faculty_username)
+
+        try:
+            query = (Class.update(open=False)
+                          .where((Class.name == class_name) &
+                                 (Class.faculty_id == faculty_id)))
+            query.execute()
+        except Class.DoesNotExist:
+            error = ('Faculty {} does not have a class named {}'
+                     .format(faculty_username, class_name))
+            raise DatabaseException(error)
+
+    def open_class(self, class_name: str, faculty_username: str):
+        faculty_id = self._get_faculty_id(faculty_username)
+
+        try:
+            query = (Class.update(open=True)
+                          .where((Class.name == class_name) &
+                                 (Class.faculty_id == faculty_id)))
+            query.execute()
+        except Class.DoesNotExist:
+            error = ('Faculty {} does not have a class named {}'
+                     .format(faculty_username, class_name))
+            raise DatabaseException(error)
+
+    def class_is_open(self, class_name: str, faculty_username: str) -> bool:
+        faculty_id = self._get_faculty_id(faculty_username)
+
+        try:
+            the_class = Class.get((Class.name == class_name) &
+                                  (Class.faculty_id == faculty_id))
+            return the_class.open
+        except Class.DoesNotExist:
+            error = ('Faculty {} does not have a class named {}'
+                     .format(faculty_username, class_name))
+            raise DatabaseException(error)
 
     def add_student_to_class(self, class_name: str, student_username: str,
                              faculty_username: str):
-        #if self.student_in_class():
-
         faculty_id = self._get_faculty_id(faculty_username)
         class_id = self._get_class_id(class_name, faculty_username)
         student_id = self._get_student_id(student_username)
 
+        try:
+            ClassStudent.create(class_id=class_id, student_id=student_id)
+        except pw.IntegrityError:
+            error = '{} is already in class {}'.format(student_username,
+                                                       class_name)
+            raise DatabaseException(error)
+
     def get_class_students(self, class_name: str, faculty_username: str):
         class_id = self._get_class_id(class_name, faculty_username)
 
-        query = User.select().join(Class, ClassStudent).where(
-            (User.id == ClassStudent.student_id) &
-            (Class.id == ClassStudent.student_id) &
+        query = User.select().join(ClassStudent).join(Class).where(
             (Class.id == class_id)
         )
 
         students = []
 
-        for row in query.objects():
+        for row in query:
             student = Student(row.last_name, row.first_name, row.username,
                               row.email)
             students.append(student)
@@ -250,171 +355,3 @@ class Database:
 
 
 db = Database()
-
-# class Database:
-#     def __init__(self, db_filename):
-#         database_proxy.initialize(SqliteDatabase(db_filename))
-#         database_proxy.connect()
-#
-#     def connect(self, db_filename):
-#         self.db = sqlite3.connect(db_filename)
-#         self.db.cursor().execute('PRAGMA foreign_keys = ON')
-#
-#     def initialize(self):
-#         if not resource_exists('gkeepserver', 'data/schema.sql'):
-#             error = 'Database schema does not exist'
-#             raise DatabaseException(error)
-#
-#         try:
-#             sql = resource_string('gkeepserver', 'data/schema.sql').decode()
-#         except (ResolutionError, ExtractionError, UnicodeDecodeError):
-#             raise DatabaseException('Error reading database schema')
-#
-#         try:
-#             cursor = self.db.cursor()
-#             cursor.executescript(sql)
-#             self.db.commit()
-#         except sqlite3.DatabaseError as e:
-#             raise DatabaseException('Error initializing database: {}'
-#                                     .format(e))
-#
-#     def username_exists(self, username):
-#         cursor = self.db.cursor()
-#         cursor.execute('SELECT * FROM user WHERE username = ?', (username,))
-#         row = cursor.fetchone()
-#         return row is not None
-#
-#     def email_exists(self, email_address):
-#         cursor = self.db.cursor()
-#         cursor.execute('SELECT * FROM user WHERE email = ?', (email_address,))
-#         row = cursor.fetchone()
-#         return row is not None
-#
-#     def class_exists(self, class_name, faculty_username):
-#         query = ('SELECT * FROM class, user '
-#                  'WHERE class.name = ? '
-#                  '  AND class.faculty_id = user.id '
-#                  '  AND user.username = ?')
-#
-#         cursor = self.db.cursor()
-#         cursor.execute(query, (class_name, faculty_username))
-#         row = cursor.fetchone()
-#
-#         return row is not None
-#
-#     def insert_student(self, student: Student):
-#         self.insert_user(student.email_address, student.first_name,
-#                          student.last_name, 'student')
-#
-#     @synchronized
-#     def insert_user(self, email_address: str, first_name: str,
-#                     last_name: str, role: str):
-#         if self.email_exists(email_address):
-#             error = 'A user with the email address {} already exists'
-#             raise DatabaseException(error)
-#
-#         original_username = username_from_email(email_address)
-#         username = original_username
-#
-#         counter = 1
-#         while self.username_exists(username):
-#             username = original_username + str(counter)
-#             counter += 1
-#
-#         query = ('INSERT INTO user(username, email, first_name, last_name,'
-#                  '                  role) '
-#                  '  VALUES(?, ?, ?, ?, ?)')
-#
-#         cursor = self.db.cursor()
-#         cursor.execute(query, (username, email_address, first_name, last_name,
-#                                role))
-#         self.db.commit()
-#
-#     @synchronized
-#     def insert_class(self, class_name: str, faculty_username: str):
-#         faculty_id = self._get_faculty_id(faculty_username)
-#
-#         if self.class_exists(class_name, faculty_username):
-#             error = ('{} already has a class named {}'
-#                      .format(faculty_username, class_name))
-#             raise DatabaseException(error)
-#
-#         query = 'INSERT INTO class(name, faculty_id) VALUES(?,?)'
-#         cursor = self.db.cursor()
-#         cursor.execute(query, (class_name, faculty_id))
-#         self.db.commit()
-#
-#     def add_student_to_class(self, class_name: str, student_username: str,
-#                              faculty_username: str):
-#         if self.is_student_in_class()
-#
-#         faculty_id = self._get_faculty_id(faculty_username)
-#         class_id = self._get_class_id(class_name, faculty_username)
-#         student_id = self._get_student_id(student_username)
-#
-#
-#
-#     def get_class_students(self, class_name: str, faculty_username: str):
-#         class_id = self._get_class_id(class_name, faculty_username)
-#
-#         query = ('SELECT username, email, first_name, last_name '
-#                  'FROM user, class, class_student '
-#                  'WHERE user.id = class_student.student_id '
-#                  '  AND class.id = class_student.class_id '
-#                  '  AND class.id = ?')
-#
-#         cursor = self.db.cursor()
-#         cursor.execute(query, (class_id,))
-#
-#         students = []
-#
-#         for row in cursor.fetchall():
-#             student = Student(row[3], row[2], row[0], row[1])
-#             students.append(student)
-#
-#         return students
-#
-#     def _get_class_id(self, class_name, faculty_username):
-#             query = ('SELECT class.id FROM class, user '
-#                      'WHERE class.name = ? AND class.faculty_id = user.id '
-#                      '  AND user.username = ?')
-#             cursor = self.db.cursor()
-#             cursor.execute(query, (class_name, faculty_username))
-#
-#             row = cursor.fetchone()
-#
-#             if row is None:
-#                 raise DatabaseException('Faculty user {} has no class named {}'
-#                                         .format(class_name, faculty_username))
-#
-#             return row[0]
-#
-#     def _get_faculty_id(self, faculty_username):
-#         query = "SELECT id FROM user WHERE username = ? AND role = 'faculty'"
-#         cursor = self.db.cursor()
-#
-#         cursor.execute(query, (faculty_username,))
-#
-#         row = cursor.fetchone()
-#
-#         if row is None:
-#             raise DatabaseException('No such faculty user {}'
-#                                     .format(faculty_username))
-#
-#         return row[0]
-#
-#     def _get_student_id(self, student_username):
-#         query = "SELECT id FROM user WHERE username = ? AND role = 'student'"
-#         cursor = self.db.cursor()
-#
-#         cursor.execute(query, (student_username,))
-#
-#         row = cursor.fetchone()
-#
-#         if row is None:
-#             raise DatabaseException('No such faculty user {}'
-#                                     .format(student_username))
-#
-#         return row[0]
-
-

@@ -25,7 +25,7 @@ from gkeepcore.path_utils import user_home_dir, faculty_assignment_dir_path, \
     user_log_path, student_assignment_repo_path
 from gkeepserver.assignments import AssignmentDirectory
 from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.faculty import FacultyMembers
+from gkeepserver.faculty_members import FacultyMembers
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.new_submission_queue import new_submission_queue

@@ -102,6 +102,12 @@ class Student:
         return '{0}, {1} ({2}) <{3}>'.format(self.last_name, self.first_name,
                                              self.username, self.email_address)
 
+    def __eq__(self, other):
+        return (self.username == other.username and
+                self.email_address == other.email_address and
+                self.last_name == other.last_name and
+                self.first_name == other.first_name)
+
     def get_last_first_username(self) -> str:
         """
         Build a string of the following form:
