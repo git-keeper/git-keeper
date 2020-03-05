@@ -50,12 +50,18 @@ def get_action_script_and_interpreter(directory_path: str):
     script_name = None
     interpreter = None
 
+    scripts_found = set()
+
     for item in os.listdir(directory_path):
         full_path = os.path.join(directory_path, item)
 
         if os.path.isfile(full_path) and item in interpreters_by_script_name:
-            script_name = item
-            interpreter = interpreters_by_script_name[script_name]
+            scripts_found.add(item)
+
+    for s, i in interpreters_by_script_name.items():
+        if s in scripts_found:
+            script_name = s
+            interpreter = i
             break
 
     return script_name, interpreter
