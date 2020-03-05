@@ -39,6 +39,15 @@ Student Submits Correct Solution
     Student Submits Correct Solution    student1    faculty1    cs1    good_simple
     Submission Test Results Email Exists    student1    cs1    good_simple    Done
 
+Student Submits Python Action Solution
+    [Tags]  happy_path
+    Add Assignment to Client  faculty1  good_action_py
+    Gkeep Upload Succeeds   faculty1   cs1    good_action_py
+    Gkeep Publish Succeeds  faculty1    cs1     good_action_py
+    Clone Assignment  student1  faculty1    cs1     good_action_py
+    Student Submits Correct Solution    student1    faculty1    cs1    good_action_py
+    Submission Test Results Email Exists    student1    cs1    good_action_py    Done
+
 Bad Action.sh
     [Tags]  error
     Add Assignment to Client  faculty1  bad_action
@@ -77,3 +86,4 @@ Submissions While Gkeepd is Down
     Submission Test Results Email Does Not Exist    student1    cs1    good_simple    Done
     Start gkeepd
     Submission Test Results Email Exists    student1    cs1    good_simple    Done
+
