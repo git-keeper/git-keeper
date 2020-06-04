@@ -17,7 +17,8 @@
 """Provides utility functions used by EventHandler classes."""
 
 from gkeepcore.log_file import log_append_command
-from gkeepcore.path_utils import user_home_dir, gkeepd_to_faculty_log_path
+from gkeepcore.path_utils import user_home_dir, gkeepd_to_faculty_log_path, \
+    user_gitkeeper_path
 from gkeepcore.shell_command import run_command
 
 
@@ -31,8 +32,8 @@ def log_gkeepd_to_faculty(faculty_username: str, event_type: str,
     :param payload: event information
     """
 
-    faculty_home_dir = user_home_dir(faculty_username)
-    log_path = gkeepd_to_faculty_log_path(faculty_home_dir)
+    gitkeeper_path = user_gitkeeper_path(faculty_username)
+    log_path = gkeepd_to_faculty_log_path(gitkeeper_path)
 
     command = log_append_command(log_path, event_type, payload)
     run_command(command)

@@ -22,7 +22,8 @@ Event type: CLASS_STATUS
 """
 
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.path_utils import user_home_dir, faculty_class_dir_path
+from gkeepcore.path_utils import user_home_dir, faculty_class_dir_path, \
+    user_gitkeeper_path
 
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.file_writing import write_and_install_file
@@ -46,8 +47,8 @@ class ClassStatusHandler(EventHandler):
             raise HandlerException('Invalid status for CLASS_STATUS: {}'
                                    .format(self._status))
 
-        faculty_home_dir = user_home_dir(self._faculty_username)
-        class_path = faculty_class_dir_path(self._class_name, faculty_home_dir)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
+        class_path = faculty_class_dir_path(self._class_name, gitkeeper_path)
 
         print('Handling class status:')
         print(' Faculty:', self._faculty_username)

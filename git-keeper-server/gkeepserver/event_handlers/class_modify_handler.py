@@ -21,7 +21,7 @@ import os
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
     student_class_dir_path, user_home_dir, faculty_class_dir_path, \
-    class_student_csv_path
+    class_student_csv_path, user_gitkeeper_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.student import students_from_csv, Student
 from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, chmod
@@ -52,7 +52,7 @@ class ClassModifyHandler(EventHandler):
         for the class.
         """
 
-        home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
         try:
             new_students_reader = LocalCSVReader(self._uploaded_csv_path)
@@ -64,7 +64,7 @@ class ClassModifyHandler(EventHandler):
                 new_students_by_username[student.username] = student
 
             old_students_path = class_student_csv_path(self._class_name,
-                                                       home_dir)
+                                                       gitkeeper_path)
             old_students_reader = LocalCSVReader(old_students_path)
             old_students_by_username = {}
             for student in students_from_csv(old_students_reader):
@@ -91,13 +91,15 @@ class ClassModifyHandler(EventHandler):
                      .format(self._uploaded_csv_path))
             raise HandlerException(error)
 
-        home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
-        faculty_class_path = faculty_class_dir_path(self._class_name, home_dir)
+        faculty_class_path = faculty_class_dir_path(self._class_name,
+                                                    gitkeeper_path)
 
         # copy the CSV and fix permissions
         try:
-            final_csv_path = class_student_csv_path(self._class_name, home_dir)
+            final_csv_path = class_student_csv_path(self._class_name,
+                                                    gitkeeper_path)
             cp(self._uploaded_csv_path, final_csv_path, sudo=True)
             chmod(faculty_class_path, '750', sudo=True)
             sudo_chown(faculty_class_path, self._faculty_username,

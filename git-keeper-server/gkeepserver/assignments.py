@@ -30,7 +30,7 @@ from gkeepcore.git_commands import git_init_bare, git_init, git_add_all, \
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import parse_faculty_assignment_path, \
     user_home_dir, faculty_class_dir_path, student_assignment_repo_path, \
-    student_class_dir_path, faculty_assignment_dir_path
+    student_class_dir_path, faculty_assignment_dir_path, user_gitkeeper_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.system_commands import cp, chmod, mkdir, sudo_chown, rm, mv
 from gkeepserver.email_sender_thread import email_sender
@@ -155,7 +155,7 @@ def get_assignment_dir(faculty_username: str, class_name: str,
 
     assignment_path = \
         faculty_assignment_dir_path(class_name, assignment_name,
-                                    user_home_dir(faculty_username))
+                                    user_gitkeeper_path(faculty_username))
 
     return AssignmentDirectory(assignment_path)
 
@@ -170,7 +170,7 @@ def get_class_assignment_dirs(faculty_username: str, class_name: str) -> list:
     :return: list of AssignmentDirectory objects
     """
     class_path = faculty_class_dir_path(class_name,
-                                        user_home_dir(faculty_username))
+                                        user_gitkeeper_path(faculty_username))
 
     assignment_dirs = []
 
