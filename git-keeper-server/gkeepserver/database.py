@@ -164,15 +164,14 @@ class Database:
     def get_all_faculty(self):
         faculty_objects = []
 
-        query = (User.select().
-                 join(Admin, pw.JOIN.LEFT_OUTER, on=(User.id == Admin.faculty_id)))
+        query = (User.select().where(User.role == 'faculty'))
 
         for result in query:
-            admin = result.faculty_id is not None
+            admin = self.is_admin(result.username)
 
             faculty_objects.append(
                 Faculty(result.last_name, result.first_name, result.username,
-                        result.email_address, admin=admin)
+                        result.email, admin=admin)
             )
 
         return faculty_objects
