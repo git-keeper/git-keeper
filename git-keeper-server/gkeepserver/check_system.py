@@ -178,7 +178,10 @@ def check_faculty():
 
     faculty_members = FacultyMembers()
 
+    gkeepd_logger.log_debug('Checking faculty')
+
     if not faculty_members.faculty_exists(config.admin_username):
+        gkeepd_logger.log_debug('Admin user does not exist')
         faculty_members.add_faculty(config.admin_last_name,
                                     config.admin_first_name,
                                     config.admin_email, admin=True)

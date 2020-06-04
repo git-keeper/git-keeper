@@ -176,6 +176,13 @@ class Database:
 
         return faculty_objects
 
+    def faculty_username_exists(self, username: str):
+        try:
+            self.get_faculty_by_username(username)
+            return True
+        except DatabaseException:
+            return False
+
     def is_admin(self, username: str):
         query = User.select().join(Admin).where(User.username == username)
         return query.exists()

@@ -56,6 +56,9 @@ class FacultyMembers:
         username = db.insert_user(email_address, first_name, last_name,
                                   'faculty')
 
+        if admin:
+            db.set_admin(username)
+
         gkeepd_logger.log_info('Adding faculty user {}'.format(username))
 
         groups = [config.keeper_group, config.faculty_group]
@@ -116,11 +119,4 @@ class FacultyMembers:
         :return: list of Faculty objects
         """
 
-        faculty_objects = []
-
-        for username in self.json_dictionary:
-            faculty_objects.append(self.get_faculty_object(username))
-
-        return faculty_objects
-
-
+        return db.get_all_faculty()
