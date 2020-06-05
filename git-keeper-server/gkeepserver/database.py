@@ -122,9 +122,11 @@ class Database:
         return username
 
     def insert_faculty(self, faculty: Faculty):
-       username = self.insert_user(faculty.email_address, faculty.first_name,
-                                   faculty.last_name, 'faculty')
-       return username
+        username = self.insert_user(faculty.email_address, faculty.first_name,
+                                    faculty.last_name, 'faculty')
+        if faculty.admin:
+            self.set_admin(username)
+        return username
 
     def insert_user(self, email_address: str, first_name: str,
                     last_name: str, role: str):

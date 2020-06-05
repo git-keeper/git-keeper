@@ -33,8 +33,9 @@ from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
                                        sudo_add_group, mode, chmod, touch,
                                        this_user, this_group, sudo_add_user,
                                        group_owner, sudo_chown)
-from gkeepserver.create_user import create_user, UserType
-from gkeepserver.faculty_members import FacultyMembers
+from gkeepserver.create_user import create_user, UserType, add_faculty
+from gkeepserver.database import db
+from gkeepserver.faculty import Faculty
 from gkeepserver.gkeepd_logger import gkeepd_logger as gkeepd_logger
 from gkeepserver.server_configuration import config
 
@@ -169,14 +170,11 @@ def write_gitconfig():
 def check_faculty():
     """Add any new faculty members."""
 
-    faculty_members = FacultyMembers()
-
     gkeepd_logger.log_debug('Checking faculty')
 
-    if not faculty_members.faculty_exists(config.admin_username):
-        gkeepd_logger.log_debug('Admin user does not exist')
-        faculty_members.add_faculty(config.admin_last_name,
-                                    config.admin_first_name,
-                                    config.admin_email, admin=True)
-    elif not faculty_members.is_admin(config.admin_username):
-        faculty_members.promote_to_admin(config.admin_username)
+    if not db.faculty_username_exists(config.admin_username):
+        add_faculty(config.admin_last_name, config.admin_first_name,
+                    config.admin_email, admin=True)
+
+    elif not db.is_admin(config.admin_username):
+        db.set_admin(config.admin_username)

@@ -31,8 +31,8 @@ from gkeepserver.assignments import AssignmentDirectory, \
     create_base_code_repo, copy_email_txt_file, \
     copy_tests_dir, remove_student_assignment, setup_student_assignment, \
     StudentAssignmentError, write_run_action_sh
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.faculty_members import FacultyMembers
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.server_configuration import config
@@ -104,7 +104,7 @@ class UpdateHandler(EventHandler):
         # Remove and re-setup the bare repository so the faculty can test the
         # assignment, and email the faculty.
 
-        faculty = FacultyMembers().get_faculty_object(self._faculty_username)
+        faculty = db.get_faculty_by_username(self._faculty_username)
 
         # remove existing test assignment and setup the new test assignment
         try:

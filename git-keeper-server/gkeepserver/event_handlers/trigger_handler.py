@@ -24,8 +24,8 @@ from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_home_dir, faculty_assignment_dir_path, \
     user_log_path, student_assignment_repo_path, user_gitkeeper_path
 from gkeepserver.assignments import AssignmentDirectory
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.faculty_members import FacultyMembers
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.new_submission_queue import new_submission_queue
@@ -75,8 +75,7 @@ class TriggerHandler(EventHandler):
                         if s.username in self._student_usernames]
 
             if self._faculty_username in self._student_usernames:
-                members = FacultyMembers()
-                faculty = members.get_faculty_object(self._faculty_username)
+                faculty = db.get_faculty_by_username(self._faculty_username)
                 students.append(faculty)
 
             self._trigger_tests(students, assignment_dir)
@@ -95,7 +94,7 @@ class TriggerHandler(EventHandler):
             gkeepd_logger.log_warning(warning)
 
     def _trigger_tests(self, students, assignment_dir: AssignmentDirectory):
-        faculty = FacultyMembers().get_faculty_object(self._faculty_username)
+        faculty = db.get_faculty_by_username(self._faculty_username)
         faculty_email = faculty.email_address
 
         # trigger tests for all requested students

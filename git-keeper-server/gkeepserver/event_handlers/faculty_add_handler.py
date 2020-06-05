@@ -19,8 +19,9 @@
 import json
 
 from gkeepcore.path_utils import user_from_log_path
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.faculty_members import FacultyMembers
+from gkeepserver.create_user import add_faculty
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_update_thread import info_updater
@@ -37,18 +38,16 @@ class FacultyAddHandler(EventHandler):
         """
 
         try:
-            faculty_members = FacultyMembers()
-
-            if faculty_members.faculty_exists(self._username):
+            if db.faculty_username_exists(self._username):
                 error = 'Faculty user {} already exists'.format(self._username)
                 raise HandlerException(error)
 
-            if not faculty_members.is_admin(self._adder_username):
+            if not db.is_admin(self._adder_username):
                 error = 'User {} is not an admin'.format(self._adder_username)
                 raise HandlerException(error)
 
-            faculty_members.add_faculty(self._last_name, self._first_name,
-                                        self._email_address, self._admin)
+            add_faculty(self._last_name, self._first_name, self._email_address,
+                        self._admin)
 
             info_updater.enqueue_full_scan(self._username)
 

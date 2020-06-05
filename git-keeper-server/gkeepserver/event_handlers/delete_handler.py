@@ -29,8 +29,8 @@ from gkeepcore.student import students_from_csv
 from gkeepcore.system_commands import rm
 from gkeepserver.assignments import AssignmentDirectory, \
     remove_student_assignment
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.faculty_members import FacultyMembers
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_update_thread import info_updater
@@ -95,7 +95,7 @@ class DeleteHandler(EventHandler):
                                                        gitkeeper_path))
         students_with_assignment = []
 
-        faculty = FacultyMembers().get_faculty_object(self._faculty_username)
+        faculty = db.get_faculty_by_username(self._faculty_username)
 
         students_with_assignment.append(faculty)
 

@@ -34,14 +34,12 @@ from signal import signal, SIGINT, SIGTERM
 from traceback import extract_tb
 
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.version import __version__ as core_version
 from gkeepserver.check_system import check_system
 from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.event_handler_assigner import EventHandlerAssignerThread
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
-from gkeepserver.faculty_members import FacultyMembers
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepserver.info_update_thread import info_updater
 from gkeepserver.local_log_file_reader import LocalLogFileReader
@@ -130,9 +128,7 @@ def main():
     # start the info refresher thread and refresh the info for each faculty
     info_updater.start()
 
-    faculty_list = FacultyMembers().get_faculty_objects()
-
-    for faculty in faculty_list:
+    for faculty in db.get_all_faculty():
         info_updater.enqueue_full_scan(faculty.username)
 
     # queues for thread communication
