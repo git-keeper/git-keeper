@@ -130,17 +130,10 @@ def check_paths_and_permissions():
             except CommandError as e:
                 raise CheckSystemError(e)
 
-    if not os.path.isfile(config.faculty_json_path):
-        gkeepd_logger.log_info('{} does not exist, creating it now'
-                               .format(config.faculty_json_path))
-        with open(config.faculty_json_path, 'w') as f:
-            json.dump({}, f)
-
     required_modes = {
         config.home_dir: '750',
         tester_home_dir: '770',
         config.log_file_path: '600',
-        config.faculty_json_path: '600',
         config.db_path: '600',
     }
 

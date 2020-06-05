@@ -182,9 +182,6 @@ class ServerConfiguration:
         # database file location
         self.db_path = os.path.join(self.home_dir, 'gkeepd_db.sqlite')
 
-        # faculty info locations
-        self.faculty_json_path = os.path.join(self.home_dir, 'faculty.json')
-
         # lock file to prevent multiple instances
         self.lock_file_path = os.path.join(self.home_dir, 'gkeepd.lock')
 
