@@ -178,6 +178,16 @@ class Database:
 
         return faculty_objects
 
+    def get_faculty_class_names(self, username: str):
+        query = Class.select().join(User).where(
+            (Class.faculty_id == User.id) &
+            (User.username == username)
+        )
+
+        class_names = [row.name for row in query]
+
+        return class_names
+
     def faculty_username_exists(self, username: str):
         try:
             self.get_faculty_by_username(username)
@@ -263,7 +273,6 @@ class Database:
 
     def add_student_to_class(self, class_name: str, student_username: str,
                              faculty_username: str):
-        faculty_id = self._get_faculty_id(faculty_username)
         class_id = self._get_class_id(class_name, faculty_username)
         student_id = self._get_student_id(student_username)
 
@@ -273,6 +282,18 @@ class Database:
             error = '{} is already in class {}'.format(student_username,
                                                        class_name)
             raise DatabaseException(error)
+
+    def remove_student_from_class(self, class_name: str, student_username: str,
+                                  faculty_username: str):
+        class_id = self._get_class_id(class_name, faculty_username)
+        student_id = self._get_student_id(student_username)
+
+        class_student = ClassStudent.get(
+            (ClassStudent.class_id == class_id) &
+            (ClassStudent.student_id == student_id)
+        )
+
+        class_student.delete_instance()
 
     def get_class_students(self, class_name: str, faculty_username: str):
         class_id = self._get_class_id(class_name, faculty_username)
@@ -289,6 +310,39 @@ class Database:
             students.append(student)
 
         return students
+
+    def student_in_class(self, username, class_name, faculty_username):
+        try:
+            class_id = self._get_class_id(class_name, faculty_username)
+            student_id = self._get_student_id(username)
+
+            ClassStudent.get((ClassStudent.student_id == student_id) &
+                             (ClassStudent.class_id == class_id))
+            return True
+        except (DatabaseException, ClassStudent.DoesNotExist):
+            return False
+
+    def get_student_by_email(self, email_address: str) -> Student:
+        try:
+            user = User.get((User.email == email_address) &
+                            (User.role == 'student'))
+            return Student(user.last_name, user.first_name, user.username,
+                           user.email)
+        except User.DoesNotExist:
+            error = ('No student user with the email address {}'
+                     .format(email_address))
+            raise DatabaseException(error)
+
+    def get_student_by_username(self, username: str) -> Student:
+        try:
+            user = User.get((User.username == username) &
+                            (User.role == 'student'))
+            return Student(user.last_name, user.first_name, user.username,
+                           user.email)
+        except User.DoesNotExist:
+            error = ('No student user with the username {}'
+                     .format(username))
+            raise DatabaseException(error)
 
     def update_byte_counts(self, byte_counts_by_file_path: dict):
         data = [

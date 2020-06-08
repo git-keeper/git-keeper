@@ -257,9 +257,8 @@ def trigger_tests(class_name: str, assignment_name: str,
                  'faculty account')
         raise GkeepException(error)
 
-    class_students = server_interface.get_students(class_name)
-
-    class_student_usernames = [s.username for s in class_students]
+    class_student_usernames = \
+        server_interface.get_info().student_list(class_name)
 
     if len(student_usernames) == 0:
         student_usernames = class_student_usernames

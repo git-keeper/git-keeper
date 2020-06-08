@@ -36,10 +36,9 @@ from gkeepcore.path_utils import user_home_dir, student_assignment_repo_path, \
 from gkeepcore.system_commands import sudo_chown, chmod, mv, mkdir, rm
 from gkeepserver.assignments import get_class_assignment_dirs, \
     AssignmentDirectory, get_assignment_dir
+from gkeepserver.database import db
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepserver.server_configuration import config
-from gkeepserver.students_and_classes import get_faculty_class_names, \
-    get_class_students, get_class_student
 
 
 def nested_defaultdict():
@@ -261,8 +260,8 @@ class InfoUpdateThread(Thread):
                                                     payload.class_name,
                                                     payload.assignment_name)
 
-                students = get_class_students(payload.faculty_username,
-                                              payload.class_name)
+                students = db.get_class_students(payload.class_name,
+                                                 payload.faculty_username)
 
                 self._assignment_scan(payload.faculty_username, assignment_dir,
                                       students)
@@ -277,9 +276,7 @@ class InfoUpdateThread(Thread):
                                                     payload.class_name,
                                                     payload.assignment_name)
 
-                student = get_class_student(payload.faculty_username,
-                                            payload.class_name,
-                                            payload.student_username)
+                student = db.get_student_by_username(payload.student_username)
 
                 self._assignment_scan(payload.faculty_username, assignment_dir,
                                       (student,))
@@ -327,7 +324,7 @@ class InfoUpdateThread(Thread):
             rm(delete_path, sudo=True)
 
     def _full_scan(self, faculty_username):
-        class_names = get_faculty_class_names(faculty_username)
+        class_names = db.get_faculty_class_names(faculty_username)
 
         for class_name in class_names:
             self._class_scan(faculty_username, class_name)
@@ -339,7 +336,7 @@ class InfoUpdateThread(Thread):
 
         students_info = {}
 
-        students = get_class_students(faculty_username, class_name)
+        students = db.get_class_students(class_name, faculty_username)
 
         for student in students:
             student_info = {

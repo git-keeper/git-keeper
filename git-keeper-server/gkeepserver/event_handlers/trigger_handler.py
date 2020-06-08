@@ -20,17 +20,14 @@ Event type: TRIGGER
 """
 
 from gkeepcore.git_commands import git_head_hash
-from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_home_dir, faculty_assignment_dir_path, \
-    user_log_path, student_assignment_repo_path, user_gitkeeper_path
+    student_assignment_repo_path, user_gitkeeper_path
 from gkeepserver.assignments import AssignmentDirectory
 from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.new_submission_queue import new_submission_queue
-from gkeepserver.server_configuration import config
-from gkeepserver.students_and_classes import get_class_students
 from gkeepserver.submission import Submission
 
 
@@ -68,11 +65,12 @@ class TriggerHandler(EventHandler):
                          'the faculty account')
                 raise HandlerException(error)
 
-            students = get_class_students(self._faculty_username,
-                                          self._class_name)
+            students = db.get_class_students(self._class_name,
+                                             self._faculty_username)
 
-            students = [s for s in students
-                        if s.username in self._student_usernames]
+            if len(self._student_usernames) > 0:
+                students = [s for s in students
+                            if s.username in self._student_usernames]
 
             if self._faculty_username in self._student_usernames:
                 faculty = db.get_faculty_by_username(self._faculty_username)
@@ -119,10 +117,17 @@ class TriggerHandler(EventHandler):
         :return: a string representation of the event to be handled
         """
 
-        string = ('{0} requested to trigger tests on {1} for student(s) {2}'
-                  .format(self._faculty_username, self._class_name,
-                          self._assignment_name,
-                          ' '.join(self._student_usernames)))
+        if len(self._student_usernames) > 0:
+            string = ('{0} requested to trigger tests on assignment {2} in '
+                      'class {1} for student(s) {3}'
+                      .format(self._faculty_username, self._class_name,
+                              self._assignment_name,
+                              ' '.join(self._student_usernames)))
+        else:
+            string = ('{0} requested to trigger tests on assignment {2} in '
+                      'class {1} for all students'
+                      .format(self._faculty_username, self._class_name,
+                              self._assignment_name))
 
         return string
 
@@ -144,7 +149,7 @@ class TriggerHandler(EventHandler):
 
         # there must be a class name and assignment name, and at least one
         # student username
-        if len(payload_list) < 3:
+        if len(payload_list) < 2:
             error = ('Invalid payload for TRIGGER: {0}'.format(self._payload))
             raise HandlerException(error)
 

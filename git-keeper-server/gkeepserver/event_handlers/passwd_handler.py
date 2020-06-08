@@ -19,11 +19,11 @@
 
 from gkeepcore.path_utils import user_from_log_path
 from gkeepcore.system_commands import sudo_set_password
+from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.generate_password import generate_password
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.server_email import Email
-from gkeepserver.students_and_classes import get_student_from_username
 
 
 class PasswdHandler(EventHandler):
@@ -33,10 +33,18 @@ class PasswdHandler(EventHandler):
         """Handle resetting a student password."""
 
         try:
-            student = get_student_from_username(self._faculty_username,
-                                                self._username)
+            student = db.get_student_by_username(self._username)
 
-            if student is None:
+            student_found = False
+
+            class_names = db.get_faculty_class_names(self._faculty_username)
+            for class_name in class_names:
+                if db.student_in_class(student.username, class_name,
+                                       self._faculty_username):
+                    student_found = True
+                    break
+
+            if not student_found:
                 error = ('No student found with username {} in any of your '
                          'classes'.format(self._username))
                 raise HandlerException(error)

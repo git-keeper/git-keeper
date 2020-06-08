@@ -6,7 +6,7 @@ from gkeepserver.faculty import Faculty
 
 
 @pytest.fixture
-def db():
+def db() -> Database:
     db = Database()
     db.connect(':memory:')
     return db
@@ -96,6 +96,13 @@ def test_insert_class(db):
     db.insert_class('class', 'faculty2')
     assert db.class_exists('class', 'faculty2')
 
+    db.insert_class('class2', 'faculty1')
+    assert db.class_exists('class2', 'faculty1')
+
+    expected_classes = ['class', 'class2']
+
+    assert sorted(db.get_faculty_class_names('faculty1')) == expected_classes
+
     db.close_class('class', 'faculty1')
     assert not db.class_is_open('class', 'faculty1')
 
@@ -124,6 +131,12 @@ def test_class_students(db):
 
     for student in expected_students:
         assert student in students
+
+    db.remove_student_from_class('class', 'student1', 'faculty1')
+
+    students = db.get_class_students('class', 'faculty1')
+    assert students == [Student('two', 'student', 'student2',
+                                'student2@school.edu')]
 
 
 def test_byte_counts(db):

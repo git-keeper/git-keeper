@@ -25,6 +25,7 @@ from tempfile import TemporaryDirectory, mkdtemp
 
 from gkeepcore.student import Student
 from gkeepserver.assignments import AssignmentDirectory
+from gkeepserver.database import db
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepcore.git_commands import git_clone, git_add_all, git_commit, \
     git_push, git_checkout
@@ -34,8 +35,6 @@ from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email
 from gkeepcore.path_utils import parse_submission_repo_path, user_home_dir
-
-from gkeepserver.students_and_classes import get_class_status
 
 
 class Submission:
@@ -84,8 +83,7 @@ class Submission:
         faculty_username, class_name, assignment_name = \
             parse_submission_repo_path(self.student_repo_path)
 
-        class_status = get_class_status(faculty_username, class_name)
-        if class_status == 'closed':
+        if not db.class_is_open(class_name, faculty_username):
             # inform the student that the class is closed
             subject = ('[{0}] class is closed'.format(class_name))
             body = ('You have pushed a submission for a class that is is '
