@@ -39,7 +39,7 @@ from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
 from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, \
     upload_assignment, trigger_tests, update_status, add_faculty, \
-    reset_password
+    reset_password, admin_promote, admin_demote
 from gkeepclient.queries import list_classes, list_assignments, list_students, \
     list_recent
 from gkeepclient.test_solution import test_solution
@@ -334,6 +334,32 @@ def add_add_faculty_subparser(subparsers):
                            help='email address of the faculty member')
 
 
+def add_admin_promote_subparser(subparsers):
+    """
+    Add a subparser for action 'admin_promote', which promotes a user to admin
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('admin_promote',
+                                      help='promote a faculty user to admin')
+    subparser.add_argument('email_address', metavar='<email address>',
+                           help='email address of the faculty member')
+
+
+def add_admin_demote_subparser(subparsers):
+    """
+    Add a subparser for action 'admin_demote', which demotes a user from admin
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('admin_demote',
+                                      help='demote a faculty user from admin')
+    subparser.add_argument('email_address', metavar='<email address>',
+                           help='email address of the faculty member')
+
+
 def initialize_action_parser() -> GraderParser:
     """
     Initialize a GraderParser object.
@@ -367,6 +393,8 @@ def initialize_action_parser() -> GraderParser:
     add_config_subparser(subparsers)
     add_status_subparser(subparsers)
     add_add_faculty_subparser(subparsers)
+    add_admin_promote_subparser(subparsers)
+    add_admin_demote_subparser(subparsers)
 
     return parser
 
@@ -481,6 +509,10 @@ def take_action(parsed_args):
     elif action_name == 'add_faculty':
         add_faculty(parsed_args.last_name, parsed_args.first_name,
                     parsed_args.email_address)
+    elif action_name == 'admin_promote':
+        admin_promote(parsed_args.email_address)
+    elif action_name == 'admin_demote':
+        admin_demote(parsed_args.email_address)
     elif action_name == 'test':
         test_solution(class_name, parsed_args.assignment_name,
                       parsed_args.solution_path)

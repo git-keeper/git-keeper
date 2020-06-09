@@ -176,6 +176,42 @@ def add_faculty(last_name: str, first_name: str, email_address: str,
 
 @config_parsed
 @server_interface_connected
+def admin_promote(email_address: str):
+    """
+    Promote a faculty user to admin
+
+    :param email_address: email address of the faculty user
+    """
+
+    print('Attempting to promote {} to admin'.format(email_address))
+
+    communicate_event('ADMIN_PROMOTE', email_address,
+                      success_message='User promoted successfully',
+                      error_message='Error promoting user: ',
+                      timeout_message='Server response timeout. '
+                                      'Status of promoting user unknown')
+
+
+@config_parsed
+@server_interface_connected
+def admin_demote(email_address: str):
+    """
+    Remote admin status for a faculty user
+
+    :param email_address: email address of the faculty user
+    """
+
+    print('Attempting to demote {} from admin'.format(email_address))
+
+    communicate_event('ADMIN_DEMOTE', email_address,
+                      success_message='User demoted successfully',
+                      error_message='Error demoting user: ',
+                      timeout_message='Server response timeout. '
+                                      'Status of demoting user unknown')
+
+
+@config_parsed
+@server_interface_connected
 @class_exists
 @assignment_exists
 def delete_assignment(class_name: str, assignment_name: str,

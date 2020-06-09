@@ -198,6 +198,18 @@ class Database:
         except DatabaseException:
             return False
 
+    def get_faculty_by_email(self, email_address: str) -> Faculty:
+        try:
+            user = User.get((User.email_address == email_address) &
+                            (User.role == 'faculty'))
+            admin = self.is_admin(user.username)
+            return Faculty(user.last_name, user.first_name, user.username,
+                           user.email_address, admin=admin)
+        except User.DoesNotExist:
+            error = ('No faculty user with the email address {}'
+                     .format(email_address))
+            raise DatabaseException(error)
+
     def is_admin(self, username: str):
         query = User.select().join(Admin).where(User.username == username)
         return query.exists()

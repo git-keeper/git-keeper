@@ -46,3 +46,20 @@ Add Faculty As Non Admin
     Create Accounts On Client    faculty1
     Gkeep Add Faculty Fails    faculty1    prof3
     Gkeepd Is Running
+
+Admin Promote And Demote
+    [Tags]    happy_path
+    Gkeep Add Faculty Succeeds    admin_prof    faculty1
+    Create Accounts On Client    faculty1
+    Gkeep Add Faculty Fails    faculty1    faculty2
+    Gkeep Admin Promote Succeeds    admin_prof    faculty1
+    Gkeep Admin Promote Fails    admin_prof    faculty1
+    Gkeep Add Faculty Succeeds    faculty1    faculty2
+    Gkeep Admin Demote Succeeds    faculty1    admin_prof
+    Gkeep Admin Demote Fails    faculty1    admin_prof
+    Gkeep Add Faculty Fails    admin_prof    faculty3
+    Create Accounts On Client    faculty2
+    Gkeep Add Faculty Fails    faculty2    faculty3
+    Gkeep Admin Promote Succeeds    faculty1    faculty2
+    Gkeep Admin Demote Succeeds    faculty2    faculty1
+    Gkeep Add Faculty Fails    faculty1    faculty3

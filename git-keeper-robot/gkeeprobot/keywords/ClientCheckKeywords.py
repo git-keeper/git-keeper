@@ -167,6 +167,40 @@ class ClientCheckKeywords:
         except ExitCodeException:
             pass
 
+    def gkeep_admin_promote_succeeds(self, admin, faculty_to_promote):
+        email_address = '{}@school.edu'.format(faculty_to_promote)
+
+        client_control.run(admin, 'gkeep admin_promote {}'
+                                   .format(email_address))
+
+    def gkeep_admin_promote_fails(self, admin, faculty_to_promote):
+        email_address = '{}@school.edu'.format(faculty_to_promote)
+
+        try:
+            client_control.run(admin, 'gkeep admin_promote {}'
+                                      .format(email_address))
+            error = 'gkeep admin_promote should have non-zero return'
+            raise GkeepRobotException(error)
+        except ExitCodeException:
+            pass
+
+    def gkeep_admin_demote_succeeds(self, admin, faculty_to_demote):
+        email_address = '{}@school.edu'.format(faculty_to_demote)
+
+        client_control.run(admin, 'gkeep admin_demote {}'
+                                   .format(email_address))
+
+    def gkeep_admin_demote_fails(self, admin, faculty_to_demote):
+        email_address = '{}@school.edu'.format(faculty_to_demote)
+
+        try:
+            client_control.run(admin, 'gkeep admin_demote {}'
+                                      .format(email_address))
+            error = 'gkeep admin_demote should have non-zero return'
+            raise GkeepRobotException(error)
+        except ExitCodeException:
+            pass
+
     def gkeep_upload_succeeds(self, faculty, course_name, assignment_name):
         client_control.run(faculty, 'gkeep upload {} {}'.format(course_name, assignment_name))
 
