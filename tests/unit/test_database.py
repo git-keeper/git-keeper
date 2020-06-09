@@ -68,17 +68,46 @@ def test_insert_faculty(db):
 
     assert (Faculty('one', 'faculty', 'faculty1', 'faculty1@school.edu', True)
             in all_faculty)
+    assert (Faculty('one', 'faculty', 'faculty11', 'faculty1@another.edu',
+                    False)
+            in all_faculty)
+    assert (Faculty('one', 'faculty', 'faculty12', 'faculty1@yetanother.edu',
+                    False)
+            in all_faculty)
 
-    db.remove_admin('faculty1')
 
-    assert not db.is_admin('faculty1')
+def test_admin(db):
+    faculty1 = Faculty('last1', 'first1', 'faculty1', 'faculty1@school.edu',
+                       True)
+    faculty2 = Faculty('last2', 'first2', 'faculty2', 'faculty2@school.edu',
+                       False)
 
-    faculty = db.get_faculty_by_username('faculty1')
-    assert faculty == Faculty('one', 'faculty', 'faculty1',
-                              'faculty1@school.edu', False)
+    faculty1 = db.insert_faculty(faculty1)
+    faculty2 = db.insert_faculty(faculty2)
+
+    assert db.is_admin(faculty1.username)
+    assert not db.is_admin(faculty2.username)
+
+    # trying to remove admin when the user is not an admin should raise
+    with pytest.raises(DatabaseException):
+        db.remove_admin(faculty2.username)
+
+    db.set_admin(faculty2.username)
+
+    assert db.is_admin(faculty1.username)
+    assert db.is_admin(faculty2.username)
+
+    db.remove_admin(faculty1.username)
+
+    assert not db.is_admin(faculty1.username)
+    assert db.is_admin(faculty2.username)
 
     with pytest.raises(DatabaseException):
-        db.remove_admin('faculty1')
+        db.remove_admin(faculty1.username)
+
+    # trying to remove the only admin user should raise
+    with pytest.raises(DatabaseException):
+        db.remove_admin(faculty2.username)
 
 
 def test_insert_class(db):
