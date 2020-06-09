@@ -101,7 +101,7 @@ class ClassModifyHandler(EventHandler):
         # add the user if necessary
         if not db.email_exists(student.email_address):
             try:
-                student.username = db.insert_student(student)
+                student = db.insert_student(student)
                 if not user_exists(student.username):
                     create_student_user(student)
             except Exception as e:

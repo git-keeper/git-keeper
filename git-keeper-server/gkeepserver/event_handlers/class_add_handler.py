@@ -101,7 +101,7 @@ class ClassAddHandler(EventHandler):
         # create new student accounts
         for student in new_students:
             try:
-                student.username = db.insert_student(student)
+                student = db.insert_student(student)
                 if not user_exists(student.username):
                     create_student_user(student)
             except Exception as e:

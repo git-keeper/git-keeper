@@ -116,17 +116,20 @@ class Database:
         )
         return query.exists()
 
-    def insert_student(self, student: Student):
+    def insert_student(self, student: Student) -> Student:
         username = self.insert_user(student.email_address, student.first_name,
                                     student.last_name, 'student')
-        return username
+        student.username = username
+        return student
 
-    def insert_faculty(self, faculty: Faculty):
+    def insert_faculty(self, faculty: Faculty) -> Faculty:
         username = self.insert_user(faculty.email_address, faculty.first_name,
                                     faculty.last_name, 'faculty')
         if faculty.admin:
             self.set_admin(username)
-        return username
+
+        faculty.username = username
+        return faculty
 
     def insert_user(self, email_address: str, first_name: str,
                     last_name: str, role: str):
@@ -211,6 +214,9 @@ class Database:
             raise DatabaseException(error)
 
     def remove_admin(self, username: str):
+        if Admin.select().count() == 1:
+            raise DatabaseException('You may not demote the only admin user')
+
         try:
             user = User.get((User.username == username) &
                             (User.role == 'faculty'))
