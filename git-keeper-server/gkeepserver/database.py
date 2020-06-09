@@ -46,7 +46,7 @@ class BaseModel(pw.Model):
 
 
 class User(BaseModel):
-    email = pw.CharField(unique=True)
+    email_address = pw.CharField(unique=True)
     username = pw.CharField(unique=True)
     role = pw.CharField()
     first_name = pw.CharField()
@@ -105,7 +105,7 @@ class Database:
         return query.exists()
 
     def email_exists(self, email_address):
-        query = User.select().where(User.email == email_address)
+        query = User.select().where(User.email_address == email_address)
         return query.exists()
 
     def class_exists(self, class_name, faculty_username):
@@ -146,7 +146,7 @@ class Database:
             username = clean_username + str(counter)
             counter += 1
 
-        User.create(username=username, email=email_address,
+        User.create(username=username, email_address=email_address,
                     first_name=first_name, last_name=last_name,
                     role=role)
 
@@ -158,7 +158,7 @@ class Database:
                             (User.role == 'faculty'))
             admin = self.is_admin(username)
             return Faculty(user.last_name, user.first_name, user.username,
-                           user.email, admin)
+                           user.email_address, admin)
         except User.DoesNotExist:
             error = 'No faculty user with the username {}'.format(username)
             raise DatabaseException(error)
@@ -173,7 +173,7 @@ class Database:
 
             faculty_objects.append(
                 Faculty(result.last_name, result.first_name, result.username,
-                        result.email, admin=admin)
+                        result.email_address, admin=admin)
             )
 
         return faculty_objects
@@ -306,7 +306,7 @@ class Database:
 
         for row in query:
             student = Student(row.last_name, row.first_name, row.username,
-                              row.email)
+                              row.email_address)
             students.append(student)
 
         return students
@@ -324,10 +324,10 @@ class Database:
 
     def get_student_by_email(self, email_address: str) -> Student:
         try:
-            user = User.get((User.email == email_address) &
+            user = User.get((User.email_address == email_address) &
                             (User.role == 'student'))
             return Student(user.last_name, user.first_name, user.username,
-                           user.email)
+                           user.email_address)
         except User.DoesNotExist:
             error = ('No student user with the email address {}'
                      .format(email_address))
@@ -338,7 +338,7 @@ class Database:
             user = User.get((User.username == username) &
                             (User.role == 'student'))
             return Student(user.last_name, user.first_name, user.username,
-                           user.email)
+                           user.email_address)
         except User.DoesNotExist:
             error = ('No student user with the username {}'
                      .format(username))
