@@ -198,3 +198,68 @@ def test_byte_counts(db):
 
     with pytest.raises(DatabaseException):
         db.get_byte_count('first/path')
+
+
+def test_assignment(db):
+    faculty1 = Faculty('last1', 'first1', 'faculty1', 'faculty1@school.edu',
+                       True)
+    faculty2 = Faculty('last2', 'first2', 'faculty2', 'faculty2@school.edu',
+                       False)
+
+    db.insert_faculty(faculty1)
+    db.insert_faculty(faculty2)
+
+    db.insert_class('class1', 'faculty1')
+    db.insert_class('class2', 'faculty1')
+
+    db.insert_class('class1', 'faculty2')
+    db.insert_class('class2', 'faculty2')
+
+    assignments = [
+        ('class1', 'assignment1', 'faculty1'),
+        ('class1', 'assignment2', 'faculty1'),
+        ('class2', 'assignment1', 'faculty1'),
+        ('class2', 'assignment2', 'faculty1'),
+        ('class1', 'assignment1', 'faculty2'),
+        ('class1', 'assignment2', 'faculty2'),
+        ('class2', 'assignment1', 'faculty2'),
+        ('class2', 'assignment2', 'faculty2'),
+    ]
+
+    for class_name, assignment_name, faculty_username in assignments:
+        db.insert_assignment(class_name, assignment_name, faculty_username)
+
+    published = {}
+
+    for assignment in assignments:
+        published[assignment] = False
+
+    for class_name, assignment_name, faculty_username in assignments:
+        expected = published[(class_name, assignment_name, faculty_username)]
+        actual = db.is_published(class_name, assignment_name, faculty_username)
+        assert actual == expected
+
+    db.set_published('class1', 'assignment2', 'faculty1')
+    published[('class1', 'assignment2', 'faculty1')] = True
+
+    db.set_published('class2', 'assignment1', 'faculty2')
+    published[('class2', 'assignment1', 'faculty2')] = True
+
+    for class_name, assignment_name, faculty_username in assignments:
+        expected = published[(class_name, assignment_name, faculty_username)]
+        actual = db.is_published(class_name, assignment_name, faculty_username)
+        assert actual == expected
+
+    with pytest.raises(DatabaseException):
+        db.insert_assignment('class1', 'assignment1', 'faculty1')
+
+    with pytest.raises(DatabaseException):
+        db.remove_assignment('class1', 'assignment1', 'faculty3')
+
+    db.remove_assignment('class1', 'assignment2', 'faculty1')
+
+    with pytest.raises(DatabaseException):
+        db.is_published('class1', 'assignment2', 'faculty1')
+
+    with pytest.raises(DatabaseException):
+        db.set_published('asdf', 'asdf', 'asdf')

@@ -118,7 +118,8 @@ class UpdateHandler(EventHandler):
                       upload_dir: UploadDirectory):
         # Update the directory that holds the files for the assignment.
 
-        published = assignment_dir.is_published()
+        published = db.is_published(self._class_name, self._assignment_name,
+                                    self._faculty_username)
 
         if os.path.isdir(upload_dir.base_code_path) and not published:
             rm(assignment_dir.base_code_repo_path, recursive=True)

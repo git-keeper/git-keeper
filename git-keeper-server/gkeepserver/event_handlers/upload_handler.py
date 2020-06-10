@@ -79,6 +79,9 @@ class UploadHandler(EventHandler):
             self._setup_assignment_dir(assignment_dir)
             self._setup_faculty_test_assignment(assignment_dir)
 
+            db.insert_assignment(self._class_name, self._assignment_name,
+                                 self._faculty_username)
+
             info_updater.enqueue_assignment_scan(self._faculty_username,
                                                  self._class_name,
                                                  self._assignment_name)

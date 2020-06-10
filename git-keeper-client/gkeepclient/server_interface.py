@@ -550,9 +550,7 @@ class ServerInterface:
         :return: True if the assignment is published, False otherwise
         """
 
-        path = assignment_published_file_path(class_name, assignment_name,
-                                              self._gitkeeper_path)
-        return self.is_file(path)
+        return self.get_info().is_published(class_name, assignment_name)
 
     def get_classes(self):
         """
@@ -610,23 +608,12 @@ class ServerInterface:
         :return: list of assignment information
         """
 
-        class_path = faculty_class_dir_path(class_name, self._gitkeeper_path)
-
-        directory_items = self.list_directory(class_path)
-
         assignments_info = []
 
-        for item in sorted(directory_items):
-            item_path = os.path.join(class_path, item)
-
-            if self.is_directory(item_path):
-                published_flag_path = \
-                    assignment_published_file_path(class_name, item,
-                                                   self._gitkeeper_path)
-
-                published = self.is_file(published_flag_path)
-
-                assignments_info.append((item, published))
+        for assignment_name in self.get_info().assignment_list(class_name):
+            published = self.get_info().is_published(class_name,
+                                                     assignment_name)
+            assignments_info.append((assignment_name, published))
 
         return assignments_info
 

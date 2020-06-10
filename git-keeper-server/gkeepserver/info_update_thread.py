@@ -377,7 +377,9 @@ class InfoUpdateThread(Thread):
         assignment_info = assignments_info[assignment_name]
 
         assignment_info['name'] = assignment_name
-        assignment_info['published'] = assignment_dir.is_published()
+        assignment_info['published'] = db.is_published(class_name,
+                                                       assignment_name,
+                                                       faculty_username)
 
         if 'reports_repo' not in assignment_info:
             assignment_info['reports_repo'] = None
@@ -386,7 +388,7 @@ class InfoUpdateThread(Thread):
             assignment_info['students_repos'] = None
 
         # If the assignment is not published, we're done
-        if not assignment_dir.is_published():
+        if not db.is_published(class_name, assignment_name, faculty_username):
             return
 
         reports_repo_path = assignment_dir.reports_repo_path

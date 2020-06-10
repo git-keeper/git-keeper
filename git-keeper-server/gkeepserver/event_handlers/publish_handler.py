@@ -73,7 +73,9 @@ class PublishHandler(EventHandler):
             self._ensure_not_published(assignment_dir)
             students = self._setup_students_assignment_repos(assignment_dir)
             self._populate_reports_repo(assignment_dir, students)
-            self._create_published_flag(assignment_dir)
+
+            db.set_published(self._class_name, self._assignment_name,
+                             self._faculty_username)
 
             info_updater.enqueue_assignment_scan(self._faculty_username,
                                                  self._class_name,
@@ -94,18 +96,9 @@ class PublishHandler(EventHandler):
 
     def _ensure_not_published(self, assignment_dir: AssignmentDirectory):
         # Throw an exception if the assignment is already published
-        if os.path.isfile(assignment_dir.published_flag_path):
+        if db.is_published(self._class_name, self._assignment_name,
+                           self._faculty_username):
             raise HandlerException('Assignment already published')
-
-    def _create_published_flag(self, assignment_dir: AssignmentDirectory):
-        # Mark the assignment as published by touching the published flag file.
-        try:
-            touch(assignment_dir.published_flag_path, sudo=True)
-            sudo_chown(assignment_dir.published_flag_path,
-                       self._faculty_username, config.keeper_group)
-        except CommandError as e:
-            error = 'Error flagging as published: {0}'.format(e)
-            raise HandlerException(error)
 
     def _populate_reports_repo(self, assignment_dir: AssignmentDirectory,
                                students: list):

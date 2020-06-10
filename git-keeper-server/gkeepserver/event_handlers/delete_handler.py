@@ -99,7 +99,8 @@ class DeleteHandler(EventHandler):
 
         students_with_assignment.append(faculty)
 
-        if assignment_dir.is_published():
+        if db.is_published(self._class_name, self._assignment_name,
+                           self._faculty_username):
             for student in students_from_csv(reader):
                 students_with_assignment.append(student)
 
@@ -115,6 +116,9 @@ class DeleteHandler(EventHandler):
 
         # delete the assignment directory
         rm(assignment_dir.path, recursive=True, sudo=True)
+
+        db.remove_assignment(self._class_name, self._assignment_name,
+                             self._faculty_username)
 
     def __repr__(self):
         """

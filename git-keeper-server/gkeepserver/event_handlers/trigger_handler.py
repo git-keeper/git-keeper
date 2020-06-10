@@ -59,7 +59,10 @@ class TriggerHandler(EventHandler):
             faculty_only = (len(self._student_usernames) == 1 and
                             self._faculty_username in self._student_usernames)
 
-            if not assignment_dir.is_published() and not faculty_only:
+            is_published = db.is_published(self._class_name,
+                                           self._assignment_name,
+                                           self._faculty_username)
+            if not is_published and not faculty_only:
                 error = ('This assignment is not published.\n'
                          'Unpublished assignments may only be triggered for '
                          'the faculty account')
