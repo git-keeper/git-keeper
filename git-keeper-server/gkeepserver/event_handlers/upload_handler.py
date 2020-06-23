@@ -34,13 +34,12 @@ from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, create_base_code_repo, copy_email_txt_file, \
     copy_tests_dir, setup_student_assignment, StudentAssignmentError, \
     write_run_action_sh
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.faculty import FacultyMembers
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_update_thread import info_updater
 from gkeepserver.server_configuration import config
-from gkeepserver.students_and_classes import get_class_status
 
 
 class UploadHandler(EventHandler):
@@ -72,15 +71,16 @@ class UploadHandler(EventHandler):
         assignment_dir = AssignmentDirectory(assignment_path, check=False)
 
         try:
-            class_status = get_class_status(self._faculty_username,
-                                            self._class_name)
-            if class_status != 'open':
+            if not db.class_is_open(self._class_name, self._faculty_username):
                 raise HandlerException('{} is not open'
                                        .format(self._class_name))
 
             validate_assignment_name(assignment_dir.assignment_name)
             self._setup_assignment_dir(assignment_dir)
             self._setup_faculty_test_assignment(assignment_dir)
+
+            db.insert_assignment(self._class_name, self._assignment_name,
+                                 self._faculty_username)
 
             info_updater.enqueue_assignment_scan(self._faculty_username,
                                                  self._class_name,
@@ -116,7 +116,7 @@ class UploadHandler(EventHandler):
         # Setup a bare repository so the faculty can test the assignment,
         # and email the faculty.
 
-        faculty = FacultyMembers().get_faculty_object(self._faculty_username)
+        faculty = db.get_faculty_by_username(self._faculty_username)
 
         # set up the faculty's test assignment and send email
         try:

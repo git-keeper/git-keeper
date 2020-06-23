@@ -33,8 +33,9 @@ from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
                                        sudo_add_group, mode, chmod, touch,
                                        this_user, this_group, sudo_add_user,
                                        group_owner, sudo_chown)
-from gkeepserver.create_user import create_user, UserType
-from gkeepserver.faculty import FacultyMembers
+from gkeepserver.create_user import create_user, UserType, add_faculty
+from gkeepserver.database import db
+from gkeepserver.faculty import Faculty
 from gkeepserver.gkeepd_logger import gkeepd_logger as gkeepd_logger
 from gkeepserver.server_configuration import config
 
@@ -76,13 +77,12 @@ def check_paths_and_permissions():
         * the tester user does not exist
         * the faculty group does not exist
         * the faculty log directory does not exist
-        * the log snapshot file does not exist
         * run_action.sh does not exist
         * permissions are wrong on the following files/directories:
             * keeper user's home directory: 750
             * gkeepd.log: 600,
-            * log snapshot file: 600
             * faculty.json: 600
+            * gkeepd_db.sqlite: 600
 
     Raises a CheckSystemError exception on fatal errors.
 
@@ -131,24 +131,11 @@ def check_paths_and_permissions():
             except CommandError as e:
                 raise CheckSystemError(e)
 
-    if not os.path.isfile(config.log_snapshot_file_path):
-        gkeepd_logger.log_info('{0} does not exist, creating it now'
-                               .format(config.log_snapshot_file_path))
-        # we can create it as an empty file
-        touch(config.log_snapshot_file_path)
-
-    if not os.path.isfile(config.faculty_json_path):
-        gkeepd_logger.log_info('{} does not exist, creating it now'
-                               .format(config.faculty_json_path))
-        with open(config.faculty_json_path, 'w') as f:
-            json.dump({}, f)
-
     required_modes = {
         config.home_dir: '750',
         tester_home_dir: '770',
         config.log_file_path: '600',
-        config.log_snapshot_file_path: '600',
-        config.faculty_json_path: '600',
+        config.db_path: '600',
     }
 
     for path, required_mode in required_modes.items():
@@ -183,11 +170,11 @@ def write_gitconfig():
 def check_faculty():
     """Add any new faculty members."""
 
-    faculty_members = FacultyMembers()
+    gkeepd_logger.log_debug('Checking faculty')
 
-    if not faculty_members.faculty_exists(config.admin_username):
-        faculty_members.add_faculty(config.admin_last_name,
-                                    config.admin_first_name,
-                                    config.admin_email, admin=True)
-    elif not faculty_members.is_admin(config.admin_username):
-        faculty_members.promote_to_admin(config.admin_username)
+    if not db.faculty_username_exists(config.admin_username):
+        add_faculty(config.admin_last_name, config.admin_first_name,
+                    config.admin_email, admin=True)
+
+    elif not db.is_admin(config.admin_username):
+        db.set_admin(config.admin_username)

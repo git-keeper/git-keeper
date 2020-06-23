@@ -28,6 +28,7 @@ from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, chmod
 from gkeepserver.assignments import get_class_assignment_dirs, \
     setup_student_assignment, StudentAssignmentError
 from gkeepserver.create_user import create_user, UserType, create_student_user
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
@@ -63,14 +64,11 @@ class ClassModifyHandler(EventHandler):
                                            'own class')
                 new_students_by_username[student.username] = student
 
-            old_students_path = class_student_csv_path(self._class_name,
-                                                       gitkeeper_path)
-            old_students_reader = LocalCSVReader(old_students_path)
             old_students_by_username = {}
-            for student in students_from_csv(old_students_reader):
+            for student in db.get_class_students(self._class_name,
+                                                 self._faculty_username):
                 old_students_by_username[student.username] = student
 
-            self._copy_csv_to_class_dir()
             self._add_class_students(old_students_by_username,
                                      new_students_by_username)
 
@@ -82,52 +80,30 @@ class ClassModifyHandler(EventHandler):
             self._log_error_to_faculty(str(e))
             gkeepd_logger.log_warning('Class modify failed: {0}'.format(e))
 
-    def _copy_csv_to_class_dir(self):
-        # copy the CSV file to its final destination
-
-        # uploaded CSV must be in place
-        if not os.path.isfile(self._uploaded_csv_path):
-            error = ('{0} does not exist, cannot modify class'
-                     .format(self._uploaded_csv_path))
-            raise HandlerException(error)
-
-        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
-
-        faculty_class_path = faculty_class_dir_path(self._class_name,
-                                                    gitkeeper_path)
-
-        # copy the CSV and fix permissions
-        try:
-            final_csv_path = class_student_csv_path(self._class_name,
-                                                    gitkeeper_path)
-            cp(self._uploaded_csv_path, final_csv_path, sudo=True)
-            chmod(faculty_class_path, '750', sudo=True)
-            sudo_chown(faculty_class_path, self._faculty_username,
-                       config.keeper_group, recursive=True)
-        except CommandError as e:
-            error = 'Error copying class CSV: {0}'.format(e)
-            raise HandlerException(error)
-
     def _add_class_students(self, old_students_by_username: dict,
                             new_students_by_username: dict):
         # create sets so we can take the set difference
-        old_usernames = set([username
-                             for username in old_students_by_username])
-        new_usernames = set([username
-                             for username in new_students_by_username])
+        old_usernames = set(old_students_by_username.keys())
+        new_usernames = set(new_students_by_username.keys())
 
         # add students
         for username in new_usernames - old_usernames:
             self._add_class_student(new_students_by_username[username])
+
+        for username in old_usernames - new_usernames:
+            db.remove_student_from_class(self._class_name, username,
+                                         self._faculty_username)
 
     def _add_class_student(self, student: Student):
         # Add the student user if it does not already exist, create the class
         # directory, and add all assignments.
 
         # add the user if necessary
-        if not user_exists(student.username):
+        if not db.email_exists(student.email_address):
             try:
-                create_student_user(student)
+                student = db.insert_student(student)
+                if not user_exists(student.username):
+                    create_student_user(student)
             except Exception as e:
                 error = 'Error adding user {0}: {1}'.format(student.username,
                                                             e)
@@ -166,6 +142,9 @@ class ClassModifyHandler(EventHandler):
                                    assignment_dir.assignment_name, e))
                 self._log_warning_to_faculty(warning)
                 gkeepd_logger.log_warning(warning)
+
+        db.add_student_to_class(self._class_name, student.username,
+                                self._faculty_username)
 
     def __repr__(self) -> str:
         """

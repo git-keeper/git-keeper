@@ -27,10 +27,9 @@ from gkeepcore.path_utils import user_home_dir, class_student_csv_path, \
     faculty_assignment_dir_path
 from gkeepcore.student import student_from_username
 from gkeepserver.assignments import AssignmentDirectory
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.faculty import FacultyMembers
 from gkeepserver.new_submission_queue import new_submission_queue
-from gkeepserver.server_configuration import config
 from gkeepserver.submission import Submission
 
 
@@ -56,7 +55,7 @@ class SubmissionHandler(EventHandler):
         # The AssignmentDirectory object can provide the paths we need
         gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
-        faculty = FacultyMembers().get_faculty_object(self._faculty_username)
+        faculty = db.get_faculty_by_username(self._faculty_username)
         faculty_email = faculty.email_address
 
         assignment_path = faculty_assignment_dir_path(self._class_name,
@@ -64,16 +63,13 @@ class SubmissionHandler(EventHandler):
                                                       gitkeeper_path)
         assignment_directory = AssignmentDirectory(assignment_path)
 
-        reader = LocalCSVReader(class_student_csv_path(self._class_name,
-                                                       gitkeeper_path))
-
         # if the student is the facutly testing the assignment, use the
         # faculty as the student
         if self._student_username == self._faculty_username:
             student = faculty
         # otherwise build the Student from the csv for the class
         else:
-            student = student_from_username(self._student_username, reader)
+            student = db.get_student_by_username(self._student_username)
 
         submission = Submission(student, self._submission_repo_path,
                                 self._commit_hash, assignment_directory,

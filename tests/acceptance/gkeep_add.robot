@@ -40,6 +40,25 @@ Valid Class
     Class Contains Student    faculty1    cs1    student1
     Class Contains Student    faculty1    cs1    student2
 
+Same Email Username
+    [Tags]    happy_path
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=user    email_domain=one.edu
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=user    email_domain=two.edu
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=user    email_domain=three.edu
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    User Exists On Server    user
+    User Exists On Server    user1
+    User Exists On Server    user2
+    New Account Email Exists    user
+    # Checking for the other emails will involve significant changes to the
+    # email system
+    # New Account Email Exists    user1
+    # New Account Email Exists    user2
+    Class Exists    faculty1    cs1
+    Class Contains Student    faculty1    cs1    user
+    Class Contains Student    faculty1    cs1    user1
+    Class Contains Student    faculty1    cs1    user2
+
 Byte Order Mark CSV
     [Tags]    happy_path
     Add File To Client    faculty1    files/byte_order_mark.csv   byte_order_mark.csv

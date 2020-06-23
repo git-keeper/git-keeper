@@ -22,15 +22,12 @@ Event type: CLASS_STATUS
 """
 
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.path_utils import user_home_dir, faculty_class_dir_path, \
-    user_gitkeeper_path
+from gkeepserver.database import db
 
 from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.file_writing import write_and_install_file
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_update_thread import info_updater
-from gkeepserver.server_configuration import config
 
 
 class ClassStatusHandler(EventHandler):
@@ -47,18 +44,16 @@ class ClassStatusHandler(EventHandler):
             raise HandlerException('Invalid status for CLASS_STATUS: {}'
                                    .format(self._status))
 
-        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
-        class_path = faculty_class_dir_path(self._class_name, gitkeeper_path)
-
         print('Handling class status:')
         print(' Faculty:', self._faculty_username)
         print(' Class:  ', self._class_name)
         print(' Status: ', self._status)
 
         try:
-            write_and_install_file(self._status, 'status', class_path,
-                                   self._faculty_username, config.keeper_group,
-                                   '640')
+            if self._status == 'open':
+                db.open_class(self._class_name, self._faculty_username)
+            elif self._status == 'closed':
+                db.close_class(self._class_name, self._faculty_username)
 
             info_updater.enqueue_class_scan(self._faculty_username,
                                             self._class_name)

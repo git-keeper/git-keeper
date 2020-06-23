@@ -26,9 +26,10 @@ from gkeepcore.path_utils import user_home_dir, user_log_path, \
 from gkeepcore.student import Student
 from gkeepcore.system_commands import (sudo_add_user, sudo_set_password, chmod,
                                        sudo_chown, mkdir, make_symbolic_link)
+from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.generate_password import generate_password
-from gkeepserver.gkeepd_logger import gkeepd_logger as logger
+from gkeepserver.gkeepd_logger import gkeepd_logger as logger, gkeepd_logger
 from gkeepserver.initialize_log import initialize_log
 from gkeepserver.log_polling import log_poller
 from gkeepserver.server_configuration import config
@@ -231,3 +232,29 @@ def create_student_user(student: Student):
                 student.first_name, student.last_name,
                 email_address=student.email_address,
                 additional_groups=groups, shell='git-shell')
+
+
+def add_faculty(last_name, first_name, email_address, admin=False):
+    """
+    Add a faculty user.
+
+    :param last_name: last name of the faculty member
+    :param first_name: first name of the faculty member
+    :param email_address: email address of the faculty member
+    :param admin: True if the faculty member should be an admin
+    """
+
+    username = db.insert_user(email_address, first_name, last_name,
+                              'faculty')
+
+    if admin:
+        db.set_admin(username)
+
+    gkeepd_logger.log_info('Adding faculty user {}'.format(username))
+
+    groups = [config.keeper_group, config.faculty_group]
+
+    create_user(username, UserType.faculty, first_name, last_name,
+                email_address=email_address, additional_groups=groups)
+
+    gkeepd_logger.log_debug('User {} created'.format(username))

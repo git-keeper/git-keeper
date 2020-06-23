@@ -17,20 +17,17 @@
 """Provides a handler for handling classes added by faculty."""
 
 import os
-from shutil import which
 
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, student_class_dir_path, \
-    user_home_dir, faculty_class_dir_path, class_student_csv_path, \
-    user_gitkeeper_path
+    user_home_dir
 from gkeepcore.shell_command import CommandError
 from gkeepcore.student import students_from_csv
-from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, \
-    chmod, make_symbolic_link
+from gkeepcore.system_commands import user_exists, mkdir, sudo_chown
 from gkeepcore.valid_names import validate_class_name
-from gkeepserver.create_user import create_user, UserType, create_student_user
+from gkeepserver.create_user import create_student_user
+from gkeepserver.database import db, DatabaseException
 from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.file_writing import write_and_install_file
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_update_thread import info_updater
@@ -55,14 +52,16 @@ class ClassAddHandler(EventHandler):
             validate_class_name(self._class_name)
             reader = LocalCSVReader(self._uploaded_csv_path)
             students = students_from_csv(reader)
+            faculty = db.get_faculty_by_username(self._faculty_username)
 
             for student in students:
-                if student.username == self._faculty_username:
+                if student.email_address == faculty.email_address:
                     raise HandlerException('You cannot add yourself to your '
                                            'own class')
 
-            self._setup_class_dir()
-            self._add_students_class_dirs(students)
+            db.insert_class(self._class_name, self._faculty_username)
+
+            self._setup_and_add_students(students)
 
             info_updater.enqueue_class_scan(self._faculty_username,
                                             self._class_name)
@@ -72,44 +71,7 @@ class ClassAddHandler(EventHandler):
             self._log_error_to_faculty(str(e))
             gkeepd_logger.log_warning('Class add failed: {0}'.format(e))
 
-    def _setup_class_dir(self):
-        # Create the class directory, copy the class CSV file to its final
-        # destination, and create the class's status file
-
-        # uploaded CSV must be in place
-        if not os.path.isfile(self._uploaded_csv_path):
-            error = ('{0} does not exist, cannot add class'
-                     .format(self._uploaded_csv_path))
-            raise HandlerException(error)
-
-        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
-
-        faculty_class_path = faculty_class_dir_path(self._class_name,
-                                                    gitkeeper_path)
-
-        # class must not already exist
-        if os.path.isdir(faculty_class_path):
-            error = ('class {0} already exists'.format(self._class_name))
-            raise HandlerException(error)
-
-        # create the class directory, copy the CSV, fix permissions, and
-        # install the status file
-        try:
-            mkdir(faculty_class_path, sudo=True)
-            final_csv_path = class_student_csv_path(self._class_name,
-                                                    gitkeeper_path)
-            cp(self._uploaded_csv_path, final_csv_path, sudo=True)
-            chmod(faculty_class_path, '750', sudo=True)
-            sudo_chown(faculty_class_path, self._faculty_username,
-                       config.keeper_group, recursive=True)
-            write_and_install_file('open', 'status', faculty_class_path,
-                                   self._faculty_username, config.keeper_group,
-                                   '640')
-        except CommandError as e:
-            error = 'Error setting up class directory: {0}'.format(e)
-            raise HandlerException(error)
-
-    def _add_students_class_dirs(self, students):
+    def _setup_and_add_students(self, students):
         # Add class directory in students' home directories. Add student
         # accounts if necessary.
 
@@ -119,11 +81,11 @@ class ClassAddHandler(EventHandler):
         # build new_students and check that existing students do not have a
         # directory for the class already
         for student in students:
-            if not user_exists(student.username):
-                new_students.append(student)
-            else:
+            try:
+                # update the Student object from the database, in case the
+                # student's username is not the email username
+                student = db.get_student_by_email(student.email_address)
                 home_dir = user_home_dir(student.username)
-
                 class_dir_path = student_class_dir_path(self._faculty_username,
                                                         self._class_name,
                                                         home_dir)
@@ -133,11 +95,15 @@ class ClassAddHandler(EventHandler):
                                               self._faculty_username,
                                               self._class_name))
                     raise HandlerException(error)
+            except DatabaseException:
+                new_students.append(student)
 
         # create new student accounts
         for student in new_students:
             try:
-                create_student_user(student)
+                student = db.insert_student(student)
+                if not user_exists(student.username):
+                    create_student_user(student)
             except Exception as e:
                 error = 'Error adding user {0}: {1}'.format(student.username,
                                                             e)
@@ -155,7 +121,16 @@ class ClassAddHandler(EventHandler):
                 sudo_chown(class_dir_path, student.username,
                            config.keeper_group)
             except CommandError as e:
-                raise HandlerException(e)
+                warning = ('Error creating student class directory for {0} '
+                           'in class {1}: {2}'.format(student,
+                                                      self._class_name,
+                                                      e))
+                self._log_warning_to_faculty(warning)
+                gkeepd_logger.log_warning(warning)
+
+        for student in students:
+            db.add_student_to_class(self._class_name, student.username,
+                                    self._faculty_username)
 
     def __repr__(self) -> str:
         """
@@ -208,3 +183,13 @@ class ClassAddHandler(EventHandler):
         """
 
         self._log_to_faculty('CLASS_ADD_ERROR', error)
+
+
+    def _log_warning_to_faculty(self, warning):
+        """
+        Log a CLASS_MODIFY_WARNING message to the gkeepd.log for the faculty.
+
+        :param warning: the warning message
+        """
+
+        self._log_to_faculty('CLASS_ADD_WARNING', warning)

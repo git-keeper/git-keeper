@@ -32,12 +32,12 @@ from gkeepcore.student import students_from_csv, StudentError, Student
 from gkeepcore.system_commands import touch, sudo_chown, mkdir
 from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, setup_student_assignment, StudentAssignmentError
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_update_thread import info_updater
 from gkeepserver.server_configuration import config
-from gkeepserver.students_and_classes import get_class_status
 
 
 class PublishHandler(EventHandler):
@@ -65,9 +65,7 @@ class PublishHandler(EventHandler):
         print(' Assignment path:', assignment_path)
 
         try:
-            class_status = get_class_status(self._faculty_username,
-                                            self._class_name)
-            if class_status != 'open':
+            if not db.class_is_open(self._class_name, self._faculty_username):
                 raise HandlerException(
                     '{} is not open'.format(self._class_name))
 
@@ -75,7 +73,9 @@ class PublishHandler(EventHandler):
             self._ensure_not_published(assignment_dir)
             students = self._setup_students_assignment_repos(assignment_dir)
             self._populate_reports_repo(assignment_dir, students)
-            self._create_published_flag(assignment_dir)
+
+            db.set_published(self._class_name, self._assignment_name,
+                             self._faculty_username)
 
             info_updater.enqueue_assignment_scan(self._faculty_username,
                                                  self._class_name,
@@ -96,18 +96,9 @@ class PublishHandler(EventHandler):
 
     def _ensure_not_published(self, assignment_dir: AssignmentDirectory):
         # Throw an exception if the assignment is already published
-        if os.path.isfile(assignment_dir.published_flag_path):
+        if db.is_published(self._class_name, self._assignment_name,
+                           self._faculty_username):
             raise HandlerException('Assignment already published')
-
-    def _create_published_flag(self, assignment_dir: AssignmentDirectory):
-        # Mark the assignment as published by touching the published flag file.
-        try:
-            touch(assignment_dir.published_flag_path, sudo=True)
-            sudo_chown(assignment_dir.published_flag_path,
-                       self._faculty_username, config.keeper_group)
-        except CommandError as e:
-            error = 'Error flagging as published: {0}'.format(e)
-            raise HandlerException(error)
 
     def _populate_reports_repo(self, assignment_dir: AssignmentDirectory,
                                students: list):
@@ -139,13 +130,9 @@ class PublishHandler(EventHandler):
         #
         # Return a list of Student objects
 
-        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
-
-        student_csv_path = class_student_csv_path(self._class_name,
-                                                  gitkeeper_path)
-
         try:
-            students = students_from_csv(LocalCSVReader(student_csv_path))
+            students = db.get_class_students(self._class_name,
+                                             self._faculty_username)
         except StudentError as e:
             error = 'Error in student CSV file: {0}'.format(e)
             raise HandlerException(error)

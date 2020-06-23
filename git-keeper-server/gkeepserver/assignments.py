@@ -62,7 +62,6 @@ class AssignmentDirectory:
     Public attributes:
 
         path - path to the assignment directory
-        published_flag_path - path to published flag
         class_name - name of the class
         assignment_name - name of the assignment
         email_path - path to email.txt
@@ -83,7 +82,6 @@ class AssignmentDirectory:
         :param check: whether or not to check if everything exists
         """
         self.path = path
-        self.published_flag_path = os.path.join(self.path, 'published')
         self.run_action_sh_path = os.path.join(self.path, 'run_action.sh')
         self.email_path = os.path.join(self.path, 'email.txt')
         self.base_code_repo_path = os.path.join(self.path, 'base_code.git')
@@ -130,15 +128,6 @@ class AssignmentDirectory:
             get_action_script_and_interpreter(self.tests_path)
         if self.action_script is None:
             raise AssignmentDirectoryError('action script')
-
-    def is_published(self):
-        """
-        Determine if the assignment has been published.
-
-        :return: True if the assignment has bee published, False otherwise
-        """
-
-        return os.path.isfile(self.published_flag_path)
 
 
 def get_assignment_dir(faculty_username: str, class_name: str,
