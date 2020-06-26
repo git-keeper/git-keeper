@@ -356,7 +356,7 @@ def admin_demote(email_address: str):
 @class_exists
 @assignment_exists
 def delete_assignment(class_name: str, assignment_name: str,
-                      response_timeout=20):
+                      yes: bool):
     """
     Delete an assignment on the server.
 
@@ -364,14 +364,23 @@ def delete_assignment(class_name: str, assignment_name: str,
 
     :param class_name: name of the class the assignment belongs to
     :param assignment_name: name of the assignment
-    :param response_timeout: seconds to wait for server response
+    :param yes: if True, will automatically answer yes to confirmation prompts
     """
+
+    if server_interface.get_info().is_published(class_name, assignment_name):
+        error = ('Assignment {} is published and cannot be deleted.\n'
+                 'Use gkeep disable if you wish to disable this assignment.'
+                 .format(assignment_name))
+        raise GkeepException(error)
 
     print('Deleting assignment', assignment_name, 'in class', class_name)
 
+    if not yes and not confirmation('Proceed?', 'y'):
+        raise GkeepException('Aborting')
+
     payload = '{0} {1}'.format(class_name, assignment_name)
 
-    communicate_event('DELETE', payload, response_timeout=response_timeout,
+    communicate_event('DELETE', payload,
                       success_message='Assignment deleted successfully',
                       error_message='Error deleting response:',
                       timeout_message='Server response timeout. '

@@ -488,7 +488,7 @@ def take_action(parsed_args):
     elif action_name == 'publish':
         publish_assignment(class_name, assignment_name)
     elif action_name == 'delete':
-        delete_assignment(class_name, assignment_name)
+        delete_assignment(class_name, assignment_name, parsed_args.yes)
     elif action_name == 'fetch':
         dest_path = build_dest_path(parsed_args.destination_path,
                                     class_name)
