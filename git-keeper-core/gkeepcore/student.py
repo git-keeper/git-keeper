@@ -18,9 +18,6 @@
 Provides a class for representing a student and a function for building a
 list of students from a CSV file.
 """
-import re
-import string
-import unicodedata
 
 from gkeepcore.csv_files import CSVReader
 from gkeepcore.gkeep_exception import GkeepException
@@ -94,13 +91,13 @@ class Student:
 
         Format:
 
-            Last, First (username) <username@example.com>
+            Last, First <username@example.com>
 
         :return: string representation of the object
         """
 
-        return '{0}, {1} ({2}) <{3}>'.format(self.last_name, self.first_name,
-                                             self.username, self.email_address)
+        return '{0}, {1} <{2}>'.format(self.last_name, self.first_name,
+                                       self.email_address)
 
     def __eq__(self, other):
         return (self.username == other.username and

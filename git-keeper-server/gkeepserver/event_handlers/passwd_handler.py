@@ -33,21 +33,27 @@ class PasswdHandler(EventHandler):
         """Handle resetting a student password."""
 
         try:
-            student = db.get_student_by_username(self._username)
+            email_address = db.get_email_from_username(self._username)
 
             student_found = False
+            found_class_name = None
 
             class_names = db.get_faculty_class_names(self._faculty_username)
             for class_name in class_names:
-                if db.student_in_class(student.username, class_name,
+                if db.student_in_class(email_address, class_name,
                                        self._faculty_username):
                     student_found = True
+                    found_class_name = class_name
                     break
 
             if not student_found:
                 error = ('No student found with username {} in any of your '
                          'classes'.format(self._username))
                 raise HandlerException(error)
+
+            student = db.get_class_student_by_username(self._username,
+                                                       found_class_name,
+                                                       self._faculty_username)
 
             password = generate_password()
             sudo_set_password(student.username, password)
@@ -57,7 +63,7 @@ class PasswdHandler(EventHandler):
                     'Your git-keeper password has been reset to {}\n\n'
                     'If you have any questions, please contact your '
                     'instructor rather than responding to this email '
-                    'directly.\n\n'.format(student.username, password))
+                    'directly.\n\n'.format(student.first_name, password))
 
             email_sender.enqueue(Email(student.email_address, subject, body))
 

@@ -276,7 +276,9 @@ class InfoUpdateThread(Thread):
                                                     payload.class_name,
                                                     payload.assignment_name)
 
-                student = db.get_student_by_username(payload.student_username)
+                student = db.get_class_student_by_username(payload.student_username,
+                                                           payload.class_name,
+                                                           payload.faculty_username)
 
                 self._assignment_scan(payload.faculty_username, assignment_dir,
                                       (student,))

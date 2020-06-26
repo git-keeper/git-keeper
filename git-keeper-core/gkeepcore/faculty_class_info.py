@@ -101,13 +101,25 @@ class FacultyClassInfo:
 
     def student_list(self, class_name: str) -> list:
         """
-        Get the list of the students in a class.
+        Get a list of the usernames of the students in a class.
 
         :param class_name: name of a class
-        :return: list of students in the class
+        :return: list of usernames of students in the class
         """
 
         return list(self.info_dict[class_name]['students'])
+
+    def class_students(self, class_name: str) -> dict:
+        """
+        Get a dictionary representing the students in a class. The dictionary
+        maps student usernames to dictionaries representing individual
+        students.
+
+        :param class_name: name of a class
+        :return: dictionary of students in the class
+        """
+
+        return self.info_dict[class_name]['students']
 
     def assignment_count(self, class_name: str) -> int:
         """

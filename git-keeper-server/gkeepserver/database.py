@@ -1,4 +1,4 @@
-# Copyright 2019 Nathan Sommer and Ben Coleman
+# Copyright 2019, 2020 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+from enum import Enum
 
 import peewee as pw
 
@@ -51,6 +51,10 @@ database = pw.SqliteDatabase(None)
 
 
 class BaseModel(pw.Model):
+    """
+    This is a base class used by all of the peewee classes in order to specify
+    the database type.
+    """
     class Meta:
         database = database
 
@@ -58,18 +62,22 @@ class BaseModel(pw.Model):
 class User(BaseModel):
     email_address = pw.CharField(unique=True)
     username = pw.CharField(unique=True)
-    role = pw.CharField()
+
+
+class FacultyUser(BaseModel):
+    user_id = pw.ForeignKeyField(User, unique=True)
     first_name = pw.CharField()
     last_name = pw.CharField()
+    admin = pw.BooleanField()
 
 
-class Admin(BaseModel):
-    faculty_id = pw.ForeignKeyField(User, backref='faculty', unique=True)
+class StudentUser(BaseModel):
+    user_id = pw.ForeignKeyField(User, unique=True)
 
 
 class Class(BaseModel):
     name = pw.CharField()
-    faculty_id = pw.ForeignKeyField(User, backref='faculty')
+    faculty_id = pw.ForeignKeyField(User)
     open = pw.BooleanField()
 
     class Meta:
@@ -79,18 +87,21 @@ class Class(BaseModel):
 
 
 class ClassStudent(BaseModel):
-    class_id = pw.ForeignKeyField(Class, backref='class')
-    student_id = pw.ForeignKeyField(User, backref='student')
+    class_id = pw.ForeignKeyField(Class)
+    user_id = pw.ForeignKeyField(User)
+    first_name = pw.CharField()
+    last_name = pw.CharField()
+    active = pw.BooleanField()
 
     class Meta:
         indexes = (
-            (('class_id', 'student_id'), True),
+            (('class_id', 'user_id'), True),
         )
 
 
 class Assignment(BaseModel):
     name = pw.CharField()
-    class_id = pw.ForeignKeyField(Class, backref='class')
+    class_id = pw.ForeignKeyField(Class)
     published = pw.BooleanField()
 
     class Meta:
@@ -120,8 +131,8 @@ class Database:
         :param db_filename: name of the file to connect to
         """
         database.init(db_filename, pragmas={'foreign_keys': 1})
-        database.create_tables([User, Admin, Class, ClassStudent, Assignment,
-                                ByteCount])
+        database.create_tables([User, FacultyUser, StudentUser, Class,
+                                ClassStudent, Assignment, ByteCount])
 
     def username_exists(self, username):
         """
@@ -145,6 +156,36 @@ class Database:
         query = User.select().where(User.email_address == email_address)
         return query.exists()
 
+    def get_username_from_email(self, email_address):
+        """
+        Get a user's username from their email address.
+
+        Raises a DatabaseException if there is no such user.
+
+        :param email_address: email address of the user
+        :return: username of the user
+        """
+        try:
+            return User.get(User.email_address == email_address).username
+        except User.DoesNotExist:
+            error = 'No user with email address {}'.format(email_address)
+            raise DatabaseException(error)
+
+    def get_email_from_username(self, username):
+        """
+        Get a user's email address from their username.
+
+        Raises a DatabaseException if there is no such user.
+
+        :param username: username of the user
+        :return: email address of the user
+        """
+        try:
+            return User.get(User.username == username).email_address
+        except User.DoesNotExist:
+            error = 'No user with username {}'.format(username)
+            raise DatabaseException(error)
+
     def class_exists(self, class_name, faculty_username):
         """
         Determines whether or not a class with the given name exists for the
@@ -156,7 +197,6 @@ class Database:
         """
         query = Class.select().join(User).where(
             (Class.name == class_name) &
-            (Class.faculty_id == User.id) &
             (User.username == faculty_username)
         )
         return query.exists()
@@ -170,10 +210,41 @@ class Database:
         :param student: a Student object representing the student to insert
         :return: the Student object, which may have an updated username field
         """
-        username = self.insert_user(student.email_address, student.first_name,
-                                    student.last_name, 'student')
+        username = self._insert_user(student.email_address)
+        user_id = self._user_id_from_username(username)
+        StudentUser.create(user_id=user_id)
         student.username = username
         return student
+
+    def change_student_name(self, student: Student, class_name: str,
+                            faculty_username: str):
+        """
+        Change the name of a student in a particular class.
+
+        Raises a DatabaseException if the student is not in the class.
+
+        :param student: Student object containing the student's existing
+         username and email address, and new first and last names
+        :param class_name: name of the class the student is in
+        :param faculty_username: username of the faculty that owns the class
+        """
+        if not self.student_in_class(student.email_address, class_name,
+                                     faculty_username):
+            error = ('No student with email address {} in class {}'
+                     .format(student.email_address, class_name))
+            raise DatabaseException(error)
+
+        if (self.get_username_from_email(student.email_address)
+                != student.username):
+            error = ('Username {} and email address {} do not match'
+                     .format(student.email_address, student.username))
+            raise DatabaseException(error)
+
+        student_id = self._user_id_from_username(student.username)
+        class_student = ClassStudent.get(ClassStudent.user_id == student_id)
+        class_student.first_name = student.first_name
+        class_student.last_name = student.last_name
+        class_student.save()
 
     def insert_faculty(self, faculty: Faculty) -> Faculty:
         """
@@ -185,50 +256,14 @@ class Database:
         :param faculty: a Faculty object representing the faculty to insert
         :return: the Faculty object, which may have an updated username field
         """
-        username = self.insert_user(faculty.email_address, faculty.first_name,
-                                    faculty.last_name, 'faculty')
-        if faculty.admin:
-            self.set_admin(username)
-
+        username = self._insert_user(faculty.email_address)
+        user_id = self._user_id_from_username(username)
+        FacultyUser.create(user_id=user_id,
+                           first_name=faculty.first_name,
+                           last_name=faculty.last_name,
+                           admin=faculty.admin)
         faculty.username = username
         return faculty
-
-    def insert_user(self, email_address: str, first_name: str,
-                    last_name: str, role: str):
-        """
-        Inserts a user into the database. The user's username will the username
-        from the user's email address unless the username already exists. If
-        the username already exists, an integer will be appended to the email
-        username to form a new unique username. The username assigned to the
-        user is returned.
-
-        :param email_address: the email address of the user
-        :param first_name: the first name of the user
-        :param last_name: the last name of the user
-        :param role: the role of the user, either 'faculty' or 'student'
-        :return: the username of the user
-        """
-        if self.email_exists(email_address):
-            error = 'A user with the email address {} already exists'
-            raise DatabaseException(error)
-
-        original_username = username_from_email(email_address)
-        clean_username = cleanup_string(original_username, is_username=True)
-
-        validate_username(clean_username)
-
-        username = clean_username
-
-        counter = 1
-        while self.username_exists(username):
-            username = clean_username + str(counter)
-            counter += 1
-
-        User.create(username=username, email_address=email_address,
-                    first_name=first_name, last_name=last_name,
-                    role=role)
-
-        return username
 
     def get_faculty_by_username(self, username: str) -> Faculty:
         """
@@ -239,13 +274,44 @@ class Database:
         :return: Faculty object representing the faculty user
         """
         try:
-            user = User.get((User.username == username) &
-                            (User.role == 'faculty'))
-            admin = self.is_admin(username)
-            return Faculty(user.last_name, user.first_name, user.username,
-                           user.email_address, admin)
+            user = (User
+                    .select(User.username, User.email_address,
+                            FacultyUser.first_name, FacultyUser.last_name,
+                            FacultyUser.admin)
+                    .join(FacultyUser)
+                    .where(User.username == username)).get()
+            return Faculty(user.facultyuser.last_name,
+                           user.facultyuser.first_name,
+                           user.username, user.email_address,
+                           user.facultyuser.admin)
         except User.DoesNotExist:
             error = 'No faculty user with the username {}'.format(username)
+            raise DatabaseException(error)
+
+    def get_faculty_by_email(self, email_address: str) -> Faculty:
+        """
+        Returns a Faculty object representing the faculty user with the
+        given email address. Raises a DatabaseException if the user does not
+        exist.
+
+        :param email_address: email address of the faculty user
+        :return: Faculty object representing the faculty user
+        """
+
+        try:
+            user = (User
+                    .select(User.username, User.email_address,
+                            FacultyUser.first_name, FacultyUser.last_name,
+                            FacultyUser.admin)
+                    .join(FacultyUser)
+                    .where(User.email_address == email_address)).get()
+            return Faculty(user.facultyuser.last_name,
+                           user.facultyuser.first_name,
+                           user.username, user.email_address,
+                           user.facultyuser.admin)
+        except User.DoesNotExist:
+            error = ('No faculty user with the email address {}'
+                     .format(email_address))
             raise DatabaseException(error)
 
     def get_all_faculty(self):
@@ -258,14 +324,17 @@ class Database:
 
         faculty_objects = []
 
-        query = (User.select().where(User.role == 'faculty'))
+        query = (User
+                 .select(User.username, User.email_address,
+                         FacultyUser.first_name, FacultyUser.last_name,
+                         FacultyUser.admin)
+                 .join(FacultyUser))
 
         for result in query:
-            admin = self.is_admin(result.username)
-
             faculty_objects.append(
-                Faculty(result.last_name, result.first_name, result.username,
-                        result.email_address, admin=admin)
+                Faculty(result.facultyuser.last_name,
+                        result.facultyuser.first_name, result.username,
+                        result.email_address, admin=result.facultyuser.admin)
             )
 
         return faculty_objects
@@ -279,14 +348,8 @@ class Database:
         :return: list of class names owned by the faculty user
         """
 
-        query = Class.select().join(User).where(
-            (Class.faculty_id == User.id) &
-            (User.username == username)
-        )
-
-        class_names = [row.name for row in query]
-
-        return class_names
+        query = Class.select().join(User).where(User.username == username)
+        return [row.name for row in query]
 
     def faculty_username_exists(self, username: str):
         """
@@ -302,27 +365,6 @@ class Database:
         except DatabaseException:
             return False
 
-    def get_faculty_by_email(self, email_address: str) -> Faculty:
-        """
-        Returns a Faculty object representing the faculty user with the
-        given email address. Raises a DatabaseException if the user does not
-        exist.
-
-        :param email_address: email address of the faculty user
-        :return: Faculty object representing the faculty user
-        """
-
-        try:
-            user = User.get((User.email_address == email_address) &
-                            (User.role == 'faculty'))
-            admin = self.is_admin(user.username)
-            return Faculty(user.last_name, user.first_name, user.username,
-                           user.email_address, admin=admin)
-        except User.DoesNotExist:
-            error = ('No faculty user with the email address {}'
-                     .format(email_address))
-            raise DatabaseException(error)
-
     def is_admin(self, username: str):
         """
         Determines if the given username refers to a user with admin privileges
@@ -331,7 +373,9 @@ class Database:
         :return: True if the username refers to an admin, False if not
         """
 
-        query = User.select().join(Admin).where(User.username == username)
+        query = User.select().join(FacultyUser).where(
+            (User.username == username) & (FacultyUser.admin == True)
+        )
         return query.exists()
 
     def set_admin(self, username: str):
@@ -341,15 +385,14 @@ class Database:
 
         :param username: username of the user
         """
-        try:
-            user = User.get(User.username == username)
-            Admin.create(faculty_id=user.id)
-        except User.DoesNotExist:
-            error = 'No faculty with the username {}'.format(username)
-            raise DatabaseException(error)
-        except pw.IntegrityError:
+
+        user_id = self._get_faculty_id(username)
+        faculty_user = FacultyUser.get(FacultyUser.user_id == user_id)
+        if faculty_user.admin:
             error = 'User {} is already an admin'.format(username)
             raise DatabaseException(error)
+        faculty_user.admin = True
+        faculty_user.save()
 
     def remove_admin(self, username: str):
         """
@@ -359,20 +402,17 @@ class Database:
 
         :param username: username for which to remove privileges
         """
-        if Admin.select().count() == 1:
+
+        if FacultyUser.select().where(FacultyUser.admin == True).count() == 1:
             raise DatabaseException('You may not demote the only admin user')
 
-        try:
-            user = User.get((User.username == username) &
-                            (User.role == 'faculty'))
-            admin = Admin.get(Admin.id == user.id)
-            admin.delete_instance()
-        except User.DoesNotExist:
-            error = 'No faculty with the username {}'.format(username)
+        user_id = self._get_faculty_id(username)
+        faculty_user = FacultyUser.get(FacultyUser.user_id == user_id)
+        if not faculty_user.admin:
+            error = 'User {} is not an admin'.format(username)
             raise DatabaseException(error)
-        except Admin.DoesNotExist:
-            error = '{} is not an admin'.format(username)
-            raise DatabaseException(error)
+        faculty_user.admin = False
+        faculty_user.save()
 
     def insert_class(self, class_name: str, faculty_username: str):
         """
@@ -551,57 +591,103 @@ class Database:
                      .format(class_name, assignment_name))
             raise DatabaseException(error)
 
-    def add_student_to_class(self, class_name: str, student_username: str,
+    def add_student_to_class(self, class_name: str, student: Student,
                              faculty_username: str):
         """
         Add a student to a class. Raises a DatabaseException if either the
         class or the student do not exist.
 
         :param class_name: name of the class
-        :param student_username: username of the student
+        :param student: Student object representing the student
         :param faculty_username: username of the faculty user that owns the
          class
         """
         class_id = self._get_class_id(class_name, faculty_username)
-        student_id = self._get_student_id(student_username)
+        student_id = self._student_id_from_email(student.email_address)
 
         try:
-            ClassStudent.create(class_id=class_id, student_id=student_id)
+            ClassStudent.create(class_id=class_id, user_id=student_id,
+                                first_name=student.first_name,
+                                last_name=student.last_name, active=True)
         except pw.IntegrityError:
-            error = '{} is already in class {}'.format(student_username,
+            error = '{} is already in class {}'.format(student.email_address,
                                                        class_name)
             raise DatabaseException(error)
 
-    def remove_student_from_class(self, class_name: str, student_username: str,
-                                  faculty_username: str):
+    def deactivate_student_in_class(self, class_name: str, student_email: str,
+                                    faculty_username: str):
         """
-        Remove a student from a class. Raises a DatabaseException if the class
-        does not exist or if the student is not in the class.
+        Mark a student as inactive in a class. Raises a DatabaseException if
+        the class does not exist, or if the student is not in the class,
+        or if the student is already inactive in the class
 
-        :param class_name:
-        :param student_username:
-        :param faculty_username:
-        :return:
+        :param class_name: name of the class
+        :param student_email: email address of the student to deactivate
+        :param faculty_username: username of the faculty user that owns the
+         class
         """
         class_id = self._get_class_id(class_name, faculty_username)
-        student_id = self._get_student_id(student_username)
+        student_id = self._student_id_from_email(student_email)
 
         try:
             class_student = ClassStudent.get(
                 (ClassStudent.class_id == class_id) &
-                (ClassStudent.student_id == student_id)
+                (ClassStudent.user_id == student_id)
             )
-
-            class_student.delete_instance()
         except ClassStudent.DoesNotExist:
-            error = ('{} is not a student in {}'.format(student_username,
+            error = ('{} is not a student in {}'.format(student_email,
                                                         class_name))
             raise DatabaseException(error)
 
+        if not class_student.active:
+            error = ('{} is already inactive in class {}'
+                     .format(student_email, class_name))
+            raise DatabaseException(error)
+
+        ClassStudent.update(active=False).where(
+            (ClassStudent.class_id == class_id) &
+            (ClassStudent.user_id == student_id)
+        ).execute()
+
+    def activate_student_in_class(self, class_name: str, student_email: str,
+                                  faculty_username: str):
+        """
+        Mark a student as active in a class. Raises a DatabaseException if
+        the class does not exist, or if the student is not in the class,
+        or if the student is already active in the class
+
+        :param class_name: name of the class
+        :param student_email: email address of the student to deactivate
+        :param faculty_username: username of the faculty user that owns the
+         class
+        """
+        class_id = self._get_class_id(class_name, faculty_username)
+        student_id = self._student_id_from_email(student_email)
+
+        try:
+            class_student = ClassStudent.get(
+                (ClassStudent.class_id == class_id) &
+                (ClassStudent.user_id == student_id)
+            )
+        except ClassStudent.DoesNotExist:
+            error = ('{} is not a student in {}'.format(student_email,
+                                                        class_name))
+            raise DatabaseException(error)
+
+        if class_student.active:
+            error = ('{} is already active in class {}'
+                     .format(student_email, class_name))
+            raise DatabaseException(error)
+
+        ClassStudent.update(active=True).where(
+            (ClassStudent.class_id == class_id) &
+            (ClassStudent.user_id == student_id)
+        ).execute()
+
     def get_class_students(self, class_name: str, faculty_username: str):
         """
-        Returns a list of all the students in a class, as Student objects.
-        Raises a DatabaseException if the class does not exist.
+        Returns a list of all the active students in a class, as Student
+        objects. Raises a DatabaseException if the class does not exist.
 
         :param class_name: name of the class
         :param faculty_username: username of the faculty user that owns the
@@ -610,26 +696,31 @@ class Database:
         """
         class_id = self._get_class_id(class_name, faculty_username)
 
-        query = User.select().join(ClassStudent).join(Class).where(
-            (Class.id == class_id)
-        )
+        query = (User
+                 .select(User.username, User.email_address,
+                         ClassStudent.first_name, ClassStudent.last_name)
+                 .join(ClassStudent)
+                 .join(Class)
+                 .where((Class.id == class_id) & (ClassStudent.active == True))
+                 )
 
         students = []
 
         for row in query:
-            student = Student(row.last_name, row.first_name, row.username,
+            student = Student(row.classstudent.last_name,
+                              row.classstudent.first_name, row.username,
                               row.email_address)
             students.append(student)
 
         return students
 
-    def student_in_class(self, username, class_name, faculty_username):
+    def student_in_class(self, email_address, class_name, faculty_username):
         """
-        Determines if a student is in a class. Raises a DatabaseException
-        if the class does not exist, or if there is no student with the given
-        username.
+        Determines if a student is an active student in a class. Raises a
+        DatabaseException if the class does not exist, or if there is no
+        student with the given username.
 
-        :param username: username of the student
+        :param email_address: email address of the student
         :param class_name: name of the class
         :param faculty_username: username of the faculty user that owns the
          class
@@ -637,51 +728,74 @@ class Database:
         """
         try:
             class_id = self._get_class_id(class_name, faculty_username)
-            student_id = self._get_student_id(username)
+            student_id = self._student_id_from_email(email_address)
 
-            ClassStudent.get((ClassStudent.student_id == student_id) &
-                             (ClassStudent.class_id == class_id))
+            ClassStudent.get((ClassStudent.user_id == student_id) &
+                             (ClassStudent.class_id == class_id) &
+                             (ClassStudent.active == True))
             return True
         except (DatabaseException, ClassStudent.DoesNotExist):
             return False
 
-    def get_student_by_email(self, email_address: str) -> Student:
+    def student_inactive_in_class(self, email_address, class_name,
+                                  faculty_username):
         """
-        Returns a Student object representing the student with the given
-        email address. Raises a DatabaseException if the student does not
-        exist.
+        Determines if a student is an inactive student in a class. Raises a
+        DatabaseException if the class does not exist, or if there is no
+        student with the given username.
 
         :param email_address: email address of the student
-        :return: a Student object representing the student
+        :param class_name: name of the class
+        :param faculty_username: username of the faculty user that owns the
+         class
+        :return: True if the student is in the class, False otherwise
         """
-
         try:
-            user = User.get((User.email_address == email_address) &
-                            (User.role == 'student'))
-            return Student(user.last_name, user.first_name, user.username,
-                           user.email_address)
-        except User.DoesNotExist:
-            error = ('No student user with the email address {}'
-                     .format(email_address))
-            raise DatabaseException(error)
+            class_id = self._get_class_id(class_name, faculty_username)
+            student_id = self._student_id_from_email(email_address)
 
-    def get_student_by_username(self, username: str) -> Student:
+            ClassStudent.get((ClassStudent.user_id == student_id) &
+                             (ClassStudent.class_id == class_id) &
+                             (ClassStudent.active == False))
+            return True
+        except (DatabaseException, ClassStudent.DoesNotExist):
+            return False
+
+    def get_class_student_by_username(self, username: str, class_name: str,
+                                      faculty_username: str) -> Student:
         """
         Returns a Student object representing the student with the given
         username. Raises a DatabaseException if the student does not exist.
 
         :param username: username of the student
+        :param class_name: name of the class to look in
+        :param faculty_username: username of the faculty that owns the class
         :return: Student object representing the student
         """
 
         try:
-            user = User.get((User.username == username) &
-                            (User.role == 'student'))
-            return Student(user.last_name, user.first_name, user.username,
+            faculty_id = self._get_faculty_id(faculty_username)
+            student_id = self._user_id_from_username(username)
+
+            user = (User
+                    .select(User.username, User.email_address,
+                            ClassStudent.first_name,
+                            ClassStudent.last_name)
+                    .join(ClassStudent)
+                    .join(Class)
+                    .where(
+                         (Class.faculty_id == faculty_id) &
+                         (Class.name == class_name) &
+                         (ClassStudent.user_id == student_id) &
+                         (ClassStudent.active == True))
+                    ).get()
+
+            return Student(user.classstudent.last_name,
+                           user.classstudent.first_name, user.username,
                            user.email_address)
         except User.DoesNotExist:
-            error = ('No student user with the username {}'
-                     .format(username))
+            error = ('No student user with the username {} in class {}'
+                     .format(username, class_name))
             raise DatabaseException(error)
 
     def update_byte_counts(self, byte_counts_by_file_path: dict):
@@ -748,11 +862,42 @@ class Database:
             raise DatabaseException('No byte count found for {}'
                                     .format(file_path))
 
+    def _insert_user(self, email_address: str):
+        """
+        Inserts a user into the database. The user's username will the username
+        from the user's email address unless the username already exists. If
+        the username already exists, an integer will be appended to the email
+        username to form a new unique username. The username assigned to the
+        user is returned.
+
+        :param email_address: the email address of the user
+        :return: the username of the user
+        """
+        if self.email_exists(email_address):
+            error = ('A user with the email address {} already exists'
+                     .format(email_address))
+            raise DatabaseException(error)
+
+        original_username = username_from_email(email_address)
+        clean_username = cleanup_string(original_username, is_username=True)
+
+        validate_username(clean_username)
+
+        username = clean_username
+
+        counter = 1
+        while self.username_exists(username):
+            username = clean_username + str(counter)
+            counter += 1
+
+        User.create(username=username, email_address=email_address)
+
+        return username
+
     def _get_class_id(self, class_name, faculty_username):
         try:
             selected_class = Class.select().join(User).where(
                 (Class.name == class_name) &
-                (Class.faculty_id == User.id) &
                 (User.username == faculty_username)
             ).get()
             return selected_class.id
@@ -760,27 +905,42 @@ class Database:
             raise DatabaseException('{} has no class named {}'
                                     .format(faculty_username, class_name))
 
+    def _user_id_from_username(self, username):
+        try:
+            return User.get(User.username == username).id
+        except User.DoesNotExist:
+            raise DatabaseException('No user with the username {}'
+                                    .format(username))
+
     def _get_faculty_id(self, faculty_username):
         try:
-            faculty = User.select().where(
-                (User.username == faculty_username) &
-                (User.role == 'faculty')
+            faculty = User.select().join(FacultyUser).where(
+                (User.username == faculty_username)
             ).get()
             return faculty.id
         except User.DoesNotExist:
             raise DatabaseException('No faculty with the username {}'
                                     .format(faculty_username))
 
-    def _get_student_id(self, student_username):
+    def _student_id_from_username(self, student_username):
         try:
-            student = User.select().where(
-                (User.username == student_username) &
-                (User.role == 'student')
+            student = User.select().join(StudentUser).where(
+                (User.username == student_username)
             ).get()
             return student.id
         except User.DoesNotExist:
             raise DatabaseException('No student with the username {}'
                                     .format(student_username))
+
+    def _student_id_from_email(self, email_address):
+        try:
+            student = User.select().join(StudentUser).where(
+                (User.email_address == email_address)
+            ).get()
+            return student.id
+        except User.DoesNotExist:
+            raise DatabaseException('No student with the email address {}'
+                                    .format(email_address))
 
 
 db = Database()

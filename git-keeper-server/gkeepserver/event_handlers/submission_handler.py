@@ -20,12 +20,9 @@ Handler for student submissions.
 Event type: SUBMISSION
 """
 
-from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
     parse_submission_repo_path, user_gitkeeper_path
-from gkeepcore.path_utils import user_home_dir, class_student_csv_path, \
-    faculty_assignment_dir_path
-from gkeepcore.student import student_from_username
+from gkeepcore.path_utils import faculty_assignment_dir_path
 from gkeepserver.assignments import AssignmentDirectory
 from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
@@ -69,7 +66,9 @@ class SubmissionHandler(EventHandler):
             student = faculty
         # otherwise build the Student from the csv for the class
         else:
-            student = db.get_student_by_username(self._student_username)
+            student = db.get_class_student_by_username(self._student_username,
+                                                       self._class_name,
+                                                       self._faculty_username)
 
         submission = Submission(student, self._submission_repo_path,
                                 self._commit_hash, assignment_directory,
