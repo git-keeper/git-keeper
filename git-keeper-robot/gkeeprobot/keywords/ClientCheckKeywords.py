@@ -226,6 +226,17 @@ class ClientCheckKeywords:
         except ExitCodeException:
             pass
 
+    def gkeep_delete_succeeds(self, faculty, course_name, assignment_name):
+        client_control.run(faculty, 'gkeep --yes delete {} {}'.format(course_name, assignment_name))
+
+    def gkeep_delete_fails(self, faculty, course_name, assignment_name):
+        try:
+            client_control.run(faculty, 'gkeep --yes delete {} {}'.format(course_name, assignment_name))
+            error = 'gkeep delete should have non-zero return'
+            raise GkeepRobotException(error)
+        except ExitCodeException:
+            pass
+
     def gkeep_publish_succeeds(self, faculty, course_name, assignment_name):
         client_control.run(faculty, 'gkeep publish {} {}'.format(course_name, assignment_name))
 
