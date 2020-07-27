@@ -237,6 +237,17 @@ class ClientCheckKeywords:
         except ExitCodeException:
             pass
 
+    def gkeep_disable_succeeds(self, faculty, course_name, assignment_name):
+        client_control.run(faculty, 'gkeep --yes disable {} {}'.format(course_name, assignment_name))
+
+    def gkeep_disable_fails(self, faculty, course_name, assignment_name):
+        try:
+            client_control.run(faculty, 'gkeep --yes disable {} {}'.format(course_name, assignment_name))
+            error = 'gkeep disable should have non-zero return'
+            raise GkeepRobotException(error)
+        except ExitCodeException:
+            pass
+
     def gkeep_publish_succeeds(self, faculty, course_name, assignment_name):
         client_control.run(faculty, 'gkeep publish {} {}'.format(course_name, assignment_name))
 

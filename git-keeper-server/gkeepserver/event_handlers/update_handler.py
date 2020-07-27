@@ -65,6 +65,13 @@ class UpdateHandler(EventHandler):
         print(' Path:           ', self._upload_path)
         print(' Assignment path:', assignment_path)
 
+        if db.is_disabled(self._class_name, self._assignment_name,
+                          self._faculty_username):
+            error = ('Assignment {} in class {} is disabled and '
+                     'cannot be updated'
+                     .format(self._assignment_name, self._class_name))
+            raise HandlerException(error)
+
         assignment_dir = None
 
         try:

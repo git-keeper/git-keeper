@@ -34,6 +34,7 @@ from gkeepcore.path_utils import parse_faculty_assignment_path, \
     student_class_dir_path, faculty_assignment_dir_path, user_gitkeeper_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.system_commands import cp, chmod, mkdir, sudo_chown, rm, mv
+from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email, EmailException
@@ -150,13 +151,15 @@ def get_assignment_dir(faculty_username: str, class_name: str,
     return AssignmentDirectory(assignment_path)
 
 
-def get_class_assignment_dirs(faculty_username: str, class_name: str) -> list:
+def get_class_assignment_dirs(faculty_username: str, class_name: str,
+                              include_inactive=False) -> list:
     """
     Get all the valid assignment directories from a class, as a list of
     AssignmentDirectory objects.
 
     :param faculty_username: faculty who owns the class
     :param class_name: name of the class
+    :param include_inactive: if True, inactive assignments will be included
     :return: list of AssignmentDirectory objects
     """
     class_path = faculty_class_dir_path(class_name,
@@ -167,8 +170,9 @@ def get_class_assignment_dirs(faculty_username: str, class_name: str) -> list:
     if not os.path.isdir(class_path):
         return assignment_dirs
 
-    for item in os.listdir(class_path):
-        path = os.path.join(class_path, item)
+    for assignment in db.get_class_assignments(class_name, faculty_username,
+                                               include_inactive):
+        path = os.path.join(class_path, assignment.name)
 
         try:
             assignment_dir = AssignmentDirectory(path)
@@ -177,25 +181,6 @@ def get_class_assignment_dirs(faculty_username: str, class_name: str) -> list:
             pass
 
     return assignment_dirs
-
-
-def get_class_assignment_names(faculty_username: str, class_name: str) -> list:
-    """
-    Get all the assignment names from a class.
-
-    :param faculty_username: faculty who owns the class
-    :param class_name: name of the class
-    :return: list of assignment names
-    """
-
-    assignment_names = []
-
-    for assignment_path in get_class_assignment_dirs(faculty_username,
-                                                     class_name):
-        assignment_name = os.path.basename(assignment_path)
-        assignment_names.append(assignment_name)
-
-    return assignment_names
 
 
 def create_base_code_repo(assignment_dir: AssignmentDirectory,

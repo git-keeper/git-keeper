@@ -552,6 +552,18 @@ class ServerInterface:
 
         return self.get_info().is_published(class_name, assignment_name)
 
+    def assignment_disabled(self, class_name: str,
+                            assignment_name: str) -> bool:
+        """
+        Determine if an assignment is disabled.
+
+        :param class_name: name of the class that the assignment belongs to
+        :param assignment_name: name of the assignment
+        :return: True if the assignment is disabled, False otherwise
+        """
+
+        return self.get_info().is_disabled(class_name, assignment_name)
+
     def get_classes(self):
         """
         Get a list of the names of the classes for this faculty member.

@@ -348,7 +348,9 @@ def fetch_submissions(class_name: str, assignment_name: str,
 
     if assignment_name == 'all':
         for assignment_name in info.assignment_list(class_name):
-            if info.is_published(class_name, assignment_name):
+            published = info.is_published(class_name, assignment_name)
+            disabled = info.is_disabled(class_name, assignment_name)
+            if published and not disabled:
                 assignments_to_fetch.append(assignment_name)
     else:
         if assignment_name not in info.assignment_list(class_name):
@@ -357,6 +359,10 @@ def fetch_submissions(class_name: str, assignment_name: str,
             raise GkeepException(error)
         elif not info.is_published(class_name, assignment_name):
             error = ('Assignment {0} in class {1} is not published'
+                     .format(assignment_name, class_name))
+            raise GkeepException(error)
+        elif info.is_disabled(class_name, assignment_name):
+            error = ('Assignment {0} in class {1} is disabled'
                      .format(assignment_name, class_name))
             raise GkeepException(error)
 

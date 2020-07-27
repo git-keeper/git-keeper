@@ -1,5 +1,6 @@
 import pytest
 
+from gkeepcore.assignment import Assignment
 from gkeepcore.student import Student
 from gkeepserver.database import Database, DatabaseException
 from gkeepserver.faculty import Faculty
@@ -375,3 +376,58 @@ def test_assignment(db):
 
     with pytest.raises(DatabaseException):
         db.set_published('asdf', 'asdf', 'asdf')
+
+
+def test_disable_assignment(db):
+    faculty = Faculty('last', 'first', 'faculty', 'faculty@school.edu',
+                       False)
+    db.insert_faculty(faculty)
+    db.insert_class('class', 'faculty')
+
+    db.insert_assignment('class', 'assgn1', 'faculty')
+    db.insert_assignment('class', 'assgn2', 'faculty')
+    db.insert_assignment('class', 'assgn3', 'faculty')
+
+    assert not db.is_disabled('class', 'assgn1', 'faculty')
+    assert not db.is_disabled('class', 'assgn2', 'faculty')
+    assert not db.is_disabled('class', 'assgn3', 'faculty')
+
+    db.set_published('class', 'assgn2', 'faculty')
+
+    with pytest.raises(DatabaseException):
+        db.disable_assignment('class', 'assgn1', 'faculty')
+
+    db.disable_assignment('class', 'assgn2', 'faculty')
+
+    assert not db.is_disabled('class', 'assgn1', 'faculty')
+    assert db.is_disabled('class', 'assgn2', 'faculty')
+    assert not db.is_disabled('class', 'assgn3', 'faculty')
+
+    with pytest.raises(DatabaseException):
+        db.insert_assignment('class', 'assgn2', 'faculty')
+
+
+def test_get_class_assignments(db):
+    faculty = Faculty('last', 'first', 'faculty', 'faculty@school.edu',
+                       False)
+    db.insert_faculty(faculty)
+    db.insert_class('class', 'faculty')
+
+    db.insert_assignment('class', 'assgn1', 'faculty')
+    db.insert_assignment('class', 'assgn2', 'faculty')
+    db.insert_assignment('class', 'assgn3', 'faculty')
+
+    db.set_published('class', 'assgn2', 'faculty')
+    db.set_published('class', 'assgn3', 'faculty')
+    db.disable_assignment('class', 'assgn3', 'faculty')
+
+    assignments = db.get_class_assignments('class', 'faculty')
+
+    assert len(assignments) == 3
+
+    assgn1 = Assignment('assgn1', 'class', 'faculty', False, False)
+    assgn2 = Assignment('assgn2', 'class', 'faculty', True, False)
+    assgn3 = Assignment('assgn3', 'class', 'faculty', True, True)
+
+    for assignment in (assgn1, assgn2, assgn3):
+        assert assignment in assignments

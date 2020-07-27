@@ -16,7 +16,7 @@
 *** Settings ***
 Resource    resources/setup.robot
 Test Setup    Setup Server and Client Accounts
-Force Tags    gkeep_delete
+Force Tags    gkeep_disable
 
 *** Keywords ***
 
@@ -29,13 +29,13 @@ Setup Server and Client Accounts
 
 *** Test Cases ***
 
-Delete Assignment
+Disable Assignment
     [Tags]    happy_path
-    Gkeep Delete Succeeds    faculty1    cs1    good_simple
-    Gkeep Query JSON Produces Results    faculty1   assignments   {"cs1": []}
-
-Delete Published Assignment Fails
-    [Tags]    error
     Gkeep Publish Succeeds    faculty1    cs1    good_simple
-    Gkeep Delete Fails    faculty1    cs1    good_simple
-    Gkeep Query JSON Produces Results    faculty1   assignments   {"cs1":[{"name":"good_simple","published":true,"disabled":false}]}
+    Gkeep Disable Succeeds    faculty1    cs1    good_simple
+    Gkeep Query JSON Produces Results    faculty1   assignments   {"cs1":[{"name":"good_simple","published":true,"disabled":true}]}
+
+Disable Unpublished Assignment Fails
+    [Tags]    error
+    Gkeep Disable Fails    faculty1    cs1    good_simple
+    Gkeep Query JSON Produces Results    faculty1   assignments   {"cs1":[{"name":"good_simple","published":false,"disabled":false}]}

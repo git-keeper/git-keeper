@@ -63,9 +63,19 @@ class TriggerHandler(EventHandler):
                                            self._assignment_name,
                                            self._faculty_username)
             if not is_published and not faculty_only:
-                error = ('This assignment is not published.\n'
+                error = ('Assignment {} in class {} is not published.\n'
                          'Unpublished assignments may only be triggered for '
-                         'the faculty account')
+                         'the faculty account'
+                         .format(self._assignment_name, self._class_name))
+                raise HandlerException(error)
+
+            is_disabled = db.is_disabled(self._class_name,
+                                         self._assignment_name,
+                                         self._faculty_username)
+            if is_disabled:
+                error = ('Assignment {} in class {} is disabled, and cannot '
+                         'be triggered'.format(self._assignment_name,
+                                               self._class_name))
                 raise HandlerException(error)
 
             students = db.get_class_students(self._class_name,

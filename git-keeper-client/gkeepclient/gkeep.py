@@ -38,7 +38,7 @@ from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
 from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, \
     upload_assignment, trigger_tests, update_status, add_faculty, \
-    reset_password, admin_promote, admin_demote
+    reset_password, admin_promote, admin_demote, disable_assignment
 from gkeepclient.test_solution import test_solution
 from gkeepclient.queries import list_classes, list_assignments, \
     list_students, list_recent
@@ -192,6 +192,20 @@ def add_delete_subparser(subparsers):
     """
 
     subparser = subparsers.add_parser('delete', help='delete an assignment')
+    add_class_name_argument(subparser)
+    add_assignment_name_argument(subparser)
+
+
+def add_disable_subparser(subparsers):
+    """
+    Add a subparser for action 'disable', which disables a published
+    assignment.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('disable',
+                                      help='disable a published assignment')
     add_class_name_argument(subparser)
     add_assignment_name_argument(subparser)
 
@@ -385,6 +399,7 @@ def initialize_action_parser() -> GraderParser:
     add_update_subparser(subparsers)
     add_publish_subparser(subparsers)
     add_delete_subparser(subparsers)
+    add_disable_subparser(subparsers)
     add_fetch_subparser(subparsers)
     add_query_subparser(subparsers)
     add_trigger_subparser(subparsers)
@@ -489,6 +504,8 @@ def take_action(parsed_args):
         publish_assignment(class_name, assignment_name)
     elif action_name == 'delete':
         delete_assignment(class_name, assignment_name, parsed_args.yes)
+    elif action_name == 'disable':
+        disable_assignment(class_name, assignment_name, parsed_args.yes)
     elif action_name == 'fetch':
         dest_path = build_dest_path(parsed_args.destination_path,
                                     class_name)

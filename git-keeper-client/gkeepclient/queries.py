@@ -62,18 +62,22 @@ def list_assignments(output_json: bool):
 
         for assignment_name in sorted(info.assignment_list(class_name)):
             published = info.is_published(class_name, assignment_name)
+            disabled = info.is_disabled(class_name, assignment_name)
 
             json_assignment = {
                 'name': assignment_name,
                 'published': published,
+                'disabled': disabled,
             }
 
-            if published:
-                published_prefix = 'P'
+            if disabled:
+                prefix = 'D'
+            elif published:
+                prefix = 'P'
             else:
-                published_prefix = 'U'
+                prefix = 'U'
 
-            text_output += '{} {}\n'.format(published_prefix, assignment_name)
+            text_output += '{} {}\n'.format(prefix, assignment_name)
             json_output[class_name].append(json_assignment)
 
         text_output += '\n'
@@ -154,7 +158,10 @@ def list_recent(number_of_days, output_json: bool):
         class_name_printed = False
 
         for assignment_name in sorted(info.assignment_list(class_name)):
-            if not info.is_published(class_name, assignment_name):
+            published = info.is_published(class_name, assignment_name)
+            disabled = info.is_disabled(class_name, assignment_name)
+
+            if not published or disabled:
                 continue
 
             students_submitted = info.students_submitted_list(class_name,
