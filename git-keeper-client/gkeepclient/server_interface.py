@@ -513,19 +513,15 @@ class ServerInterface:
         path = faculty_class_dir_path(class_name, self._gitkeeper_path)
         return self.is_directory(path)
 
-    def class_status(self, class_name: str) -> str:
+    def is_open(self, class_name: str) -> bool:
         """
-        Get the current status of a class. Possible values are 'open' and
-        'closed'.
+        Determine if a class is open.
 
         :param class_name: name of the class
-        :return: status of the class
+        :return: True if the class is open, False i fnot
         """
 
-        class_path = faculty_class_dir_path(class_name, self._gitkeeper_path)
-        status_path = os.path.join(class_path, 'status')
-
-        return self.read_file_text(status_path).strip()
+        return self.get_info().is_open(class_name)
 
     def assignment_exists(self, class_name: str, assignment_name: str) -> bool:
         """

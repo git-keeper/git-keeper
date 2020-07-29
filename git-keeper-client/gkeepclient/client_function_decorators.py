@@ -109,6 +109,36 @@ def class_exists(func):
     return wrapper
 
 
+def class_is_open(func):
+    """
+    Function decorator for functions that have a class name as the first
+    parameter. Checks to make sure the class is open before calling the
+    original function. Raises a GkeepException if the class is closed.
+
+    Assumes server_interface is connected and the class exists.
+
+    :param func: function to decorate
+    :return: the new wrapped function
+    """
+
+    @wraps(func)
+    def wrapper(class_name: str, *args, **kwargs):
+        """
+        Raise a GkeepException if the class is closed.
+
+        :param class_name: name of the class
+        :param args: positional arguments to pass on to the wrapped function
+        :param kwargs: keyword arguments to pass on to the original function
+        """
+
+        if not server_interface.is_open(class_name):
+            raise GkeepException('Class {0} is closed'.format(class_name))
+
+        return func(class_name, *args, **kwargs)
+
+    return wrapper
+
+
 def class_does_not_exist(func):
     """
     Function decorator for functions that have a class name as the first

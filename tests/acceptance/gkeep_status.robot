@@ -1,4 +1,4 @@
-# Copyright 2019 Nathan Sommer and Ben Coleman
+# Copyright 2020 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 *** Settings ***
 Resource    resources/setup.robot
 Test Setup    Setup Server and Client Accounts
-Force Tags    gkeep_query
+Force Tags    gkeep_status
 
 *** Keywords ***
 
@@ -27,19 +27,24 @@ Setup Server and Client Accounts
 
 *** Test Cases ***
 
-No Class Results in Empty Reports JSON
-    Gkeep Query JSON Produces Results    faculty1   classes   []
-    Gkeep Query JSON Produces Results    faculty1   assignments   {}
-    Gkeep Query JSON Produces Results    faculty1   students   {}
-    Gkeep Query JSON Produces Results    faculty1   recent   {}
-
-
-Class With Assignment Results in JSON
-    Establish Course  faculty1    cs1     student1
-    Add Assignment to Client  faculty1  good_simple
-    Gkeep Upload Succeeds   faculty1   cs1    good_simple
-
+Close and Open
+    [Tags]    happy_path
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    Gkeep Status Succeeds    faculty1    cs1    closed
+    Gkeep Query JSON Produces Results    faculty1   classes   [{"name":"cs1","open":false}]
+    Gkeep Status Succeeds    faculty1    cs1    open
     Gkeep Query JSON Produces Results    faculty1   classes   [{"name":"cs1","open":true}]
-    Gkeep Query JSON Produces Results    faculty1   assignments   {"cs1":[{"name":"good_simple","published":false,"disabled":false}]}
-    Gkeep Query JSON Produces Results    faculty1   students   {"cs1":[{"first_name":"First","last_name":"Last","username":"student1","email_address":"student1@gitkeeper.edu"}]}
-    Gkeep Query JSON Produces Results    faculty1   recent   {}
+
+Opening Open
+    [Tags]    error
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    Gkeep Status Fails    faculty1    cs1    open
+
+Closing Closed
+    [Tags]    error
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    Gkeep Status Succeeds    faculty1    cs1    closed
+    Gkeep Status Fails    faculty1    cs1    closed
