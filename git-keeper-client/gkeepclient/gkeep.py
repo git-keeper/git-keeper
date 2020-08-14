@@ -32,7 +32,6 @@ from gkeepcore.version import __version__ as core_version
 
 from argcomplete import autocomplete
 from gkeepclient.client_configuration import config
-from gkeepclient.client_function_decorators import config_parsed
 
 from gkeepclient.create_config import create_config
 from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
@@ -40,8 +39,6 @@ from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, \
     upload_assignment, trigger_tests, update_status, add_faculty, \
     reset_password, admin_promote, admin_demote
-from gkeepclient.queries import list_classes, list_assignments, list_students, \
-    list_recent
 from gkeepclient.test_solution import test_solution
 from gkeepclient.queries import list_classes, list_assignments, \
     list_students, list_recent
@@ -375,6 +372,9 @@ def initialize_action_parser() -> GraderParser:
     parser.add_argument('-f', '--config_file', help='Path to config file')
     parser.add_argument('-v', '--version', action='store_true',
                         help='Print gkeep version')
+    parser.add_argument('-y', '--yes', action='store_true',
+                        help='Automatically answer "yes" to confirmation '
+                             'prompts')
 
     subparsers = parser.add_subparsers(dest='subparser_name', title="Actions")
 
@@ -474,9 +474,9 @@ def take_action(parsed_args):
 
     # call the appropriate function for the action
     if action_name == 'add':
-        class_add(class_name, parsed_args.csv_file_path)
+        class_add(class_name, parsed_args.csv_file_path, parsed_args.yes)
     elif action_name == 'modify':
-        class_modify(class_name, parsed_args.csv_file_path)
+        class_modify(class_name, parsed_args.csv_file_path, parsed_args.yes)
     elif action_name == 'upload':
         upload_assignment(class_name, parsed_args.assignment_path)
     elif action_name == 'update':

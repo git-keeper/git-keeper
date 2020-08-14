@@ -46,6 +46,16 @@ class ServerResponse:
         self.message = message
 
 
+class ServerResponseWarning(GkeepException):
+    """Exception to be raised on a warning from the server."""
+    pass
+
+
+class ServerResponseError(GkeepException):
+    """Exception to be raised on an error from the server."""
+    pass
+
+
 class ServerResponsePoller:
     """
     Allows polling a server log file watching for certain types of response
@@ -137,10 +147,10 @@ def communicate_event(event_type: str, payload: str, response_timeout=20,
                 print(success_message)
         elif response.response_type == ServerResponseType.ERROR:
             message = (error_message or '') + response.message
-            raise GkeepException(message)
+            raise ServerResponseError(message)
         elif response.response_type == ServerResponseType.WARNING:
             message = (warning_message or '') + response.message
-            raise GkeepException(message)
+            raise ServerResponseWarning(message)
         elif response.response_type == ServerResponseType.TIMEOUT:
             if timeout_message is not None:
                 raise GkeepException(timeout_message)

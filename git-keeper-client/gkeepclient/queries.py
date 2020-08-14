@@ -110,12 +110,14 @@ def list_students(output_json: bool):
         for username in sorted(student_list):
             first_name = info.student_first_name(class_name, username)
             last_name = info.student_last_name(class_name, username)
+            email_address = info.student_email_address(class_name, username)
 
             lines.append('{}, {} ({})'.format(last_name, first_name, username))
             json_output[class_name].append({
                 'first_name': first_name,
                 'last_name': last_name,
                 'username': username,
+                'email_address': email_address,
             })
 
         text_output += '\n'.join(sorted(lines))
@@ -177,8 +179,10 @@ def list_recent(number_of_days, output_json: bool):
                 if submission_time >= cutoff_time:
                     first_name = info.student_first_name(class_name, username)
                     last_name = info.student_last_name(class_name, username)
+                    email_address = info.student_email_address(class_name,
+                                                               username)
                     recent.append((submission_time, first_name, last_name,
-                                   username))
+                                   username, email_address))
 
             if len(recent) > 0:
                 recent.sort()
@@ -191,19 +195,21 @@ def list_recent(number_of_days, output_json: bool):
                 text_output += '  {}:\n'.format(assignment_name)
                 json_output[class_name][assignment_name] = []
 
-                for timestamp, first_name, last_name, username in recent:
+                for (timestamp, first_name, last_name, username,
+                     email_address) in recent:
                     human_timestamp = strftime('%Y-%m-%d %H:%M:%S',
                                                localtime(timestamp))
                     text_output += '   {} {} {} ({})\n'.format(human_timestamp,
                                                                first_name,
                                                                last_name,
-                                                               username)
+                                                               email_address)
                     json_entry = {
                         'time': timestamp,
                         'human_time': human_timestamp,
                         'first_name': first_name,
                         'last_name': last_name,
                         'username': username,
+                        'email_address': email_address,
                     }
                     json_output[class_name][assignment_name].append(json_entry)
 

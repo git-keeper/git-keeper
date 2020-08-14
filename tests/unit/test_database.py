@@ -17,63 +17,116 @@ def test_connect_and_initialize(db):
 
 
 def test_insert_student(db):
-    assert not db.email_exists('student1@school.edu')
+    student1 = Student('one', 'student', 'student1', 'student1@school.edu')
+    student2 = Student('two', 'student', 'student2', 'student2@school.edu')
 
-    db.insert_user('student1@school.edu', 'student', 'one', 'student')
-    assert db.email_exists('student1@school.edu')
+    assert db.insert_student(student1) == student1
+    assert db.insert_student(student2) == student2
+
     assert db.username_exists('student1')
+    assert db.username_exists('student2')
+    assert not db.username_exists('student3')
 
-    db.insert_user('student1@another.edu', 'student', 'one', 'student')
-    assert db.email_exists('student1@another.edu')
-    assert db.username_exists('student11')
+    assert db.email_exists('student1@school.edu')
+    assert db.email_exists('student2@school.edu')
+    assert not db.email_exists('student3@school.edu')
 
-    db.insert_user('student1@yetanother.edu', 'student', 'one', 'student')
-    assert db.email_exists('student1@yetanother.edu')
-    assert db.username_exists('student12')
-
-    db.insert_user('1student@yetanother.edu', 'student', 'one', 'student')
-    assert db.email_exists('1student@yetanother.edu')
-    assert db.username_exists('a1student')
+    with pytest.raises(DatabaseException):
+        db.insert_student(student1)
 
 
 def test_insert_faculty(db):
-    db.insert_user('faculty1@school.edu', 'faculty', 'one', 'faculty')
-    assert db.email_exists('faculty1@school.edu')
+    faculty1 = Faculty('one', 'faculty', 'faculty1', 'faculty1@school.edu',
+                       False)
+    faculty2 = Faculty('two', 'faculty', 'faculty2', 'faculty2@school.edu',
+                       True)
+
+    assert db.insert_faculty(faculty1) == faculty1
+    assert db.insert_faculty(faculty2) == faculty2
+
     assert db.username_exists('faculty1')
+    assert db.username_exists('faculty2')
+    assert not db.username_exists('faculty3')
 
-    db.insert_user('faculty1@another.edu', 'faculty', 'one', 'faculty')
-    assert db.email_exists('faculty1@another.edu')
-    assert db.username_exists('faculty11')
+    assert db.email_exists('faculty1@school.edu')
+    assert db.email_exists('faculty2@school.edu')
+    assert not db.email_exists('faculty3@school.edu')
 
-    db.insert_user('faculty1@yetanother.edu', 'faculty', 'one', 'faculty')
-    assert db.email_exists('faculty1@yetanother.edu')
-    assert db.username_exists('faculty12')
+    assert db.get_faculty_by_username('faculty1') == faculty1
+    assert db.get_faculty_by_username('faculty2') == faculty2
+    with pytest.raises(DatabaseException):
+        db.get_faculty_by_username('faculty3')
 
-    faculty = db.get_faculty_by_username('faculty1')
-    assert faculty == Faculty('one', 'faculty', 'faculty1',
-                              'faculty1@school.edu', False)
-
-    db.set_admin('faculty1')
+    assert db.get_faculty_by_email('faculty1@school.edu') == faculty1
+    assert db.get_faculty_by_email('faculty2@school.edu') == faculty2
+    with pytest.raises(DatabaseException):
+        db.get_faculty_by_email('faculty3@school.edu')
 
     with pytest.raises(DatabaseException):
-        db.set_admin('faculty1')
+        db.insert_faculty(faculty1)
 
-    assert db.is_admin('faculty1')
 
-    faculty = db.get_faculty_by_username('faculty1')
-    assert faculty == Faculty('one', 'faculty', 'faculty1',
-                              'faculty1@school.edu', True)
+def test_duplicate_email_usernames(db):
+    student0 = db.insert_student(Student('last', 'first', 'user',
+                                         'user@schoolzero.edu'))
+    student1 = db.insert_student(Student('last', 'first', 'user',
+                                         'user@schoolone.edu'))
+    student2 = db.insert_student(Student('last', 'first', 'user',
+                                         'user@schooltwo.edu'))
+
+    faculty3 = db.insert_faculty(Faculty('last', 'first', 'user',
+                                         'user@schoolthree.edu', False))
+    faculty4 = db.insert_faculty(Faculty('last', 'first', 'user',
+                                         'user@schoolfour.edu', False))
+    faculty5 = db.insert_faculty(Faculty('last', 'first', 'user',
+                                         'user@schoolfive.edu', False))
+
+    for username in ('user', 'user1', 'user2', 'user3', 'user4', 'user5'):
+        assert db.username_exists(username)
+
+    assert student0.username == 'user'
+    assert student1.username == 'user1'
+    assert student2.username == 'user2'
+    assert faculty3.username == 'user3'
+    assert faculty4.username == 'user4'
+    assert faculty5.username == 'user5'
+
+    assert db.get_username_from_email('user@schoolzero.edu') == 'user'
+    assert db.get_username_from_email('user@schoolone.edu') == 'user1'
+    assert db.get_username_from_email('user@schoolfour.edu') == 'user4'
+
+    assert db.get_email_from_username('user') == 'user@schoolzero.edu'
+    assert db.get_email_from_username('user2') == 'user@schooltwo.edu'
+    assert db.get_email_from_username('user3') == 'user@schoolthree.edu'
+
+
+def test_get_all_faculty(db):
+    faculty1 = Faculty('one', 'faculty', 'faculty1', 'faculty1@school.edu',
+                       False)
+    faculty2 = Faculty('two', 'faculty', 'faculty2', 'faculty2@school.edu',
+                       True)
+
+    db.insert_faculty(faculty1)
+    db.insert_faculty(faculty2)
 
     all_faculty = db.get_all_faculty()
 
-    assert (Faculty('one', 'faculty', 'faculty1', 'faculty1@school.edu', True)
+    assert len(all_faculty) == 2
+
+    assert (Faculty('one', 'faculty', 'faculty1', 'faculty1@school.edu', False)
             in all_faculty)
-    assert (Faculty('one', 'faculty', 'faculty11', 'faculty1@another.edu',
-                    False)
+    assert (Faculty('two', 'faculty', 'faculty2', 'faculty2@school.edu', True)
             in all_faculty)
-    assert (Faculty('one', 'faculty', 'faculty12', 'faculty1@yetanother.edu',
-                    False)
-            in all_faculty)
+
+
+def test_get_username_from_email_raises(db):
+    with pytest.raises(DatabaseException):
+        db.get_username_from_email('email@school.edu')
+
+
+def test_get_email_from_username(db):
+    with pytest.raises(DatabaseException):
+        db.get_email_from_username('username')
 
 
 def test_admin(db):
@@ -110,8 +163,9 @@ def test_admin(db):
         db.remove_admin(faculty2.username)
 
 
-def test_insert_class(db):
-    db.insert_user('faculty1@school.edu', 'faculty', 'one', 'faculty')
+def test_classes(db):
+    db.insert_faculty(Faculty('one', 'faculty', 'faculty1',
+                              'faculty1@school.edu', False))
     assert not db.class_exists('class', 'faculty1')
     db.insert_class('class', 'faculty1')
     assert db.class_exists('class', 'faculty1')
@@ -121,7 +175,8 @@ def test_insert_class(db):
         db.insert_class('class', 'faculty1')
 
     # ensure a second faculty member can create a class with the same name
-    db.insert_user('faculty2@school.edu', 'faculty', 'two', 'faculty')
+    db.insert_faculty(Faculty('two', 'faculty', 'faculty2',
+                              'faculty2@school.edu', False))
     db.insert_class('class', 'faculty2')
     assert db.class_exists('class', 'faculty2')
 
@@ -134,20 +189,32 @@ def test_insert_class(db):
 
     db.close_class('class', 'faculty1')
     assert not db.class_is_open('class', 'faculty1')
+    assert db.class_is_open('class2', 'faculty1')
 
 
 def test_class_students(db):
-    db.insert_user('faculty1@school.edu', 'faculty', 'one', 'faculty')
+    student1 = Student('one', 'student', 'student1', 'student1@school.edu')
+    student2 = Student('two', 'student', 'student2', 'student2@school.edu')
+
+    db.insert_faculty(Faculty('one', 'faculty', 'faculty1',
+                              'faculty1@school.edu', False))
     db.insert_class('class', 'faculty1')
 
-    db.insert_user('student1@school.edu', 'student', 'one', 'student')
-    db.insert_user('student2@school.edu', 'student', 'two', 'student')
+    db.insert_student(student1)
+    db.insert_student(student2)
 
-    db.add_student_to_class('class', 'student1', 'faculty1')
-    db.add_student_to_class('class', 'student2', 'faculty1')
+    db.add_student_to_class('class', student1, 'faculty1')
+    db.add_student_to_class('class', student2, 'faculty1')
 
     with pytest.raises(DatabaseException):
-        db.add_student_to_class('class', 'student1', 'faculty1')
+        db.add_student_to_class('class', student1, 'faculty1')
+
+    assert (db.get_class_student_by_username('student1', 'class', 'faculty1')
+            == student1)
+    assert (db.get_class_student_by_username('student2', 'class', 'faculty1')
+            == student2)
+    with pytest.raises(DatabaseException):
+        db.get_class_student_by_username('student3', 'class', 'faculty1')
 
     expected_students = [
         Student('one', 'student', 'student1', 'student1@school.edu'),
@@ -155,17 +222,62 @@ def test_class_students(db):
     ]
 
     students = db.get_class_students('class', 'faculty1')
-
     assert len(students) == 2
-
     for student in expected_students:
         assert student in students
 
-    db.remove_student_from_class('class', 'student1', 'faculty1')
+    db.deactivate_student_in_class('class', 'student1@school.edu', 'faculty1')
+    assert not db.student_in_class('student1@school.edu', 'class', 'faculty1')
+    assert db.student_inactive_in_class('student1@school.edu', 'class',
+                                        'faculty1')
 
     students = db.get_class_students('class', 'faculty1')
     assert students == [Student('two', 'student', 'student2',
                                 'student2@school.edu')]
+
+    db.activate_student_in_class('class', 'student1@school.edu', 'faculty1')
+    assert db.student_in_class('student1@school.edu', 'class', 'faculty1')
+    assert not db.student_inactive_in_class('student1@school.edu', 'class',
+                                            'faculty1')
+
+    students = db.get_class_students('class', 'faculty1')
+    assert len(students) == 2
+    for student in expected_students:
+        assert student in students
+
+    with pytest.raises(DatabaseException):
+        db.add_student_to_class('asdf', student1, 'asdf')
+
+
+def test_change_student_name(db):
+    student1 = Student('one', 'student', 'student1', 'student1@school.edu')
+    student2 = Student('two', 'student', 'student2', 'student2@school.edu')
+
+    db.insert_faculty(Faculty('one', 'faculty', 'faculty1',
+                              'faculty1@school.edu', False))
+    db.insert_class('class', 'faculty1')
+
+    db.insert_student(student1)
+    db.insert_student(student2)
+
+    db.add_student_to_class('class', student1, 'faculty1')
+    db.add_student_to_class('class', student2, 'faculty1')
+
+    student2.first_name = 'new_first'
+    student2.last_name = 'new_last'
+
+    db.change_student_name(student2, 'class', 'faculty1')
+
+    changed_student = db.get_class_student_by_username(student2.username,
+                                                       'class', 'faculty1')
+    unchanged_student = db.get_class_student_by_username(student1.username,
+                                                         'class', 'faculty1')
+
+    assert changed_student.first_name == 'new_first'
+    assert changed_student.last_name == 'new_last'
+
+    assert unchanged_student.first_name == 'student'
+    assert unchanged_student.last_name == 'one'
 
 
 def test_byte_counts(db):

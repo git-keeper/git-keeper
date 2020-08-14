@@ -54,7 +54,7 @@ client.create_gkeep_config_file('prof1')
 print('Creating CS1 class with 2 students')
 client.add_to_class_csv('prof1', 'cs1', 'student1')
 client.add_to_class_csv('prof1', 'cs1', 'student2')
-client.run_gkeep_command('prof1', 'add cs1 cs1.csv')
+client.run_gkeep_command('prof1', '--yes add cs1 cs1.csv')
 client.add_assignment_to_client('prof1', 'good_simple')
 
 print('Making student1 and student2 accounts on gkclient')

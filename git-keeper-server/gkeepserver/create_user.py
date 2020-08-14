@@ -28,6 +28,7 @@ from gkeepcore.system_commands import (sudo_add_user, sudo_set_password, chmod,
                                        sudo_chown, mkdir, make_symbolic_link)
 from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
+from gkeepserver.faculty import Faculty
 from gkeepserver.generate_password import generate_password
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger, gkeepd_logger
 from gkeepserver.initialize_log import initialize_log
@@ -244,17 +245,15 @@ def add_faculty(last_name, first_name, email_address, admin=False):
     :param admin: True if the faculty member should be an admin
     """
 
-    username = db.insert_user(email_address, first_name, last_name,
-                              'faculty')
+    faculty = db.insert_faculty(Faculty(last_name, first_name, '',
+                                        email_address, admin))
 
-    if admin:
-        db.set_admin(username)
-
-    gkeepd_logger.log_info('Adding faculty user {}'.format(username))
+    gkeepd_logger.log_info('Adding faculty user with email {}'
+                           .format(email_address))
 
     groups = [config.keeper_group, config.faculty_group]
 
-    create_user(username, UserType.faculty, first_name, last_name,
+    create_user(faculty.username, UserType.faculty, first_name, last_name,
                 email_address=email_address, additional_groups=groups)
 
-    gkeepd_logger.log_debug('User {} created'.format(username))
+    gkeepd_logger.log_debug('User {} created'.format(faculty.username))

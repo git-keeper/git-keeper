@@ -23,12 +23,16 @@ from gkeepserver.event_handlers.admin_demote_handler import AdminDemoteHandler
 from gkeepserver.event_handlers.admin_promote_handler import \
     AdminPromoteHandler
 from gkeepserver.event_handlers.class_add_handler import ClassAddHandler
-from gkeepserver.event_handlers.class_modify_handler import ClassModifyHandler
+from gkeepserver.event_handlers.students_add_handler import StudentsAddHandler
 from gkeepserver.event_handlers.class_status_handler import ClassStatusHandler
 from gkeepserver.event_handlers.delete_handler import DeleteHandler
 from gkeepserver.event_handlers.faculty_add_handler import FacultyAddHandler
 from gkeepserver.event_handlers.passwd_handler import PasswdHandler
 from gkeepserver.event_handlers.publish_handler import PublishHandler
+from gkeepserver.event_handlers.students_modify_handler import \
+    StudentsModifyHandler
+from gkeepserver.event_handlers.students_remove_handler import \
+    StudentsRemoveHandler
 from gkeepserver.event_handlers.submission_handler import SubmissionHandler
 from gkeepserver.event_handlers.trigger_handler import TriggerHandler
 from gkeepserver.event_handlers.update_handler import UpdateHandler
@@ -37,7 +41,9 @@ from gkeepserver.event_handlers.upload_handler import UploadHandler
 
 event_handlers_by_type = {
     'CLASS_ADD': ClassAddHandler,
-    'CLASS_MODIFY': ClassModifyHandler,
+    'STUDENTS_ADD': StudentsAddHandler,
+    'STUDENTS_REMOVE': StudentsRemoveHandler,
+    'STUDENTS_MODIFY': StudentsModifyHandler,
     'CLASS_STATUS': ClassStatusHandler,
     'SUBMISSION': SubmissionHandler,
     'UPLOAD': UploadHandler,

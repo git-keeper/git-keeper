@@ -17,19 +17,20 @@
 """Provides functions that request action from the server."""
 import json
 import os
-import sys
+from tempfile import TemporaryDirectory
 
 from gkeepclient.client_configuration import config
+from gkeepclient.text_ui import confirmation
 from gkeepcore.valid_names import validate_class_name, validate_assignment_name
 
 from gkeepclient.assignment_uploader import AssignmentUploader
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_does_not_exist, class_exists, \
-    assignment_exists, assignment_not_published, assignment_published
+    assignment_exists, assignment_not_published
 from gkeepclient.server_interface import server_interface
 from gkeepclient.server_response_poller import communicate_event
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.local_csv_files import LocalCSVReader
+from gkeepcore.local_csv_files import LocalCSVReader, LocalCSVWriter
 from gkeepcore.student import students_from_csv
 from gkeepcore.upload_directory import UploadDirectory
 
@@ -37,13 +38,14 @@ from gkeepcore.upload_directory import UploadDirectory
 @config_parsed
 @server_interface_connected
 @class_does_not_exist
-def class_add(class_name: str, csv_file_path: str=None):
+def class_add(class_name: str, csv_file_path: str, yes: bool):
     """
     Add a class on the server.
 
     :param class_name: name of the class
     :param csv_file_path: path to the CSV file of students
            or None if the user is creating an empty class
+    :param yes: if True, will automatically answer yes to confirmation prompts
     """
 
     validate_class_name(class_name)
@@ -54,12 +56,28 @@ def class_add(class_name: str, csv_file_path: str=None):
 
         students = students_from_csv(LocalCSVReader(csv_file_path))
 
-        print('Adding class {0} with the following students:'.format(class_name))
+        print('Class {0} will be added with the following students:'
+              .format(class_name))
 
         for student in students:
             print(student)
+    else:
+        students = []
+        print('Class {} will be added with no students.'.format(class_name))
+        print('You may add students at a later time using gkeep modify.')
 
-    # create directory
+    if not yes and not confirmation('Proceed?', 'y'):
+        raise GkeepException('Aborting')
+
+    communicate_event('CLASS_ADD', class_name,
+                      success_message='Class added successfully',
+                      error_message='Error adding class:',
+                      timeout_message='Server response timeout. '
+                                      'Class add status unknown')
+
+    if len(students) == 0:
+        return
+
     upload_dir_path = server_interface.create_new_upload_dir()
 
     remote_csv_file_path = os.path.join(upload_dir_path, 'students.csv')
@@ -73,50 +91,173 @@ def class_add(class_name: str, csv_file_path: str=None):
 
     payload = '{0} {1}'.format(class_name, remote_csv_file_path)
 
-    communicate_event('CLASS_ADD', payload,
-                      success_message='Class added successfully',
-                      error_message='Error adding class:',
+    communicate_event('STUDENTS_ADD', payload,
+                      success_message='Students added successfully',
+                      error_message='Error adding students:',
                       timeout_message='Server response timeout. '
-                                      'Class add status unknown')
+                                      'Students add status unknown')
 
 
 @config_parsed
 @server_interface_connected
 @class_exists
-def class_modify(class_name: str, csv_file_path: str):
+def class_modify(class_name: str, csv_file_path: str, yes: bool):
     """
-    Modify a class on the server.
+    Modify a class on the server based on the contents of a CSV file.
+
+    The following types of changes are detected, and separate requests are
+    made to the server to carry out each type of change:
+    - Adding new students to the class
+    - Removing students from the class
+    - Renaming students in the class
 
     :param class_name: name of the class
     :param csv_file_path: path to CSV file containing students
+    :param yes: if True, will automatically answer yes to confirmation prompts
     """
 
     if not os.path.isfile(csv_file_path):
         raise GkeepException('{0} does not exist'.format(csv_file_path))
 
     students = students_from_csv(LocalCSVReader(csv_file_path))
+    existing_students = server_interface.get_info().class_students(class_name)
 
-    print('Modifying class {0} with the following students:'
-          .format(class_name))
+    print('Modifying class {0}'.format(class_name))
+
+    students_by_email = {}
+    existing_students_by_email = {}
 
     for student in students:
-        print(student)
+        students_by_email[student.email_address] = student
 
-    # create directory and upload CSV
-    upload_dir_path = server_interface.create_new_upload_dir()
-    remote_csv_file_path = os.path.join(upload_dir_path, 'students.csv')
+    for student in existing_students.values():
+        existing_students_by_email[student['email_address']] = student
 
-    server_interface.copy_file(csv_file_path, remote_csv_file_path)
+    email_addresses = set(students_by_email.keys())
+    existing_email_addresses = set(existing_students_by_email.keys())
 
-    print('CSV file uploaded')
+    new_email_addresses = email_addresses - existing_email_addresses
+    remove_email_addresses = existing_email_addresses - email_addresses
+    same_email_addresses = email_addresses & existing_email_addresses
 
-    payload = '{0} {1}'.format(class_name, remote_csv_file_path)
+    # This set will store (<first name>, <last name>, <email address>) tuples
+    # representing the students whose names should be changed
+    new_first_last_email_set = set()
 
-    communicate_event('CLASS_MODIFY', payload,
-                      success_message='Class modified successfully',
-                      error_message='Error modifying class:',
-                      timeout_message='Server response timeout. '
-                                      'Class modify status unknown')
+    for email_address in same_email_addresses:
+        old_first = existing_students_by_email[email_address]['first']
+        old_last = existing_students_by_email[email_address]['last']
+
+        new_first = students_by_email[email_address].first_name
+        new_last = students_by_email[email_address].last_name
+
+        if new_first != old_first or new_last != old_last:
+            new_first_last_email_set.add((
+                new_first,
+                new_last,
+                email_address
+            ))
+
+    changes_exist = False
+
+    # These lists will store the rows that will be written to the CSV files
+    # that will indicate which students should be added, removed, or
+    # renamed
+    new_student_rows = []
+    remove_student_rows = []
+    update_name_rows = []
+
+    # Populate the lists and print what will change
+
+    if len(new_email_addresses) > 0:
+        changes_exist = True
+        print('\nThe following students will be added to the class:')
+        for email_address in new_email_addresses:
+            last_name = students_by_email[email_address].last_name
+            first_name = students_by_email[email_address].first_name
+            print('{}, {}, {}'.format(last_name, first_name, email_address))
+            new_student_rows.append((last_name, first_name, email_address))
+
+    if len(remove_email_addresses) > 0:
+        changes_exist = True
+        print('\nThe following students will be removed from the class:')
+        for email_address in remove_email_addresses:
+            last_name = existing_students_by_email[email_address]['last']
+            first_name = existing_students_by_email[email_address]['first']
+            print('{}, {}, {}'.format(last_name, first_name, email_address))
+            remove_student_rows.append((last_name, first_name, email_address))
+
+    if len(new_first_last_email_set) > 0:
+        changes_exist = True
+        print('\nThe following student names will be updated:')
+        for first_name, last_name, email_address in new_first_last_email_set:
+            old_first = existing_students_by_email[email_address]['first']
+            old_last = existing_students_by_email[email_address]['last']
+            print('{}, {} -> {}, {}'.format(old_last, old_first, last_name,
+                                            first_name))
+            update_name_rows.append((first_name, last_name, email_address))
+
+    if not changes_exist:
+        raise GkeepException('There are no changes to be made')
+
+    if not yes and not confirmation('\nProceed?', 'y'):
+        raise GkeepException('Aborting')
+
+    temp_dir = TemporaryDirectory()
+
+    if len(new_student_rows) > 0:
+        add_csv_path = os.path.join(temp_dir.name, 'add.csv')
+        writer = LocalCSVWriter(add_csv_path)
+        writer.write_rows(new_student_rows)
+
+        upload_dir_path = server_interface.create_new_upload_dir()
+        remote_csv_file_path = os.path.join(upload_dir_path, 'add.csv')
+
+        server_interface.copy_file(add_csv_path, remote_csv_file_path)
+
+        payload = '{0} {1}'.format(class_name, remote_csv_file_path)
+
+        communicate_event('STUDENTS_ADD', payload,
+                          success_message='Students added successfully',
+                          error_message='Error adding students: ',
+                          timeout_message='Server response timeout. '
+                                          'Class modify status unknown')
+
+    if len(remove_student_rows) > 0:
+        remove_csv_path = os.path.join(temp_dir.name, 'remove.csv')
+        writer = LocalCSVWriter(remove_csv_path)
+        writer.write_rows(remove_student_rows)
+
+        upload_dir_path = server_interface.create_new_upload_dir()
+        remote_csv_file_path = os.path.join(upload_dir_path, 'remove.csv')
+
+        server_interface.copy_file(remove_csv_path, remote_csv_file_path)
+
+        payload = '{0} {1}'.format(class_name, remote_csv_file_path)
+
+        communicate_event('STUDENTS_REMOVE', payload,
+                          success_message='Students removed successfully',
+                          error_message='Error removing students: ',
+                          timeout_message='Server response timeout. '
+                                          'Class modify status unknown')
+
+    if len(update_name_rows) > 0:
+        update_csv_path = os.path.join(temp_dir.name, 'update.csv')
+        writer = LocalCSVWriter(update_csv_path)
+        writer.write_rows(update_name_rows)
+
+        upload_dir_path = server_interface.create_new_upload_dir()
+        remote_csv_file_path = os.path.join(upload_dir_path, 'update.csv')
+
+        server_interface.copy_file(update_csv_path, remote_csv_file_path)
+
+        payload = '{0} {1}'.format(class_name, remote_csv_file_path)
+
+        communicate_event('STUDENTS_MODIFY', payload,
+                          success_message='Students modified successfully',
+                          error_message='Error modifying students: ',
+                          timeout_message='Server response timeout. '
+                                          'Class modify status unknown')
 
 
 @config_parsed
@@ -196,7 +337,7 @@ def admin_promote(email_address: str):
 @server_interface_connected
 def admin_demote(email_address: str):
     """
-    Remote admin status for a faculty user
+    Remove admin status for a faculty user
 
     :param email_address: email address of the faculty user
     """

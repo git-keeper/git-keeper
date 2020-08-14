@@ -21,6 +21,7 @@ import os
 from tempfile import TemporaryDirectory
 
 from gkeepcore.action_scripts import get_action_script_and_interpreter
+from gkeepcore.student import Student
 from gkeepcore.upload_directory import UploadDirectory
 from pkg_resources import resource_exists, resource_string, ResolutionError, \
     ExtractionError
@@ -350,6 +351,28 @@ def remove_student_assignment(assignment_dir: AssignmentDirectory,
         rm(assignment_repo_path, recursive=True, sudo=True)
     except CommandError as e:
         raise StudentAssignmentError(e)
+
+
+def student_assignment_exists(assignment_dir: AssignmentDirectory,
+                              student: Student, faculty_username: str):
+    """
+    Determine if an assignment repository exists for a student.
+
+    :param assignment_dir: AssignmentDirectory object representing the
+     assignment
+    :param student: Student object representing the student
+    :param faculty_username: username of the faculty that owns the class
+    :return: True if a repo exists, False if not
+    """
+
+    home_dir = user_home_dir(student.username)
+
+    assignment_repo_path = \
+        student_assignment_repo_path(faculty_username,
+                                     assignment_dir.class_name,
+                                     assignment_dir.assignment_name, home_dir)
+
+    return os.path.isdir(assignment_repo_path)
 
 
 def setup_student_assignment(assignment_dir: AssignmentDirectory,

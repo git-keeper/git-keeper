@@ -14,10 +14,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""Provides a handler for adding a new class."""
+"""Provides a handler for modifying student names in a class."""
 
+
+from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path
-from gkeepcore.valid_names import validate_class_name
+from gkeepcore.student import students_from_csv
 from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
@@ -25,34 +27,40 @@ from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_update_thread import info_updater
 
 
-class ClassAddHandler(EventHandler):
-    """Handle creating a new class."""
+class StudentsModifyHandler(EventHandler):
+    """Handle student names modified by the faculty."""
 
     def handle(self):
         """
-        Handle creating a new class. The class will initially be empty.
+        Handle modifying student names.
 
         Writes success or failure to the gkeepd to faculty log.
         """
 
         try:
-            validate_class_name(self._class_name)
+            reader = LocalCSVReader(self._uploaded_csv_path)
 
-            if db.class_exists(self._class_name, self._faculty_username):
-                error = ('Class {} already exists. Use gkeep modify if you '
-                         'would like to modify this class'
-                         .format(self._class_name))
-                raise HandlerException(error)
+            students = students_from_csv(reader)
 
-            db.insert_class(self._class_name, self._faculty_username)
+            for student in students:
+                if not db.student_in_class(student.email_address,
+                                           self._class_name,
+                                           self._faculty_username):
+                    error = ('No student with email {} in class {}'
+                             .format(student.email_address, self._class_name))
+                    raise HandlerException(error)
+
+            for student in students:
+                db.change_student_name(student, self._class_name,
+                                       self._faculty_username)
 
             info_updater.enqueue_class_scan(self._faculty_username,
                                             self._class_name)
 
-            self._log_to_faculty('CLASS_ADD_SUCCESS', self._class_name)
+            self._log_to_faculty('STUDENTS_MODIFY_SUCCESS', self._class_name)
         except Exception as e:
             self._log_error_to_faculty(str(e))
-            gkeepd_logger.log_warning('Class creation failed: {0}'.format(e))
+            gkeepd_logger.log_warning('Renaming students failed: {0}'.format(e))
 
     def __repr__(self) -> str:
         """
@@ -61,7 +69,7 @@ class ClassAddHandler(EventHandler):
         :return: string representation of the event
         """
 
-        string = 'Add class event: {0}'.format(self._payload)
+        string = 'Students modify event: {0}'.format(self._payload)
         return string
 
     def _parse_payload(self):
@@ -74,10 +82,18 @@ class ClassAddHandler(EventHandler):
 
         _faculty_username - username of the faculty member
         _class_name - name of the class
+        _uploaded_csv_path - path to CSV file uploaded by the faculty
         """
 
         self._faculty_username = user_from_log_path(self._log_path)
-        self._class_name = self._payload
+
+        try:
+            self._class_name, self._uploaded_csv_path =\
+                self._payload.split(' ')
+        except ValueError:
+            error = ('Payload must look like <class name> <uploaded CSV path> '
+                     ' not {0}'.format(self._payload))
+            raise HandlerException(error)
 
     def _log_to_faculty(self, event_type, text):
         """
@@ -91,9 +107,18 @@ class ClassAddHandler(EventHandler):
 
     def _log_error_to_faculty(self, error):
         """
-        Log a CLASS_ADD_ERROR message to the gkeepd.log for the faculty.
+        Log a CLASS_MODIFY_ERROR message to the gkeepd.log for the faculty.
 
         :param error: the error message
         """
 
-        self._log_to_faculty('CLASS_ADD_ERROR', error)
+        self._log_to_faculty('STUDENTS_MODIFY_ERROR', error)
+
+    def _log_warning_to_faculty(self, warning):
+        """
+        Log a CLASS_MODIFY_WARNING message to the gkeepd.log for the faculty.
+
+        :param warning: the warning message
+        """
+
+        self._log_to_faculty('STUDENTS_MODIFY_WARNING', warning)

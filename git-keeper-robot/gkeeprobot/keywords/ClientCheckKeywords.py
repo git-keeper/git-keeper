@@ -49,27 +49,27 @@ def run_gkeep_json_query(faculty, query):
 class ClientCheckKeywords:
 
     def gkeep_add_succeeds(self, faculty, class_name):
-        client_control.run(faculty, 'gkeep add {} {}.csv'.format(class_name,
-                                                                 class_name))
+        cmd = 'gkeep --yes add {} {}.csv'.format(class_name, class_name)
+        client_control.run(faculty, cmd)
 
     def gkeep_add_no_csv_succeeds(self, faculty, class_name):
-        client_control.run(faculty, 'gkeep add {}'.format(class_name))
+        client_control.run(faculty, 'gkeep --yes add {}'.format(class_name))
 
     def gkeep_add_fails(self, faculty, class_name):
         try:
-            cmd = 'gkeep add {} {}.csv'.format(class_name, class_name)
+            cmd = 'gkeep --yes add {} {}.csv'.format(class_name, class_name)
             client_control.run(faculty, cmd)
             raise GkeepRobotException('gkeep add should have non-zero return')
         except ExitCodeException:
             pass
 
     def gkeep_modify_succeeds(self, faculty, class_name):
-        cmd = 'gkeep modify {} {}.csv'.format(class_name, class_name)
+        cmd = 'gkeep --yes modify {} {}.csv'.format(class_name, class_name)
         client_control.run(faculty, cmd)
 
     def gkeep_modify_fails(self, faculty, class_name):
         try:
-            cmd = 'gkeep modify {} {}.csv'.format(class_name, class_name)
+            cmd = 'gkeep --yes modify {} {}.csv'.format(class_name, class_name)
             client_control.run(faculty, cmd)
             raise GkeepRobotException('gkeep modify should have non-zero return')
         except ExitCodeException:
@@ -121,7 +121,14 @@ class ClientCheckKeywords:
             'last_name': last_name,
         }
 
-        if expected_student_dict not in result[class_name]:
+        present = False
+
+        for student_dict in result[class_name]:
+            if all(item in student_dict.items()
+                   for item in expected_student_dict.items()):
+                present = True
+
+        if not present:
             error = ('Student "{},{},{}" not in {}'
                      .format(last_name, first_name, username, class_name))
             raise GkeepRobotException(error)
@@ -139,7 +146,14 @@ class ClientCheckKeywords:
             'last_name': last_name,
         }
 
-        if expected_student_dict in result[class_name]:
+        present = False
+
+        for student_dict in result[class_name]:
+            if all(item in student_dict.items()
+                   for item in expected_student_dict.items()):
+                present = True
+
+        if present:
             error = ('Student "{},{},{}" should not be in {}'
                     .format(last_name, first_name, username, class_name))
             raise GkeepRobotException(error)
