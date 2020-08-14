@@ -104,8 +104,33 @@ class ClientCheckKeywords:
             pass
 
     def class_exists(self, faculty, class_name):
-        if class_name not in run_gkeep_json_query(faculty, 'classes'):
+        found = False
+        for class_info in run_gkeep_json_query(faculty, 'classes'):
+            if class_info['name'] == class_name:
+                found = True
+
+        if not found:
             raise GkeepRobotException('{} has no class named {}'
+                                      .format(faculty, class_name))
+
+    def class_is_open(self, faculty, class_name):
+        is_open = False
+        for class_info in run_gkeep_json_query(faculty, 'classes'):
+            if class_info['name'] == class_name and class_info['open']:
+                is_open = True
+
+        if not is_open:
+            raise GkeepRobotException('Class {} is not open'
+                                      .format(faculty, class_name))
+
+    def class_is_closed(self, faculty, class_name):
+        is_closed = False
+        for class_info in run_gkeep_json_query(faculty, 'classes'):
+            if class_info['name'] == class_name and not class_info['open']:
+                is_closed = True
+
+        if not is_closed:
+            raise GkeepRobotException('Class {} is not closed'
                                       .format(faculty, class_name))
 
     def class_contains_student(self, faculty, class_name, username,
@@ -305,6 +330,24 @@ class ClientCheckKeywords:
         try:
             client_control.run(faculty, cmd)
             error = 'gkeep test should have non-zero return'
+            raise GkeepRobotException(error)
+        except ExitCodeException:
+            pass
+
+    def gkeep_status_succeeds(self, faculty, class_name, status):
+        cmd = 'gkeep status {} {}'.format(class_name, status)
+        try:
+            client_control.run(faculty, cmd)
+        except ExitCodeException as e:
+            error = 'Command failed: {}\n{}'.format(cmd, e)
+            raise GkeepRobotException(error)
+
+    def gkeep_status_fails(self, faculty, class_name, status):
+        cmd = 'gkeep status {} {}'.format(class_name, status)
+        try:
+            client_control.run(faculty, cmd)
+            error = ('Command should have had non-zero exit code: {}'
+                     .format(cmd))
             raise GkeepRobotException(error)
         except ExitCodeException:
             pass

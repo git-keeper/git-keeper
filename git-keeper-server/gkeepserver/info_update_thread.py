@@ -358,29 +358,37 @@ class InfoUpdateThread(Thread):
 
         class_info = self._info[faculty_username][class_name]
 
-        students_info = {}
+        if db.class_is_open(class_name, faculty_username):
+            class_info['open'] = True
 
-        students = db.get_class_students(class_name, faculty_username)
+            students_info = nested_defaultdict()
 
-        for student in students:
-            student_info = {
-                'last': student.last_name,
-                'first': student.first_name,
-                'username': student.username,
-                'email_address': student.email_address,
-                'home_dir': user_home_dir(student.username),
-                'last_first_username': student.get_last_first_username()
-            }
+            students = db.get_class_students(class_name, faculty_username)
 
-            students_info[student.username] = student_info
+            for student in students:
+                student_info = {
+                    'last': student.last_name,
+                    'first': student.first_name,
+                    'username': student.username,
+                    'email_address': student.email_address,
+                    'home_dir': user_home_dir(student.username),
+                    'last_first_username': student.get_last_first_username()
+                }
 
-        class_info['students'] = students_info
+                students_info[student.username] = student_info
 
-        assignment_dirs = get_class_assignment_dirs(faculty_username,
-                                                    class_name)
+            class_info['students'] = students_info
 
-        for assignment_dir in assignment_dirs:
-            self._assignment_scan(faculty_username, assignment_dir, students)
+            assignment_dirs = get_class_assignment_dirs(faculty_username,
+                                                        class_name)
+
+            for assignment_dir in assignment_dirs:
+                self._assignment_scan(faculty_username, assignment_dir,
+                                      students)
+        else:
+            class_info['open'] = False
+            class_info['students'] = nested_defaultdict()
+            class_info['assignments'] = nested_defaultdict()
 
     def _delete_assignment(self, faculty_username, class_name,
                            assignment_name):
@@ -438,7 +446,7 @@ class InfoUpdateThread(Thread):
         assignment_info['reports_repo'] = reports_repo_info
 
         if assignment_info['students_repos'] is None:
-            assignment_info['students_repos'] = {}
+            assignment_info['students_repos'] = nested_defaultdict()
 
         students_info = assignment_info['students_repos']
 

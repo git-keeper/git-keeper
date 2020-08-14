@@ -26,7 +26,8 @@ from gkeepcore.valid_names import validate_class_name, validate_assignment_name
 from gkeepclient.assignment_uploader import AssignmentUploader
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_does_not_exist, class_exists, \
-    assignment_exists, assignment_not_published, assignment_not_disabled
+    assignment_exists, assignment_not_published, assignment_not_disabled, \
+    class_is_open
 from gkeepclient.server_interface import server_interface
 from gkeepclient.server_response_poller import communicate_event
 from gkeepcore.gkeep_exception import GkeepException
@@ -101,6 +102,7 @@ def class_add(class_name: str, csv_file_path: str, yes: bool):
 @config_parsed
 @server_interface_connected
 @class_exists
+@class_is_open
 def class_modify(class_name: str, csv_file_path: str, yes: bool):
     """
     Modify a class on the server based on the contents of a CSV file.
@@ -271,11 +273,12 @@ def update_status(class_name: str, status: str):
     :param status: new status for the class, 'open' or 'closed'
     """
 
-    current_status = server_interface.class_status(class_name)
+    is_open = server_interface.is_open(class_name)
 
-    if status == current_status:
-        raise GkeepException('{} is already {}'.format(class_name,
-                                                       current_status))
+    if status == 'open' and is_open:
+        raise GkeepException('{} is already open'.format(class_name))
+    elif status == 'closed' and not is_open:
+        raise GkeepException('{} is already closed'.format(class_name))
 
     payload = '{0} {1}'.format(class_name, status)
 
@@ -354,6 +357,7 @@ def admin_demote(email_address: str):
 @config_parsed
 @server_interface_connected
 @class_exists
+@class_is_open
 @assignment_exists
 @assignment_not_disabled
 def delete_assignment(class_name: str, assignment_name: str,
@@ -391,6 +395,7 @@ def delete_assignment(class_name: str, assignment_name: str,
 @config_parsed
 @server_interface_connected
 @class_exists
+@class_is_open
 @assignment_exists
 @assignment_not_disabled
 def disable_assignment(class_name: str, assignment_name: str,
@@ -431,6 +436,7 @@ def disable_assignment(class_name: str, assignment_name: str,
 @config_parsed
 @server_interface_connected
 @class_exists
+@class_is_open
 @assignment_exists
 @assignment_not_disabled
 @assignment_not_published
@@ -458,6 +464,7 @@ def publish_assignment(class_name: str, assignment_name: str):
 @config_parsed
 @server_interface_connected
 @class_exists
+@class_is_open
 @assignment_exists
 @assignment_not_disabled
 def trigger_tests(class_name: str, assignment_name: str,
@@ -515,6 +522,7 @@ def trigger_tests(class_name: str, assignment_name: str,
 @config_parsed
 @server_interface_connected
 @class_exists
+@class_is_open
 @assignment_not_disabled
 def update_assignment(class_name: str, upload_dir_path: str,
                       items=('base_code', 'email', 'tests'),
@@ -602,6 +610,7 @@ def update_assignment(class_name: str, upload_dir_path: str,
 @config_parsed
 @server_interface_connected
 @class_exists
+@class_is_open
 def upload_assignment(class_name: str, upload_dir_path: str):
     """
     Upload an assignment to the server.

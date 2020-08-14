@@ -20,6 +20,7 @@ dictionary.
 The structure of this dictionary is as follows:
 {
  "class_name":{
+  "open": true,
   "assignments":{
    "assignment_name":{
     "name":"assignment_name",
@@ -88,6 +89,16 @@ class FacultyClassInfo:
         """
 
         return list(self.info_dict.keys())
+
+    def is_open(self, class_name) -> bool:
+        """
+        Determine if a class is open.
+
+        :param class_name: name of a class
+        :return: True if the class is open, False if not
+        """
+
+        return self.info_dict[class_name]['open']
 
     def student_count(self, class_name: str) -> int:
         """

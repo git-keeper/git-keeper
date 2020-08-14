@@ -34,11 +34,31 @@ def list_classes(output_json: bool):
 
     class_list = sorted(server_interface.get_info().class_list())
 
+    open_classes = []
+    closed_classes = []
+
+    for class_name in class_list:
+        if server_interface.is_open(class_name):
+            open_classes.append(class_name)
+        else:
+            closed_classes.append(class_name)
+
     if output_json:
-        print(json.dumps(class_list))
+        json_classes = []
+
+        for class_name in sorted(open_classes):
+            json_classes.append({'name': class_name, 'open': True})
+
+        for class_name in sorted(closed_classes):
+            json_classes.append({'name': class_name, 'open': False})
+
+        print(json.dumps(json_classes))
     else:
-        for class_name in class_list:
+        for class_name in sorted(open_classes):
             print(class_name)
+
+        for class_name in sorted(closed_classes):
+            print(class_name, '(closed)')
 
 
 @config_parsed
@@ -57,6 +77,9 @@ def list_assignments(output_json: bool):
     json_output = {}
 
     for class_name in sorted(info.class_list()):
+        if not info.is_open(class_name):
+            continue
+
         text_output += '{}:\n'.format(class_name)
         json_output[class_name] = []
 
@@ -104,6 +127,9 @@ def list_students(output_json: bool):
     class_list = info.class_list()
 
     for class_name in sorted(class_list):
+        if not info.is_open(class_name):
+            continue
+
         text_output += '{}:\n'.format(class_name)
         json_output[class_name] = []
 
@@ -155,6 +181,9 @@ def list_recent(number_of_days, output_json: bool):
     info = server_interface.get_info()
 
     for class_name in sorted(info.class_list()):
+        if not server_interface.is_open(class_name):
+            continue
+
         class_name_printed = False
 
         for assignment_name in sorted(info.assignment_list(class_name)):
