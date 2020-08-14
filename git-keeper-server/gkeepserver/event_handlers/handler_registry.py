@@ -23,6 +23,7 @@ from gkeepserver.event_handlers.admin_demote_handler import AdminDemoteHandler
 from gkeepserver.event_handlers.admin_promote_handler import \
     AdminPromoteHandler
 from gkeepserver.event_handlers.class_add_handler import ClassAddHandler
+from gkeepserver.event_handlers.disable_handler import DisableHandler
 from gkeepserver.event_handlers.students_add_handler import StudentsAddHandler
 from gkeepserver.event_handlers.class_status_handler import ClassStatusHandler
 from gkeepserver.event_handlers.delete_handler import DeleteHandler
@@ -50,6 +51,7 @@ event_handlers_by_type = {
     'UPDATE': UpdateHandler,
     'PUBLISH': PublishHandler,
     'DELETE': DeleteHandler,
+    'DISABLE': DisableHandler,
     'TRIGGER': TriggerHandler,
     'PASSWD': PasswdHandler,
     'FACULTY_ADD': FacultyAddHandler,

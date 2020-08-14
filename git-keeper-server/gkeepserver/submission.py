@@ -95,6 +95,20 @@ class Submission:
                                     class_name))
             return
 
+        if db.is_disabled(class_name, assignment_name, faculty_username):
+            # inform the student that the assignment is disabled
+            subject = ('[{0}] assignment {1} is disabled'
+                       .format(class_name, assignment_name))
+            body = ('You have pushed a submission for assignment {} which is '
+                    'disabled. No tests were run on your submission.'
+                    .format(assignment_name))
+            email_sender.enqueue(Email(self.student.email_address, subject,
+                                       body))
+            logger.log_info('{} pushed to {} in {}, which is disabled'
+                            .format(self.student.username, assignment_name,
+                                    class_name))
+            return
+
         logger.log_debug('Running tests on {0}'.format(self.student_repo_path))
 
         temp_path = mkdtemp(dir=user_home_dir(config.tester_user),

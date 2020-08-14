@@ -159,6 +159,21 @@ class FacultyClassInfo:
         assignment_info = self.info_dict[class_name]['assignments'][assignment]
         return assignment_info['published']
 
+    def is_disabled(self, class_name: str, assignment: str) -> bool:
+        """
+        Determine if an assignment is disabled.
+
+        :param class_name: name of a class
+        :param assignment: name of an assignment
+        :return: True if the assignment is disabled, False otherwise
+        """
+
+        if assignment not in self.info_dict[class_name]['assignments']:
+            return False
+
+        assignment_info = self.info_dict[class_name]['assignments'][assignment]
+        return assignment_info['disabled']
+
     def reports_hash(self, class_name: str, assignment: str) -> str:
         """
         Get the reports hash of an assignment.

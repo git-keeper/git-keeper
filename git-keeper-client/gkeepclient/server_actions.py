@@ -26,7 +26,7 @@ from gkeepcore.valid_names import validate_class_name, validate_assignment_name
 from gkeepclient.assignment_uploader import AssignmentUploader
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_does_not_exist, class_exists, \
-    assignment_exists, assignment_not_published
+    assignment_exists, assignment_not_published, assignment_not_disabled
 from gkeepclient.server_interface import server_interface
 from gkeepclient.server_response_poller import communicate_event
 from gkeepcore.gkeep_exception import GkeepException
@@ -355,8 +355,9 @@ def admin_demote(email_address: str):
 @server_interface_connected
 @class_exists
 @assignment_exists
+@assignment_not_disabled
 def delete_assignment(class_name: str, assignment_name: str,
-                      response_timeout=20):
+                      yes: bool):
     """
     Delete an assignment on the server.
 
@@ -364,14 +365,23 @@ def delete_assignment(class_name: str, assignment_name: str,
 
     :param class_name: name of the class the assignment belongs to
     :param assignment_name: name of the assignment
-    :param response_timeout: seconds to wait for server response
+    :param yes: if True, will automatically answer yes to confirmation prompts
     """
+
+    if server_interface.get_info().is_published(class_name, assignment_name):
+        error = ('Assignment {} is published and cannot be deleted.\n'
+                 'Use gkeep disable if you wish to disable this assignment.'
+                 .format(assignment_name))
+        raise GkeepException(error)
 
     print('Deleting assignment', assignment_name, 'in class', class_name)
 
+    if not yes and not confirmation('Proceed?', 'y'):
+        raise GkeepException('Aborting')
+
     payload = '{0} {1}'.format(class_name, assignment_name)
 
-    communicate_event('DELETE', payload, response_timeout=response_timeout,
+    communicate_event('DELETE', payload,
                       success_message='Assignment deleted successfully',
                       error_message='Error deleting response:',
                       timeout_message='Server response timeout. '
@@ -382,6 +392,47 @@ def delete_assignment(class_name: str, assignment_name: str,
 @server_interface_connected
 @class_exists
 @assignment_exists
+@assignment_not_disabled
+def disable_assignment(class_name: str, assignment_name: str,
+                       yes: bool):
+    """
+    Disable a published assignment on the server.
+
+    Raises a GkeepException if anything goes wrong.
+
+    :param class_name: name of the class the assignment belongs to
+    :param assignment_name: name of the assignment
+    :param yes: if True, will automatically answer yes to confirmation prompts
+    """
+
+    if not server_interface.assignment_published(class_name, assignment_name):
+        error = ('Assignment {} is not published and cannot be disabled.\n'
+                 'Use gkeep delete if you wish to delete this assignment.'
+                 .format(assignment_name))
+        raise GkeepException(error)
+
+    print('Disabling assignment {} in class {}. This cannot be undone.'
+          .format(assignment_name, class_name))
+    print('Students will be notified that the assignment has been disabled.')
+    print('Tests will no longer be run on submissions to this assignment.')
+
+    if not yes and not confirmation('Proceed?', 'y'):
+        raise GkeepException('Aborting')
+
+    payload = '{0} {1}'.format(class_name, assignment_name)
+
+    communicate_event('DISABLE', payload,
+                      success_message='Assignment disabled successfully',
+                      error_message='Error disabling assignment: ',
+                      timeout_message='Server response timeout. '
+                                      'Disable status unknown')
+
+
+@config_parsed
+@server_interface_connected
+@class_exists
+@assignment_exists
+@assignment_not_disabled
 @assignment_not_published
 def publish_assignment(class_name: str, assignment_name: str):
     """
@@ -408,6 +459,7 @@ def publish_assignment(class_name: str, assignment_name: str):
 @server_interface_connected
 @class_exists
 @assignment_exists
+@assignment_not_disabled
 def trigger_tests(class_name: str, assignment_name: str,
                   student_usernames: list, response_timeout=20):
     """
@@ -463,6 +515,7 @@ def trigger_tests(class_name: str, assignment_name: str,
 @config_parsed
 @server_interface_connected
 @class_exists
+@assignment_not_disabled
 def update_assignment(class_name: str, upload_dir_path: str,
                       items=('base_code', 'email', 'tests'),
                       response_timeout=20):

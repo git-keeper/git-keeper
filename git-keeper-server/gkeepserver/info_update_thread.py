@@ -57,7 +57,8 @@ class InfoInstruction(Enum):
     CLASS_SCAN = 1
     ASSIGNMENT_SCAN = 2
     DELETE_ASSIGNMENT = 3
-    SUBMISSION_SCAN = 4
+    DISABLE_ASSIGNMENT = 4
+    SUBMISSION_SCAN = 5
 
 
 class InfoUpdatePayload:
@@ -85,7 +86,9 @@ class InfoUpdatePayload:
             string += ', {}'.format(self.class_name)
 
         if self.instruction in (InfoInstruction.ASSIGNMENT_SCAN,
-                                InfoInstruction.SUBMISSION_SCAN):
+                                InfoInstruction.SUBMISSION_SCAN,
+                                InfoInstruction.DELETE_ASSIGNMENT,
+                                InfoInstruction.DISABLE_ASSIGNMENT):
             string += ', {}'.format(self.assignment_name)
 
         if self.instruction == InfoInstruction.SUBMISSION_SCAN:
@@ -200,6 +203,20 @@ class InfoUpdateThread(Thread):
                                     class_name, assignment_name)
         self._update_request_queue.put(payload)
 
+    def enqueue_disable_assignment(self, faculty_username, class_name,
+                                   assignment_name):
+        """
+        Enqueue a request for an assignment to be disabled.
+
+        :param faculty_username: faculty that owns the assignment
+        :param class_name: the class the assignment belongs to
+        :param assignment_name: the name of the assignment
+        """
+        payload = InfoUpdatePayload(faculty_username,
+                                    InfoInstruction.DISABLE_ASSIGNMENT,
+                                    class_name, assignment_name)
+        self._update_request_queue.put(payload)
+
     def shutdown(self):
         """
         Shutdown the thread.
@@ -270,6 +287,11 @@ class InfoUpdateThread(Thread):
                 self._delete_assignment(payload.faculty_username,
                                         payload.class_name,
                                         payload.assignment_name)
+
+            elif payload.instruction == InfoInstruction.DISABLE_ASSIGNMENT:
+                self._disable_assignment(payload.faculty_username,
+                                         payload.class_name,
+                                         payload.assignment_name)
 
             elif payload.instruction == InfoInstruction.SUBMISSION_SCAN:
                 assignment_dir = get_assignment_dir(payload.faculty_username,
@@ -365,6 +387,14 @@ class InfoUpdateThread(Thread):
         class_info = self._info[faculty_username][class_name]
         del class_info['assignments'][assignment_name]
 
+    def _disable_assignment(self, faculty_username, class_name,
+                            assignment_name):
+        class_info = self._info[faculty_username][class_name]
+        assignment_info = class_info['assignments'][assignment_name]
+        assignment_info['disabled'] = True
+        assignment_info['reports_repo'] = None
+        assignment_info['students_repos'] = None
+
     def _assignment_scan(self, faculty_username,
                          assignment_dir: AssignmentDirectory, students):
         # Update the information for a single assignment
@@ -382,6 +412,9 @@ class InfoUpdateThread(Thread):
         assignment_info['published'] = db.is_published(class_name,
                                                        assignment_name,
                                                        faculty_username)
+        assignment_info['disabled'] = db.is_disabled(class_name,
+                                                     assignment_name,
+                                                     faculty_username)
 
         if 'reports_repo' not in assignment_info:
             assignment_info['reports_repo'] = None
@@ -389,8 +422,9 @@ class InfoUpdateThread(Thread):
         if 'students_repos' not in assignment_info:
             assignment_info['students_repos'] = None
 
-        # If the assignment is not published, we're done
-        if not db.is_published(class_name, assignment_name, faculty_username):
+        # If the assignment is not published, or if the assignment is disabled,
+        # we're done
+        if not assignment_info['published'] or assignment_info['disabled']:
             return
 
         reports_repo_path = assignment_dir.reports_repo_path

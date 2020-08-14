@@ -16,6 +16,7 @@ from enum import Enum
 
 import peewee as pw
 
+from gkeepcore.assignment import Assignment
 from gkeepcore.valid_names import cleanup_string, validate_username
 from gkeepserver.faculty import Faculty
 from gkeepcore.gkeep_exception import GkeepException
@@ -59,25 +60,25 @@ class BaseModel(pw.Model):
         database = database
 
 
-class User(BaseModel):
+class DBUser(BaseModel):
     email_address = pw.CharField(unique=True)
     username = pw.CharField(unique=True)
 
 
-class FacultyUser(BaseModel):
-    user_id = pw.ForeignKeyField(User, unique=True)
+class DBFacultyUser(BaseModel):
+    user_id = pw.ForeignKeyField(DBUser, unique=True)
     first_name = pw.CharField()
     last_name = pw.CharField()
     admin = pw.BooleanField()
 
 
-class StudentUser(BaseModel):
-    user_id = pw.ForeignKeyField(User, unique=True)
+class DBStudentUser(BaseModel):
+    user_id = pw.ForeignKeyField(DBUser, unique=True)
 
 
-class Class(BaseModel):
+class DBClass(BaseModel):
     name = pw.CharField()
-    faculty_id = pw.ForeignKeyField(User)
+    faculty_id = pw.ForeignKeyField(DBUser)
     open = pw.BooleanField()
 
     class Meta:
@@ -86,9 +87,9 @@ class Class(BaseModel):
         )
 
 
-class ClassStudent(BaseModel):
-    class_id = pw.ForeignKeyField(Class)
-    user_id = pw.ForeignKeyField(User)
+class DBClassStudent(BaseModel):
+    class_id = pw.ForeignKeyField(DBClass)
+    user_id = pw.ForeignKeyField(DBUser)
     first_name = pw.CharField()
     last_name = pw.CharField()
     active = pw.BooleanField()
@@ -99,10 +100,11 @@ class ClassStudent(BaseModel):
         )
 
 
-class Assignment(BaseModel):
+class DBAssignment(BaseModel):
     name = pw.CharField()
-    class_id = pw.ForeignKeyField(Class)
+    class_id = pw.ForeignKeyField(DBClass)
     published = pw.BooleanField()
+    disabled = pw.BooleanField()
 
     class Meta:
         indexes = (
@@ -110,7 +112,7 @@ class Assignment(BaseModel):
         )
 
 
-class ByteCount(BaseModel):
+class DBByteCount(BaseModel):
     file_path = pw.CharField(unique=True)
     byte_count = pw.IntegerField()
 
@@ -131,8 +133,8 @@ class Database:
         :param db_filename: name of the file to connect to
         """
         database.init(db_filename, pragmas={'foreign_keys': 1})
-        database.create_tables([User, FacultyUser, StudentUser, Class,
-                                ClassStudent, Assignment, ByteCount])
+        database.create_tables([DBUser, DBFacultyUser, DBStudentUser, DBClass,
+                                DBClassStudent, DBAssignment, DBByteCount])
 
     def username_exists(self, username):
         """
@@ -142,7 +144,7 @@ class Database:
         :param username: username to check
         :return: True if the username exists, False if not
         """
-        query = User.select().where(User.username == username)
+        query = DBUser.select().where(DBUser.username == username)
         return query.exists()
 
     def email_exists(self, email_address):
@@ -153,7 +155,7 @@ class Database:
         :param email_address: the email address to check
         :return: True if the email address exists, False if not
         """
-        query = User.select().where(User.email_address == email_address)
+        query = DBUser.select().where(DBUser.email_address == email_address)
         return query.exists()
 
     def get_username_from_email(self, email_address):
@@ -166,8 +168,8 @@ class Database:
         :return: username of the user
         """
         try:
-            return User.get(User.email_address == email_address).username
-        except User.DoesNotExist:
+            return DBUser.get(DBUser.email_address == email_address).username
+        except DBUser.DoesNotExist:
             error = 'No user with email address {}'.format(email_address)
             raise DatabaseException(error)
 
@@ -181,8 +183,8 @@ class Database:
         :return: email address of the user
         """
         try:
-            return User.get(User.username == username).email_address
-        except User.DoesNotExist:
+            return DBUser.get(DBUser.username == username).email_address
+        except DBUser.DoesNotExist:
             error = 'No user with username {}'.format(username)
             raise DatabaseException(error)
 
@@ -195,9 +197,9 @@ class Database:
         :param faculty_username: username of the faculty member
         :return: True if the class exists, False if not
         """
-        query = Class.select().join(User).where(
-            (Class.name == class_name) &
-            (User.username == faculty_username)
+        query = DBClass.select().join(DBUser).where(
+            (DBClass.name == class_name) &
+            (DBUser.username == faculty_username)
         )
         return query.exists()
 
@@ -212,7 +214,7 @@ class Database:
         """
         username = self._insert_user(student.email_address)
         user_id = self._user_id_from_username(username)
-        StudentUser.create(user_id=user_id)
+        DBStudentUser.create(user_id=user_id)
         student.username = username
         return student
 
@@ -241,7 +243,7 @@ class Database:
             raise DatabaseException(error)
 
         student_id = self._user_id_from_username(student.username)
-        class_student = ClassStudent.get(ClassStudent.user_id == student_id)
+        class_student = DBClassStudent.get(DBClassStudent.user_id == student_id)
         class_student.first_name = student.first_name
         class_student.last_name = student.last_name
         class_student.save()
@@ -258,10 +260,10 @@ class Database:
         """
         username = self._insert_user(faculty.email_address)
         user_id = self._user_id_from_username(username)
-        FacultyUser.create(user_id=user_id,
-                           first_name=faculty.first_name,
-                           last_name=faculty.last_name,
-                           admin=faculty.admin)
+        DBFacultyUser.create(user_id=user_id,
+                             first_name=faculty.first_name,
+                             last_name=faculty.last_name,
+                             admin=faculty.admin)
         faculty.username = username
         return faculty
 
@@ -274,17 +276,17 @@ class Database:
         :return: Faculty object representing the faculty user
         """
         try:
-            user = (User
-                    .select(User.username, User.email_address,
-                            FacultyUser.first_name, FacultyUser.last_name,
-                            FacultyUser.admin)
-                    .join(FacultyUser)
-                    .where(User.username == username)).get()
-            return Faculty(user.facultyuser.last_name,
-                           user.facultyuser.first_name,
+            user = (DBUser
+                    .select(DBUser.username, DBUser.email_address,
+                            DBFacultyUser.first_name, DBFacultyUser.last_name,
+                            DBFacultyUser.admin)
+                    .join(DBFacultyUser)
+                    .where(DBUser.username == username)).get()
+            return Faculty(user.dbfacultyuser.last_name,
+                           user.dbfacultyuser.first_name,
                            user.username, user.email_address,
-                           user.facultyuser.admin)
-        except User.DoesNotExist:
+                           user.dbfacultyuser.admin)
+        except DBUser.DoesNotExist:
             error = 'No faculty user with the username {}'.format(username)
             raise DatabaseException(error)
 
@@ -299,17 +301,17 @@ class Database:
         """
 
         try:
-            user = (User
-                    .select(User.username, User.email_address,
-                            FacultyUser.first_name, FacultyUser.last_name,
-                            FacultyUser.admin)
-                    .join(FacultyUser)
-                    .where(User.email_address == email_address)).get()
-            return Faculty(user.facultyuser.last_name,
-                           user.facultyuser.first_name,
+            user = (DBUser
+                    .select(DBUser.username, DBUser.email_address,
+                            DBFacultyUser.first_name, DBFacultyUser.last_name,
+                            DBFacultyUser.admin)
+                    .join(DBFacultyUser)
+                    .where(DBUser.email_address == email_address)).get()
+            return Faculty(user.dbfacultyuser.last_name,
+                           user.dbfacultyuser.first_name,
                            user.username, user.email_address,
-                           user.facultyuser.admin)
-        except User.DoesNotExist:
+                           user.dbfacultyuser.admin)
+        except DBUser.DoesNotExist:
             error = ('No faculty user with the email address {}'
                      .format(email_address))
             raise DatabaseException(error)
@@ -324,17 +326,17 @@ class Database:
 
         faculty_objects = []
 
-        query = (User
-                 .select(User.username, User.email_address,
-                         FacultyUser.first_name, FacultyUser.last_name,
-                         FacultyUser.admin)
-                 .join(FacultyUser))
+        query = (DBUser
+                 .select(DBUser.username, DBUser.email_address,
+                         DBFacultyUser.first_name, DBFacultyUser.last_name,
+                         DBFacultyUser.admin)
+                 .join(DBFacultyUser))
 
         for result in query:
             faculty_objects.append(
-                Faculty(result.facultyuser.last_name,
-                        result.facultyuser.first_name, result.username,
-                        result.email_address, admin=result.facultyuser.admin)
+                Faculty(result.dbfacultyuser.last_name,
+                        result.dbfacultyuser.first_name, result.username,
+                        result.email_address, admin=result.dbfacultyuser.admin)
             )
 
         return faculty_objects
@@ -348,7 +350,7 @@ class Database:
         :return: list of class names owned by the faculty user
         """
 
-        query = Class.select().join(User).where(User.username == username)
+        query = DBClass.select().join(DBUser).where(DBUser.username == username)
         return [row.name for row in query]
 
     def faculty_username_exists(self, username: str):
@@ -373,8 +375,8 @@ class Database:
         :return: True if the username refers to an admin, False if not
         """
 
-        query = User.select().join(FacultyUser).where(
-            (User.username == username) & (FacultyUser.admin == True)
+        query = DBUser.select().join(DBFacultyUser).where(
+            (DBUser.username == username) & (DBFacultyUser.admin == True)
         )
         return query.exists()
 
@@ -387,7 +389,7 @@ class Database:
         """
 
         user_id = self._get_faculty_id(username)
-        faculty_user = FacultyUser.get(FacultyUser.user_id == user_id)
+        faculty_user = DBFacultyUser.get(DBFacultyUser.user_id == user_id)
         if faculty_user.admin:
             error = 'User {} is already an admin'.format(username)
             raise DatabaseException(error)
@@ -403,11 +405,11 @@ class Database:
         :param username: username for which to remove privileges
         """
 
-        if FacultyUser.select().where(FacultyUser.admin == True).count() == 1:
+        if DBFacultyUser.select().where(DBFacultyUser.admin == True).count() == 1:
             raise DatabaseException('You may not demote the only admin user')
 
         user_id = self._get_faculty_id(username)
-        faculty_user = FacultyUser.get(FacultyUser.user_id == user_id)
+        faculty_user = DBFacultyUser.get(DBFacultyUser.user_id == user_id)
         if not faculty_user.admin:
             error = 'User {} is not an admin'.format(username)
             raise DatabaseException(error)
@@ -430,7 +432,7 @@ class Database:
                      .format(faculty_username, class_name))
             raise DatabaseException(error)
 
-        Class.create(name=class_name, faculty_id=faculty_id, open=True)
+        DBClass.create(name=class_name, faculty_id=faculty_id, open=True)
 
     def close_class(self, class_name: str, faculty_username: str):
         """
@@ -444,11 +446,11 @@ class Database:
         faculty_id = self._get_faculty_id(faculty_username)
 
         try:
-            query = (Class.update(open=False)
-                          .where((Class.name == class_name) &
-                                 (Class.faculty_id == faculty_id)))
+            query = (DBClass.update(open=False)
+                     .where((DBClass.name == class_name) &
+                            (DBClass.faculty_id == faculty_id)))
             query.execute()
-        except Class.DoesNotExist:
+        except DBClass.DoesNotExist:
             error = ('Faculty {} does not have a class named {}'
                      .format(faculty_username, class_name))
             raise DatabaseException(error)
@@ -465,11 +467,11 @@ class Database:
         faculty_id = self._get_faculty_id(faculty_username)
 
         try:
-            query = (Class.update(open=True)
-                          .where((Class.name == class_name) &
-                                 (Class.faculty_id == faculty_id)))
+            query = (DBClass.update(open=True)
+                     .where((DBClass.name == class_name) &
+                            (DBClass.faculty_id == faculty_id)))
             query.execute()
-        except Class.DoesNotExist:
+        except DBClass.DoesNotExist:
             error = ('Faculty {} does not have a class named {}'
                      .format(faculty_username, class_name))
             raise DatabaseException(error)
@@ -488,10 +490,10 @@ class Database:
         faculty_id = self._get_faculty_id(faculty_username)
 
         try:
-            the_class = Class.get((Class.name == class_name) &
-                                  (Class.faculty_id == faculty_id))
+            the_class = DBClass.get((DBClass.name == class_name) &
+                                    (DBClass.faculty_id == faculty_id))
             return the_class.open
-        except Class.DoesNotExist:
+        except DBClass.DoesNotExist:
             error = ('Faculty {} does not have a class named {}'
                      .format(faculty_username, class_name))
             raise DatabaseException(error)
@@ -510,12 +512,56 @@ class Database:
         class_id = self._get_class_id(class_name, faculty_username)
 
         try:
-            Assignment.create(class_id=class_id, name=assignment_name,
-                              published=False)
+            assignment = DBAssignment.get((DBAssignment.class_id == class_id) &
+                                          (DBAssignment.name == assignment_name))
+            if assignment.disabled:
+                error = ('Assignment {} is a disabled assignment in class {}'
+                         .format(assignment_name, class_name))
+                raise DatabaseException(error)
+            else:
+                error = ('Class {} already has an assignment named {}'
+                         .format(class_name, assignment_name))
+                raise DatabaseException(error)
+        except DBAssignment.DoesNotExist:
+            pass
+
+        try:
+            DBAssignment.create(class_id=class_id, name=assignment_name,
+                                published=False, disabled=False)
         except pw.IntegrityError:
             error = ('Class {} already has an assignment named {}'
                      .format(class_name, assignment_name))
             raise DatabaseException(error)
+
+    def get_class_assignments(self, class_name: str, faculty_username: str,
+                              include_disabled=False):
+        """
+        Get all of the assignments from a class as a list of Assignment
+        objects.
+
+        Raises a DatabaseException if the class does not exist.
+
+        :param class_name: name of the class
+        :param faculty_username: username of the faculty that owns the class
+        :param include_disabled: if True,
+        :return: list of Assignment object representing the assignments
+         in the class
+        """
+
+        class_id = self._get_class_id(class_name, faculty_username)
+
+        assignments = []
+
+        query = DBAssignment.select().where((DBAssignment.class_id == class_id))
+
+        for assignment in query:
+            if not assignment.disabled or include_disabled:
+                assignments.append(Assignment(assignment.name, class_name,
+                                              faculty_username,
+                                              assignment.published,
+                                              assignment.disabled))
+
+        return assignments
 
     def remove_assignment(self, class_name: str, assignment_name: str,
                           faculty_username: str):
@@ -531,12 +577,73 @@ class Database:
         class_id = self._get_class_id(class_name, faculty_username)
 
         try:
-            assignment = Assignment.get(class_id=class_id,
-                                        name=assignment_name)
+            assignment = DBAssignment.get(class_id=class_id,
+                                          name=assignment_name)
             assignment.delete_instance()
-        except Assignment.DoesNotExist:
+        except DBAssignment.DoesNotExist:
             error = ('No assignment named {} in class {}'
                      .format(assignment_name, class_name))
+            raise DatabaseException(error)
+
+    def disable_assignment(self, class_name: str, assignment_name: str,
+                           faculty_username: str):
+        """
+        Disables an assignment. Raises a DatabaseException if either the class
+        or assignment do not exist, if the assignment is already disabled, or
+        if the assignment is not published.
+
+        :param class_name: name of the class that the assignment belongs to
+        :param assignment_name: name of the assignment
+        :param faculty_username: username of the faculty user that owns the
+         assignment
+        """
+        class_id = self._get_class_id(class_name, faculty_username)
+
+        try:
+            assignment = DBAssignment.get(class_id=class_id,
+                                          name=assignment_name)
+            if assignment.disabled:
+                error = ('Assignment {} in class {} is already disabled'
+                         .format(assignment_name, class_name))
+                raise DatabaseException(error)
+
+            if not assignment.published:
+                error = ('Assignment {} in class {} cannot be disabled '
+                         'because it is not published'
+                         .format(assignment_name, class_name))
+                raise DatabaseException(error)
+
+            assignment.disabled = True
+            assignment.save()
+        except DBAssignment.DoesNotExist:
+            error = ('No assignment named {} in class {}'
+                     .format(assignment_name, class_name))
+            raise DatabaseException(error)
+
+    def is_disabled(self, class_name: str, assignment_name: str,
+                    faculty_username: str):
+        """
+        Determine if an assignment is disabled. Raises a DatabaseException if
+        the class or assignment do not exist.
+
+        :param class_name: name of the class the assignment belongs to
+        :param assignment_name: name of the assignment
+        :param faculty_username: username of the faculty member that owns the
+         assignment
+        :return: True if the assignment is disabled, False if not
+        """
+        class_id = self._get_class_id(class_name, faculty_username)
+
+        try:
+            selected_assignment = DBAssignment.select().where(
+                (DBAssignment.name == assignment_name) &
+                (DBAssignment.class_id == class_id)
+            ).get()
+
+            return selected_assignment.disabled
+        except DBAssignment.DoesNotExist:
+            error = ('Class {} has no assignment {}'
+                     .format(class_name, assignment_name))
             raise DatabaseException(error)
 
     def set_published(self, class_name: str, assignment_name: str,
@@ -555,12 +662,12 @@ class Database:
         class_id = self._get_class_id(class_name, faculty_username)
 
         try:
-            query = Assignment.update(published=published).where(
-                (Assignment.class_id == class_id) &
-                (Assignment.name == assignment_name)
+            query = DBAssignment.update(published=published).where(
+                (DBAssignment.class_id == class_id) &
+                (DBAssignment.name == assignment_name)
             )
             query.execute()
-        except Assignment.DoesNotExist:
+        except DBAssignment.DoesNotExist:
             error = ('No assignment named {} in class {}'
                      .format(assignment_name, class_name))
             raise DatabaseException(error)
@@ -580,13 +687,13 @@ class Database:
         class_id = self._get_class_id(class_name, faculty_username)
 
         try:
-            selected_assignment = Assignment.select().where(
-                (Assignment.name == assignment_name) &
-                (Assignment.class_id == class_id)
+            selected_assignment = DBAssignment.select().where(
+                (DBAssignment.name == assignment_name) &
+                (DBAssignment.class_id == class_id)
             ).get()
 
             return selected_assignment.published
-        except Assignment.DoesNotExist:
+        except DBAssignment.DoesNotExist:
             error = ('Class {} has no assignment {}'
                      .format(class_name, assignment_name))
             raise DatabaseException(error)
@@ -606,9 +713,9 @@ class Database:
         student_id = self._student_id_from_email(student.email_address)
 
         try:
-            ClassStudent.create(class_id=class_id, user_id=student_id,
-                                first_name=student.first_name,
-                                last_name=student.last_name, active=True)
+            DBClassStudent.create(class_id=class_id, user_id=student_id,
+                                  first_name=student.first_name,
+                                  last_name=student.last_name, active=True)
         except pw.IntegrityError:
             error = '{} is already in class {}'.format(student.email_address,
                                                        class_name)
@@ -630,11 +737,11 @@ class Database:
         student_id = self._student_id_from_email(student_email)
 
         try:
-            class_student = ClassStudent.get(
-                (ClassStudent.class_id == class_id) &
-                (ClassStudent.user_id == student_id)
+            class_student = DBClassStudent.get(
+                (DBClassStudent.class_id == class_id) &
+                (DBClassStudent.user_id == student_id)
             )
-        except ClassStudent.DoesNotExist:
+        except DBClassStudent.DoesNotExist:
             error = ('{} is not a student in {}'.format(student_email,
                                                         class_name))
             raise DatabaseException(error)
@@ -644,9 +751,9 @@ class Database:
                      .format(student_email, class_name))
             raise DatabaseException(error)
 
-        ClassStudent.update(active=False).where(
-            (ClassStudent.class_id == class_id) &
-            (ClassStudent.user_id == student_id)
+        DBClassStudent.update(active=False).where(
+            (DBClassStudent.class_id == class_id) &
+            (DBClassStudent.user_id == student_id)
         ).execute()
 
     def activate_student_in_class(self, class_name: str, student_email: str,
@@ -665,11 +772,11 @@ class Database:
         student_id = self._student_id_from_email(student_email)
 
         try:
-            class_student = ClassStudent.get(
-                (ClassStudent.class_id == class_id) &
-                (ClassStudent.user_id == student_id)
+            class_student = DBClassStudent.get(
+                (DBClassStudent.class_id == class_id) &
+                (DBClassStudent.user_id == student_id)
             )
-        except ClassStudent.DoesNotExist:
+        except DBClassStudent.DoesNotExist:
             error = ('{} is not a student in {}'.format(student_email,
                                                         class_name))
             raise DatabaseException(error)
@@ -679,9 +786,9 @@ class Database:
                      .format(student_email, class_name))
             raise DatabaseException(error)
 
-        ClassStudent.update(active=True).where(
-            (ClassStudent.class_id == class_id) &
-            (ClassStudent.user_id == student_id)
+        DBClassStudent.update(active=True).where(
+            (DBClassStudent.class_id == class_id) &
+            (DBClassStudent.user_id == student_id)
         ).execute()
 
     def get_class_students(self, class_name: str, faculty_username: str):
@@ -696,19 +803,19 @@ class Database:
         """
         class_id = self._get_class_id(class_name, faculty_username)
 
-        query = (User
-                 .select(User.username, User.email_address,
-                         ClassStudent.first_name, ClassStudent.last_name)
-                 .join(ClassStudent)
-                 .join(Class)
-                 .where((Class.id == class_id) & (ClassStudent.active == True))
+        query = (DBUser
+                 .select(DBUser.username, DBUser.email_address,
+                         DBClassStudent.first_name, DBClassStudent.last_name)
+                 .join(DBClassStudent)
+                 .join(DBClass)
+                 .where((DBClass.id == class_id) & (DBClassStudent.active == True))
                  )
 
         students = []
 
         for row in query:
-            student = Student(row.classstudent.last_name,
-                              row.classstudent.first_name, row.username,
+            student = Student(row.dbclassstudent.last_name,
+                              row.dbclassstudent.first_name, row.username,
                               row.email_address)
             students.append(student)
 
@@ -730,11 +837,11 @@ class Database:
             class_id = self._get_class_id(class_name, faculty_username)
             student_id = self._student_id_from_email(email_address)
 
-            ClassStudent.get((ClassStudent.user_id == student_id) &
-                             (ClassStudent.class_id == class_id) &
-                             (ClassStudent.active == True))
+            DBClassStudent.get((DBClassStudent.user_id == student_id) &
+                               (DBClassStudent.class_id == class_id) &
+                               (DBClassStudent.active == True))
             return True
-        except (DatabaseException, ClassStudent.DoesNotExist):
+        except (DatabaseException, DBClassStudent.DoesNotExist):
             return False
 
     def student_inactive_in_class(self, email_address, class_name,
@@ -754,11 +861,11 @@ class Database:
             class_id = self._get_class_id(class_name, faculty_username)
             student_id = self._student_id_from_email(email_address)
 
-            ClassStudent.get((ClassStudent.user_id == student_id) &
-                             (ClassStudent.class_id == class_id) &
-                             (ClassStudent.active == False))
+            DBClassStudent.get((DBClassStudent.user_id == student_id) &
+                               (DBClassStudent.class_id == class_id) &
+                               (DBClassStudent.active == False))
             return True
-        except (DatabaseException, ClassStudent.DoesNotExist):
+        except (DatabaseException, DBClassStudent.DoesNotExist):
             return False
 
     def get_class_student_by_username(self, username: str, class_name: str,
@@ -777,23 +884,23 @@ class Database:
             faculty_id = self._get_faculty_id(faculty_username)
             student_id = self._user_id_from_username(username)
 
-            user = (User
-                    .select(User.username, User.email_address,
-                            ClassStudent.first_name,
-                            ClassStudent.last_name)
-                    .join(ClassStudent)
-                    .join(Class)
+            user = (DBUser
+                    .select(DBUser.username, DBUser.email_address,
+                            DBClassStudent.first_name,
+                            DBClassStudent.last_name)
+                    .join(DBClassStudent)
+                    .join(DBClass)
                     .where(
-                         (Class.faculty_id == faculty_id) &
-                         (Class.name == class_name) &
-                         (ClassStudent.user_id == student_id) &
-                         (ClassStudent.active == True))
+                (DBClass.faculty_id == faculty_id) &
+                (DBClass.name == class_name) &
+                (DBClassStudent.user_id == student_id) &
+                (DBClassStudent.active == True))
                     ).get()
 
-            return Student(user.classstudent.last_name,
-                           user.classstudent.first_name, user.username,
+            return Student(user.dbclassstudent.last_name,
+                           user.dbclassstudent.first_name, user.username,
                            user.email_address)
-        except User.DoesNotExist:
+        except DBUser.DoesNotExist:
             error = ('No student user with the username {} in class {}'
                      .format(username, class_name))
             raise DatabaseException(error)
@@ -811,7 +918,7 @@ class Database:
             for path in byte_counts_by_file_path
         ]
 
-        ByteCount.replace_many(data).execute()
+        DBByteCount.replace_many(data).execute()
 
     def get_byte_count(self, file_path: str):
         """
@@ -823,9 +930,9 @@ class Database:
         """
 
         try:
-            byte_count = ByteCount.get(ByteCount.file_path == file_path)
+            byte_count = DBByteCount.get(DBByteCount.file_path == file_path)
             return byte_count.byte_count
-        except ByteCount.DoesNotExist:
+        except DBByteCount.DoesNotExist:
             raise DatabaseException('No byte count found for {}'
                                     .format(file_path))
 
@@ -838,7 +945,7 @@ class Database:
         :return: a list of 2-tuples representing file paths and byte counts
         """
 
-        query = ByteCount.select()
+        query = DBByteCount.select()
 
         byte_counts = [
             (byte_count.file_path, byte_count.byte_count)
@@ -856,9 +963,9 @@ class Database:
         """
 
         try:
-            byte_count = ByteCount.get(ByteCount.file_path == file_path)
+            byte_count = DBByteCount.get(DBByteCount.file_path == file_path)
             byte_count.delete_instance()
-        except ByteCount.DoesNotExist:
+        except DBByteCount.DoesNotExist:
             raise DatabaseException('No byte count found for {}'
                                     .format(file_path))
 
@@ -890,55 +997,55 @@ class Database:
             username = clean_username + str(counter)
             counter += 1
 
-        User.create(username=username, email_address=email_address)
+        DBUser.create(username=username, email_address=email_address)
 
         return username
 
     def _get_class_id(self, class_name, faculty_username):
         try:
-            selected_class = Class.select().join(User).where(
-                (Class.name == class_name) &
-                (User.username == faculty_username)
+            selected_class = DBClass.select().join(DBUser).where(
+                (DBClass.name == class_name) &
+                (DBUser.username == faculty_username)
             ).get()
             return selected_class.id
-        except Class.DoesNotExist:
+        except DBClass.DoesNotExist:
             raise DatabaseException('{} has no class named {}'
                                     .format(faculty_username, class_name))
 
     def _user_id_from_username(self, username):
         try:
-            return User.get(User.username == username).id
-        except User.DoesNotExist:
+            return DBUser.get(DBUser.username == username).id
+        except DBUser.DoesNotExist:
             raise DatabaseException('No user with the username {}'
                                     .format(username))
 
     def _get_faculty_id(self, faculty_username):
         try:
-            faculty = User.select().join(FacultyUser).where(
-                (User.username == faculty_username)
+            faculty = DBUser.select().join(DBFacultyUser).where(
+                (DBUser.username == faculty_username)
             ).get()
             return faculty.id
-        except User.DoesNotExist:
+        except DBUser.DoesNotExist:
             raise DatabaseException('No faculty with the username {}'
                                     .format(faculty_username))
 
     def _student_id_from_username(self, student_username):
         try:
-            student = User.select().join(StudentUser).where(
-                (User.username == student_username)
+            student = DBUser.select().join(DBStudentUser).where(
+                (DBUser.username == student_username)
             ).get()
             return student.id
-        except User.DoesNotExist:
+        except DBUser.DoesNotExist:
             raise DatabaseException('No student with the username {}'
                                     .format(student_username))
 
     def _student_id_from_email(self, email_address):
         try:
-            student = User.select().join(StudentUser).where(
-                (User.email_address == email_address)
+            student = DBUser.select().join(DBStudentUser).where(
+                (DBUser.email_address == email_address)
             ).get()
             return student.id
-        except User.DoesNotExist:
+        except DBUser.DoesNotExist:
             raise DatabaseException('No student with the email address {}'
                                     .format(email_address))
 

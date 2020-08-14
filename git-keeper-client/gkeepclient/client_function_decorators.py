@@ -278,3 +278,37 @@ def assignment_not_published(func):
         return func(class_name, assignment_name, *args, **kwargs)
 
     return wrapper
+
+
+def assignment_not_disabled(func):
+    """
+    Function decorator for functions that have a class name as the first
+    parameter and an assignment name as the second. The wrapper raises a
+    GkeepException if the assignment is disabled on the server before
+    calling the original function.
+
+    :param func: function to decorate
+    :return: the new wrapped function
+    """
+
+    @wraps(func)
+    def wrapper(class_name: str, assignment_name: str, *args, **kwargs):
+        """
+        Raise a GkeepException if the assignment is disabled on the server,
+        then call the original function.
+
+        :param class_name: name of the class
+        :param assignment_name: name of the assignment
+        :param args: positional arguments to pass on to the wrapped function
+        :param kwargs: keyword arguments to pass on to the original function
+        """
+
+        if server_interface.get_info().is_disabled(class_name,
+                                                   assignment_name):
+            error = ('Assignment {0} in class {1} is disabled'
+                     .format(assignment_name, class_name))
+            raise GkeepException(error)
+
+        return func(class_name, assignment_name, *args, **kwargs)
+
+    return wrapper

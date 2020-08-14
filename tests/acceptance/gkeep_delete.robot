@@ -1,4 +1,4 @@
-# Copyright 2019 Nathan Sommer and Ben Coleman
+# Copyright 2020 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,33 +13,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 *** Settings ***
 Resource    resources/setup.robot
 Test Setup    Setup Server and Client Accounts
-Force Tags    gkeep_query
+Force Tags    gkeep_delete
 
 *** Keywords ***
 
 Setup Server and Client Accounts
     Launch Gkeepd And Configure Admin Account on Client
     Add Faculty and Configure Accounts on Client    faculty1
-
-*** Test Cases ***
-
-No Class Results in Empty Reports JSON
-    Gkeep Query JSON Produces Results    faculty1   classes   []
-    Gkeep Query JSON Produces Results    faculty1   assignments   {}
-    Gkeep Query JSON Produces Results    faculty1   students   {}
-    Gkeep Query JSON Produces Results    faculty1   recent   {}
-
-
-Class With Assignment Results in JSON
-    Establish Course  faculty1    cs1     student1
+    Establish Course    faculty1    cs1   student1    student2
     Add Assignment to Client  faculty1  good_simple
     Gkeep Upload Succeeds   faculty1   cs1    good_simple
 
-    Gkeep Query JSON Produces Results    faculty1   classes   ["cs1"]
-    Gkeep Query JSON Produces Results    faculty1   assignments   {"cs1":[{"name":"good_simple","published":false,"disabled":false}]}
-    Gkeep Query JSON Produces Results    faculty1   students   {"cs1":[{"first_name":"First","last_name":"Last","username":"student1","email_address":"student1@gitkeeper.edu"}]}
-    Gkeep Query JSON Produces Results    faculty1   recent   {}
+*** Test Cases ***
+
+Delete Assignment
+    [Tags]    happy_path
+    Gkeep Delete Succeeds    faculty1    cs1    good_simple
+    Gkeep Query JSON Produces Results    faculty1   assignments   {"cs1": []}
+
+Delete Published Assignment Fails
+    [Tags]    error
+    Gkeep Publish Succeeds    faculty1    cs1    good_simple
+    Gkeep Delete Fails    faculty1    cs1    good_simple
+    Gkeep Query JSON Produces Results    faculty1   assignments   {"cs1":[{"name":"good_simple","published":true,"disabled":false}]}
