@@ -1,4 +1,4 @@
-# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,12 +23,9 @@ Be sure to parse the server configuration and start the system logger before
 calling check_system()
 
 """
-
+import json
 import os
 
-from pkg_resources import resource_exists, resource_string
-
-from gkeepcore.faculty import Faculty, faculty_from_csv_file
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_home_dir
@@ -36,7 +33,9 @@ from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
                                        sudo_add_group, mode, chmod, touch,
                                        this_user, this_group, sudo_add_user,
                                        group_owner, sudo_chown)
-from gkeepserver.create_user import create_user, UserType
+from gkeepserver.create_user import create_user, UserType, add_faculty
+from gkeepserver.database import db
+from gkeepserver.faculty import Faculty
 from gkeepserver.gkeepd_logger import gkeepd_logger as gkeepd_logger
 from gkeepserver.server_configuration import config
 
@@ -78,13 +77,12 @@ def check_paths_and_permissions():
         * the tester user does not exist
         * the faculty group does not exist
         * the faculty log directory does not exist
-        * the log snapshot file does not exist
         * run_action.sh does not exist
         * permissions are wrong on the following files/directories:
             * keeper user's home directory: 750
             * gkeepd.log: 600,
-            * log snapshot file: 600
-            * faculty.csv: 600
+            * faculty.json: 600
+            * gkeepd_db.sqlite: 600
 
     Raises a CheckSystemError exception on fatal errors.
 
@@ -133,18 +131,11 @@ def check_paths_and_permissions():
             except CommandError as e:
                 raise CheckSystemError(e)
 
-    if not os.path.isfile(config.log_snapshot_file_path):
-        gkeepd_logger.log_info('{0} does not exist, creating it now'
-                               .format(config.log_snapshot_file_path))
-        # we can create it as an empty file
-        touch(config.log_snapshot_file_path)
-
     required_modes = {
         config.home_dir: '750',
         tester_home_dir: '770',
         config.log_file_path: '600',
-        config.log_snapshot_file_path: '600',
-        config.faculty_csv_path: '600',
+        config.db_path: '600',
     }
 
     for path, required_mode in required_modes.items():
@@ -156,9 +147,6 @@ def check_paths_and_permissions():
 
     if not os.path.isfile(config.gitconfig_file_path):
         write_gitconfig()
-
-    if not os.path.isfile(config.run_action_sh_file_path):
-        write_run_action_sh()
 
 
 def write_gitconfig():
@@ -179,62 +167,14 @@ def write_gitconfig():
     gkeepd_logger.log_info('Created {0}'.format(config.gitconfig_file_path))
 
 
-def write_run_action_sh():
-    """Write the contents of data/run_action.sh to the proper file."""
-
-    if not resource_exists('gkeepserver', 'data/run_action.sh'):
-        raise CheckSystemError('run_action.sh does not exist in the package')
-
-    try:
-        script_text = resource_string('gkeepserver', 'data/run_action.sh')
-        script_text = script_text.decode()
-    except Exception as e:
-        raise CheckSystemError('error reading run_action.sh data: {0}'
-                               .format(e))
-
-    try:
-        with open(config.run_action_sh_file_path, 'w') as f:
-            f.write(script_text)
-    except OSError as e:
-        error = 'error writing {0}: {1}'.format(config.run_action_sh_file_path,
-                                                e)
-        raise CheckSystemError(error)
-
-    sudo_chown(config.run_action_sh_file_path, config.tester_user,
-               config.keeper_group)
-
-
-def setup_faculty(faculty: Faculty):
-    """
-    Create a faculty user and set up the home directory and logging.
-
-    :param faculty: Faculty object representing the faculty member
-    """
-
-    gkeepd_logger.log_info('New faculty: {0}'.format(faculty))
-
-    # in addition to the faculty's default group, the faculty needs to be in
-    # the keeper group and the faculty group
-    groups = [config.keeper_group, config.faculty_group]
-
-    create_user(faculty.username, UserType.faculty, faculty.first_name,
-                faculty.last_name, email_address=faculty.email_address,
-                additional_groups=groups)
-
-    gkeepd_logger.log_debug('User created')
-
-
 def check_faculty():
-    """Read faculty.csv and add any new faculty members."""
+    """Add any new faculty members."""
 
-    gkeepd_logger.log_debug('Reading faculty CSV file')
+    gkeepd_logger.log_debug('Checking faculty')
 
-    try:
-        reader = LocalCSVReader(config.faculty_csv_path)
-        faculty_list = faculty_from_csv_file(reader)
-    except GkeepException as e:
-        raise CheckSystemError(e)
+    if not db.faculty_username_exists(config.admin_username):
+        add_faculty(config.admin_last_name, config.admin_first_name,
+                    config.admin_email, admin=True)
 
-    for faculty in faculty_list:
-        if not user_exists(faculty.username):
-            setup_faculty(faculty)
+    elif not db.is_admin(config.admin_username):
+        db.set_admin(config.admin_username)

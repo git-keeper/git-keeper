@@ -19,10 +19,9 @@ Provides a class for representing a student and a function for building a
 list of students from a CSV file.
 """
 
-import string
-
 from gkeepcore.csv_files import CSVReader
 from gkeepcore.gkeep_exception import GkeepException
+from gkeepcore.valid_names import validate_username, cleanup_string
 
 
 class StudentError(GkeepException):
@@ -82,6 +81,8 @@ class Student:
                      .format(email_address))
             raise StudentError(error)
 
+        validate_username(username)
+
         return cls(last_name, first_name, username, email_address)
 
     def __repr__(self) -> str:
@@ -90,13 +91,19 @@ class Student:
 
         Format:
 
-            Last, First (username) <username@example.com>
+            Last, First <username@example.com>
 
         :return: string representation of the object
         """
 
-        return '{0}, {1} ({2}) <{3}>'.format(self.last_name, self.first_name,
-                                             self.username, self.email_address)
+        return '{0}, {1} <{2}>'.format(self.last_name, self.first_name,
+                                       self.email_address)
+
+    def __eq__(self, other):
+        return (self.username == other.username and
+                self.email_address == other.email_address and
+                self.last_name == other.last_name and
+                self.first_name == other.first_name)
 
     def get_last_first_username(self) -> str:
         """
@@ -104,8 +111,9 @@ class Student:
 
             last_first_username
 
-        Spaces and punctuation are stripped out of the names and all characters
-        are converted to lowercase.
+        Spaces and punctuation are stripped out of the names, NFKD
+        normalization is applied, and all characters are converted to
+        lowercase.
 
         This can be used to create directories or filenames to store student
         data.
@@ -113,16 +121,10 @@ class Student:
         :return: a last_first_username string representation of a student
         """
 
-        def cleanup(s):
-            # convert s to lowercase and strip out all spaces and punctuation
-            s = s.lower().replace(' ', '')
-            s = s.translate(str.maketrans('', '', string.punctuation))
-            return s
+        clean_first_name = cleanup_string(self.first_name)
+        clean_last_name = cleanup_string(self.last_name)
 
-        lower_first_name = cleanup(self.first_name)
-        lower_last_name = cleanup(self.last_name)
-
-        return '{0}_{1}_{2}'.format(lower_last_name, lower_first_name,
+        return '{0}_{1}_{2}'.format(clean_last_name, clean_first_name,
                                     self.username)
 
 
@@ -140,10 +142,16 @@ def students_from_csv(reader: CSVReader) -> list:
     """
 
     students = []
+    emails = []
 
     for row in reader.get_rows():
         if len(row) > 0:
-            students.append(Student.from_csv_row(row))
+            student = Student.from_csv_row(row)
+            if student.email_address in emails:
+                raise StudentError('{} appears more than once'.format(student.email_address))
+            else:
+                students.append(student)
+                emails.append(student.email_address)
 
     return students
 

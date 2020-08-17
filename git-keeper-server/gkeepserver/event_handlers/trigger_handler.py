@@ -1,4 +1,4 @@
-# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,17 +18,16 @@ Provides TriggerHandler, the handler for triggering assignment tests
 
 Event type: TRIGGER
 """
-from gkeepcore.faculty import faculty_from_username
-from gkeepcore.local_csv_files import LocalCSVReader
+
+from gkeepcore.git_commands import git_head_hash
 from gkeepcore.path_utils import user_home_dir, faculty_assignment_dir_path, \
-    user_log_path, student_assignment_repo_path
+    student_assignment_repo_path, user_gitkeeper_path
 from gkeepserver.assignments import AssignmentDirectory
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.new_submission_queue import new_submission_queue
-from gkeepserver.server_configuration import config
-from gkeepserver.students_and_classes import get_class_students
 from gkeepserver.submission import Submission
 
 
@@ -41,12 +40,12 @@ class TriggerHandler(EventHandler):
         assignment.
         """
 
-        faculty_home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
         # path to the directory that the assignment's files are kept in
         assignment_path = faculty_assignment_dir_path(self._class_name,
                                                       self._assignment_name,
-                                                      faculty_home_dir)
+                                                      gitkeeper_path)
 
         print('Handling trigger:')
         print(' Faculty:        ', self._faculty_username)
@@ -56,12 +55,39 @@ class TriggerHandler(EventHandler):
 
         try:
             assignment_dir = AssignmentDirectory(assignment_path)
-            self._ensure_published(assignment_dir)
-            students = get_class_students(self._faculty_username,
-                                          self._class_name)
 
-            students = [s for s in students
-                        if s.username in self._student_usernames]
+            faculty_only = (len(self._student_usernames) == 1 and
+                            self._faculty_username in self._student_usernames)
+
+            is_published = db.is_published(self._class_name,
+                                           self._assignment_name,
+                                           self._faculty_username)
+            if not is_published and not faculty_only:
+                error = ('Assignment {} in class {} is not published.\n'
+                         'Unpublished assignments may only be triggered for '
+                         'the faculty account'
+                         .format(self._assignment_name, self._class_name))
+                raise HandlerException(error)
+
+            is_disabled = db.is_disabled(self._class_name,
+                                         self._assignment_name,
+                                         self._faculty_username)
+            if is_disabled:
+                error = ('Assignment {} in class {} is disabled, and cannot '
+                         'be triggered'.format(self._assignment_name,
+                                               self._class_name))
+                raise HandlerException(error)
+
+            students = db.get_class_students(self._class_name,
+                                             self._faculty_username)
+
+            if len(self._student_usernames) > 0:
+                students = [s for s in students
+                            if s.username in self._student_usernames]
+
+            if self._faculty_username in self._student_usernames:
+                faculty = db.get_faculty_by_username(self._faculty_username)
+                students.append(faculty)
 
             self._trigger_tests(students, assignment_dir)
 
@@ -78,29 +104,22 @@ class TriggerHandler(EventHandler):
             warning = 'Trigger failed: {0}'.format(e)
             gkeepd_logger.log_warning(warning)
 
-    def _ensure_published(self, assignment_dir: AssignmentDirectory):
-        # Throw an exception if the assignment is not published
-        if not assignment_dir.is_published():
-            raise HandlerException('Assignment is not published')
-
     def _trigger_tests(self, students, assignment_dir: AssignmentDirectory):
-        reader = LocalCSVReader(config.faculty_csv_path)
-        faculty = faculty_from_username(self._faculty_username, reader)
+        faculty = db.get_faculty_by_username(self._faculty_username)
         faculty_email = faculty.email_address
 
         # trigger tests for all requested students
         for student in students:
             home_dir = user_home_dir(student.username)
-            log_path = user_log_path(home_dir, student.username)
             submission_repo_path = \
                 student_assignment_repo_path(self._faculty_username,
                                              self._class_name,
                                              self._assignment_name, home_dir)
 
-            submission = Submission(student, submission_repo_path,
-                                    assignment_dir.tests_path,
-                                    assignment_dir.reports_repo_path,
-                                    self._faculty_username,
+            commit_hash = git_head_hash(submission_repo_path)
+
+            submission = Submission(student, submission_repo_path, commit_hash,
+                                    assignment_dir, self._faculty_username,
                                     faculty_email)
             new_submission_queue.put(submission)
 
@@ -111,10 +130,17 @@ class TriggerHandler(EventHandler):
         :return: a string representation of the event to be handled
         """
 
-        string = ('{0} requested to trigger tests on {1} for student(s) {2}'
-                  .format(self._faculty_username, self._class_name,
-                          self._assignment_name,
-                          ' '.join(self._student_usernames)))
+        if len(self._student_usernames) > 0:
+            string = ('{0} requested to trigger tests on assignment {2} in '
+                      'class {1} for student(s) {3}'
+                      .format(self._faculty_username, self._class_name,
+                              self._assignment_name,
+                              ' '.join(self._student_usernames)))
+        else:
+            string = ('{0} requested to trigger tests on assignment {2} in '
+                      'class {1} for all students'
+                      .format(self._faculty_username, self._class_name,
+                              self._assignment_name))
 
         return string
 
@@ -136,7 +162,7 @@ class TriggerHandler(EventHandler):
 
         # there must be a class name and assignment name, and at least one
         # student username
-        if len(payload_list) < 3:
+        if len(payload_list) < 2:
             error = ('Invalid payload for TRIGGER: {0}'.format(self._payload))
             raise HandlerException(error)
 

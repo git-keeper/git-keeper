@@ -18,9 +18,9 @@
 Provides functions for checking to see if names of classes and assignments
 are valid.
 """
-
-
+import re
 import string
+import unicodedata
 
 from gkeepcore.gkeep_exception import GkeepException
 
@@ -66,3 +66,45 @@ def validate_assignment_or_class_name_characters(name: str):
             error = ('Assignment and class names may only contain ASCII '
                      'letters, digits, -, and _')
             raise GkeepException(error)
+
+
+def validate_username(username: str):
+    """
+    Check that the provided string is a valid Linux username. Raises a
+    GkeepException if it is not.
+
+    :param username: username to validate
+    """
+
+    if not re.match(r'^[a-z][_\-.a-z0-9]*$', username):
+        raise GkeepException('{} is not a valid username'.format(username))
+
+    if len(username) > 32:
+        raise GkeepException('The username {} is too long'.format(username))
+
+
+def cleanup_string(dirty_string: str, is_username=False):
+    """
+    Clean up a string for use as a username or part of a file or directory
+    name.
+
+    Spaces and punctuation are stripped string, NFKD normalization is applied,
+    and all characters are converted to lowercase.
+
+    :param dirty_string: string to clean up
+    :param is_username: True if the string is to be used as a username
+    :return: clean string
+    """
+
+    s = unicodedata.normalize('NFKD', dirty_string).encode('ascii', 'ignore')
+    s = s.decode('utf-8')
+    s = str(re.sub(r'[^\w\s-]', '', s).strip().lower())
+    s = str(re.sub(r'[-\s]+', '-', s))
+
+    if is_username:
+        if s[0] not in string.ascii_letters:
+            s = 'a' + s
+        if len(s) > 31:
+            s = s[:31]
+
+    return s

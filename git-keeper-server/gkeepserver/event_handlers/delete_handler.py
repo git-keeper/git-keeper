@@ -1,4 +1,4 @@
-# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,20 +20,17 @@ Event type: DELETE
 """
 
 
-from gkeepcore.faculty import faculty_from_username
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
-    faculty_assignment_dir_path, user_home_dir, class_student_csv_path
-from gkeepcore.student import students_from_csv
+    faculty_assignment_dir_path, user_gitkeeper_path
 from gkeepcore.system_commands import rm
 from gkeepserver.assignments import AssignmentDirectory, \
     remove_student_assignment
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
-from gkeepserver.info_refresh_thread import info_refresher
-from gkeepserver.server_configuration import config
+from gkeepserver.info_update_thread import info_updater
 
 
 class DeleteHandler(EventHandler):
@@ -47,12 +44,12 @@ class DeleteHandler(EventHandler):
         student repos for the assignment.
         """
 
-        faculty_home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
         # path to the directory that the assignment's files are kept in
         assignment_path = faculty_assignment_dir_path(self._class_name,
                                                       self._assignment_name,
-                                                      faculty_home_dir)
+                                                      gitkeeper_path)
 
         print('Handling delete:')
         print(' Faculty:        ', self._faculty_username)
@@ -61,11 +58,28 @@ class DeleteHandler(EventHandler):
         print(' Assignment path:', assignment_path)
 
         try:
+            if db.is_published(self._class_name, self._assignment_name,
+                               self._faculty_username):
+                error = ('Assignment {} is published and cannot be deleted.\n'
+                         'Use gkeep disable to disable this assignment.'
+                         .format(self._assignment_name))
+                raise HandlerException(error)
+
             assignment_dir = AssignmentDirectory(assignment_path)
 
-            self._delete_assignment(assignment_dir)
+            # remove the faculty's "student" repo used for testing
+            faculty = db.get_faculty_by_username(self._faculty_username)
+            remove_student_assignment(assignment_dir, faculty,
+                                      self._faculty_username)
 
-            info_refresher.enqueue(self._faculty_username)
+            rm(assignment_dir.path, recursive=True, sudo=True)
+
+            db.remove_assignment(self._class_name, self._assignment_name,
+                                 self._faculty_username)
+
+            info_updater.enqueue_delete_assignment(self._faculty_username,
+                                                   self._class_name,
+                                                   self._assignment_name)
 
             log_gkeepd_to_faculty(self._faculty_username, 'DELETE_SUCCESS',
                                   '{0} {1}'.format(self._class_name,
@@ -79,41 +93,6 @@ class DeleteHandler(EventHandler):
                                   str(e))
             warning = 'Delete failed: {0}'.format(e)
             gkeepd_logger.log_warning(warning)
-
-    def _delete_assignment(self, assignment_dir: AssignmentDirectory):
-        # Delete the assignment bare repos for the students and the faculty,
-        # as well as the assignment directory itself.
-
-        home_dir = user_home_dir(self._faculty_username)
-
-        assignment_name = assignment_dir.assignment_name
-
-        reader = LocalCSVReader(class_student_csv_path(self._class_name,
-                                                       home_dir))
-        students_with_assignment = []
-
-        faculty = \
-            faculty_from_username(self._faculty_username,
-                                  LocalCSVReader(config.faculty_csv_path))
-
-        students_with_assignment.append(faculty)
-
-        if assignment_dir.is_published():
-            for student in students_from_csv(reader):
-                students_with_assignment.append(student)
-
-        # delete each student's repository and the faculty test repository
-        for student in students_with_assignment:
-            try:
-                remove_student_assignment(assignment_dir, student,
-                                          self._faculty_username)
-            except GkeepException as e:
-                gkeepd_logger.log_warning('Could not remove {0} for {1}: {2}'
-                                          .format(assignment_name,
-                                                  student.username, e))
-
-        # delete the assignment directory
-        rm(assignment_dir.path, recursive=True, sudo=True)
 
     def __repr__(self):
         """

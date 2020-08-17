@@ -27,17 +27,19 @@ import sys
 from argparse import ArgumentParser
 
 from gkeepclient.version import __version__ as client_version
+from gkeepcore.path_utils import path_to_assignment_name
 from gkeepcore.version import __version__ as core_version
 
 from argcomplete import autocomplete
 from gkeepclient.client_configuration import config
-from gkeepclient.client_function_decorators import config_parsed
 
 from gkeepclient.create_config import create_config
 from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
 from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, \
-    upload_assignment, trigger_tests
+    upload_assignment, trigger_tests, update_status, add_faculty, \
+    reset_password, admin_promote, admin_demote, disable_assignment
+from gkeepclient.test_solution import test_solution
 from gkeepclient.queries import list_classes, list_assignments, \
     list_students, list_recent
 from gkeepcore.gkeep_exception import GkeepException
@@ -97,13 +99,25 @@ def add_assignment_path_argument(subparser):
 
 def add_csv_file_path_argument(subparser):
     """
-    Add a csv_file_path argument to a subparser.
+    Add a required csv_file_path argument to a subparser.
 
     :param subparser: the subparser to add the argument to
     """
 
     subparser.add_argument('csv_file_path', type=str, metavar='<csv filename>',
                            help='name of the CSV file containing students')
+
+
+def add_optional_csv_file_path_argument(subparser):
+    """
+    Add an optional csv_file_path argument to a subparser.
+
+    :param subparser: the subparser to add the argument to
+    """
+
+    subparser.add_argument('csv_file_path', type=str, metavar='<csv filename>',
+                           help='name of the CSV file containing students',
+                           default=None, nargs='?')
 
 
 def add_add_subparser(subparsers):
@@ -115,7 +129,7 @@ def add_add_subparser(subparsers):
 
     subparser = subparsers.add_parser('add', help='add a class')
     add_class_name_argument(subparser)
-    add_csv_file_path_argument(subparser)
+    add_optional_csv_file_path_argument(subparser)
 
 
 def add_modify_subparser(subparsers):
@@ -182,6 +196,20 @@ def add_delete_subparser(subparsers):
     add_assignment_name_argument(subparser)
 
 
+def add_disable_subparser(subparsers):
+    """
+    Add a subparser for action 'disable', which disables a published
+    assignment.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('disable',
+                                      help='disable a published assignment')
+    add_class_name_argument(subparser)
+    add_assignment_name_argument(subparser)
+
+
 def add_fetch_subparser(subparsers):
     """
     Add a subparser for action 'fetch', which fetches student submissions.
@@ -209,6 +237,8 @@ def add_query_subparser(subparsers):
     """
 
     subparser = subparsers.add_parser('query', help='query the server')
+    subparser.add_argument('--json', '-j', action='store_true',
+                           help='output JSON')
     subparser.add_argument('query_type', metavar='<query type>',
                            help='classes, assignments, recent, or students',
                            choices=['classes', 'assignments', 'recent',
@@ -237,6 +267,36 @@ def add_trigger_subparser(subparsers):
                                 'students')
 
 
+def add_passwd_subparser(subparsers):
+    """
+    Add a subparser for action 'passwd', which resets a student's password.
+
+    :param subparsers: subparsers to add to
+    """
+
+    help_message = 'reset the password of a student in your class'
+    subparser = subparsers.add_parser('passwd', help=help_message)
+    subparser.add_argument('username', type=str, metavar='<username>',
+                           help='username of the student')
+
+
+def add_test_subparser(subparsers):
+    """
+    Add a subparser for action 'test', which pushes a solution to the server
+    for testing.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('test',
+                                      help='push a solution for testing')
+    add_class_name_argument(subparser)
+    add_assignment_name_argument(subparser)
+    subparser.add_argument('solution_path',
+                           metavar='<solution path>',
+                           help='path to the solution directory')
+
+
 def add_config_subparser(subparsers):
     """
     Add a subparser for action 'config', which asks to create a new
@@ -249,6 +309,66 @@ def add_config_subparser(subparsers):
     subparser = subparsers.add_parser('config',
                                       help='create or overwrite configuration '
                                            'file')
+
+
+def add_status_subparser(subparsers):
+    """
+    Add a subparser for action 'status', which can change the status of a
+    class to 'open' or 'closed'.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('status', help='change the status of a '
+                                                     'class')
+    add_class_name_argument(subparser)
+    subparser.add_argument('status', metavar='<class status>',
+                           choices=('open', 'closed'),
+                           help='"open" or "closed"')
+
+
+def add_add_faculty_subparser(subparsers):
+    """
+    Add a subparser for action 'add_faculty', which can add a new faculty user.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('add_faculty', help='add a new faculty '
+                                                          'user')
+
+    subparser.add_argument('last_name', metavar='<last name>',
+                           help='last name of the faculty member')
+    subparser.add_argument('first_name', metavar='<first name>',
+                           help='last name of the faculty member')
+    subparser.add_argument('email_address', metavar='<email address>',
+                           help='email address of the faculty member')
+
+
+def add_admin_promote_subparser(subparsers):
+    """
+    Add a subparser for action 'admin_promote', which promotes a user to admin
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('admin_promote',
+                                      help='promote a faculty user to admin')
+    subparser.add_argument('email_address', metavar='<email address>',
+                           help='email address of the faculty member')
+
+
+def add_admin_demote_subparser(subparsers):
+    """
+    Add a subparser for action 'admin_demote', which demotes a user from admin
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('admin_demote',
+                                      help='demote a faculty user from admin')
+    subparser.add_argument('email_address', metavar='<email address>',
+                           help='email address of the faculty member')
 
 
 def initialize_action_parser() -> GraderParser:
@@ -266,6 +386,9 @@ def initialize_action_parser() -> GraderParser:
     parser.add_argument('-f', '--config_file', help='Path to config file')
     parser.add_argument('-v', '--version', action='store_true',
                         help='Print gkeep version')
+    parser.add_argument('-y', '--yes', action='store_true',
+                        help='Automatically answer "yes" to confirmation '
+                             'prompts')
 
     subparsers = parser.add_subparsers(dest='subparser_name', title="Actions")
 
@@ -276,29 +399,39 @@ def initialize_action_parser() -> GraderParser:
     add_update_subparser(subparsers)
     add_publish_subparser(subparsers)
     add_delete_subparser(subparsers)
+    add_disable_subparser(subparsers)
     add_fetch_subparser(subparsers)
     add_query_subparser(subparsers)
     add_trigger_subparser(subparsers)
+    add_passwd_subparser(subparsers)
+    add_test_subparser(subparsers)
     add_config_subparser(subparsers)
+    add_status_subparser(subparsers)
+    add_add_faculty_subparser(subparsers)
+    add_admin_promote_subparser(subparsers)
+    add_admin_demote_subparser(subparsers)
 
     return parser
 
 
-def run_query(query_type: str, number_of_days: int):
+def run_query(query_type: str, number_of_days: int, output_json: bool):
     """
     Run the query specified by query_type.
 
     :param query_type: type of the query
+    :param number_of_days: specifies the number of days to use when querying
+      for recent assignments
+    :param output_json: whether or not to print output as JSON
     """
 
     if query_type == 'classes':
-        list_classes()
+        list_classes(output_json)
     elif query_type == 'assignments':
-        list_assignments()
+        list_assignments(output_json)
     elif query_type == 'students':
-        list_students()
+        list_students(output_json)
     elif query_type == 'recent':
-        list_recent(number_of_days)
+        list_recent(number_of_days, output_json)
 
 
 def main():
@@ -330,13 +463,17 @@ def main():
     if parsed_args.version:
         print('gkeep version', client_version)
 
+    # Every action except "config" requires that the configuration file be
+    # parsed
+    if parsed_args.subparser_name != 'config':
+        config.parse()
+
     try:
         take_action(parsed_args)
     except GkeepException as e:
         sys.exit(e)
 
 
-@config_parsed
 def take_action(parsed_args):
     action_name = parsed_args.subparser_name
 
@@ -345,11 +482,16 @@ def take_action(parsed_args):
     if class_name and class_name in config.class_aliases:
         class_name = config.class_aliases[class_name]
 
+    # the user may pass a path for the name of an assignment
+    assignment_name = getattr(parsed_args, 'assignment_name', None)
+    if assignment_name:
+        assignment_name = path_to_assignment_name(assignment_name)
+
     # call the appropriate function for the action
     if action_name == 'add':
-        class_add(class_name, parsed_args.csv_file_path)
+        class_add(class_name, parsed_args.csv_file_path, parsed_args.yes)
     elif action_name == 'modify':
-        class_modify(class_name, parsed_args.csv_file_path)
+        class_modify(class_name, parsed_args.csv_file_path, parsed_args.yes)
     elif action_name == 'upload':
         upload_assignment(class_name, parsed_args.assignment_path)
     elif action_name == 'update':
@@ -359,21 +501,38 @@ def take_action(parsed_args):
             items = (parsed_args.item,)
         update_assignment(class_name, parsed_args.assignment_path, items)
     elif action_name == 'publish':
-        publish_assignment(class_name, parsed_args.assignment_name)
+        publish_assignment(class_name, assignment_name)
     elif action_name == 'delete':
-        delete_assignment(class_name, parsed_args.assignment_name)
+        delete_assignment(class_name, assignment_name, parsed_args.yes)
+    elif action_name == 'disable':
+        disable_assignment(class_name, assignment_name, parsed_args.yes)
     elif action_name == 'fetch':
         dest_path = build_dest_path(parsed_args.destination_path,
                                     class_name)
-        fetch_submissions(class_name, parsed_args.assignment_name,
+        fetch_submissions(class_name, assignment_name,
                           dest_path)
     elif action_name == 'query':
-        run_query(parsed_args.query_type, parsed_args.number_of_days)
+        run_query(parsed_args.query_type, parsed_args.number_of_days,
+                  parsed_args.json)
     elif action_name == 'trigger':
-        trigger_tests(class_name, parsed_args.assignment_name,
+        trigger_tests(class_name, assignment_name,
                       parsed_args.student_usernames)
+    elif action_name == 'passwd':
+        reset_password(parsed_args.username)
     elif action_name == 'config':
         create_config()
+    elif action_name == 'status':
+        update_status(class_name, parsed_args.status)
+    elif action_name == 'add_faculty':
+        add_faculty(parsed_args.last_name, parsed_args.first_name,
+                    parsed_args.email_address)
+    elif action_name == 'admin_promote':
+        admin_promote(parsed_args.email_address)
+    elif action_name == 'admin_demote':
+        admin_demote(parsed_args.email_address)
+    elif action_name == 'test':
+        test_solution(class_name, parsed_args.assignment_name,
+                      parsed_args.solution_path)
 
 
 if __name__ == '__main__':

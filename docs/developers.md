@@ -10,9 +10,51 @@ There are 3 distributions in this project:
 
 Both `git-keeper-client` and `git-keeper-server` depend on `git-keeper-core`.
 
-When developing, all 3 distributions should be installed in development mode
-by running `python setup.py develop` in the top level directory of all 3
-distributions, starting with `git-keeper-core`.
+## Developer Setup
+
+The preferred development environment is PyCharm on OSX or Linux.  The following steps will ensure that your development environment is isolated from the system Python and other Python projects.
+
+### Prerequisites
+
+* [Python 3.4 or greater](https://www.python.org/downloads/)
+
+### Setup Process
+
+
+* Fork the `git-keeper/git-keeper` repo to your personal GitHub account.
+* Clone the repo from your GitHub account
+* `cd git-keeper`
+* Create a virtual environment named `.env`.  The `.gitignore` file ensures that the `.env` folder is ignored.
+
+ ```
+ python3 -m venv .env
+ ```
+ 
+* Activate the virtual environment.
+
+ ```
+ source .env/bin/activate
+ ```
+ 
+* Install the required dependencies.
+
+ ```
+ pip install -r requirements.txt
+ ```
+ 
+* Install the project modules `git-keeper-core`, `git-keeper-client`, and `git-keeper-server` as editable.  This will allow the IDE to recognize the `git-keeper` modules.
+
+ ```
+ pip install -e git-keeper-core
+ pip install -e git-keeper-client
+ pip install -e git-keeper-server
+ pip install -e git-keeper-robot
+ ```
+
+* Open the project in PyCharm, and wait for it to index the packages.
+
+If you clone the repo from within PyCharm, you will have to change the project interpreter after you create the virtual environment.  Also, if you have the project open in PyCharm when you install the `git-keeper` modules, you will have to restart PyCharm before it will recognize the names (this is a known bug in PyCharm).
+
 
 ## Style
 

@@ -31,16 +31,19 @@ def create_config():
     filepath = os.path.join(dirpath, "client.cfg")
     if not check_config_file(dirpath, filepath):
         return
-    host_name = input("Host: ")
+    print("Configuring gkeep")
+    host_name = input("Server hostname: ")
     username = input("Username: ")
-    ssh_port = input("SSH port (press enter for port 22): ")
-    submissions_path = input("Submissions_path: ")
+    ssh_port = input("Server SSH port (press enter for port 22): ")
+    submissions_path = \
+        input("Submissions fetch path (optional, press enter to skip): ")
     file_text = ("[server]\n" +
                  "host = {}\n" +
                  "username = {}\n").format(host_name, username)
     if ssh_port != '':
         file_text += ("# optional\n" +
-                      "ssh_port = {}\n\n").format(ssh_port)
+                      "ssh_port = {}\n").format(ssh_port)
+    file_text += "\n"
     if submissions_path != '':
         file_text += ("# optional section\n" +
                       "[local]\n" +

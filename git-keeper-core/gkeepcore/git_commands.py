@@ -126,6 +126,21 @@ def git_pull(repo_path, remote_url=None):
     run_command_in_directory(repo_path, cmd)
 
 
+def git_config(repo_path, config_options):
+    """
+    Run a git config command on a repository.
+
+    :param repo_path: path to the repository
+    :param config_options: an iterable containing the options to pass to git
+      config
+    """
+
+    cmd = ['git', 'config']
+    cmd.extend(config_options)
+
+    run_command_in_directory(repo_path, cmd)
+
+
 def is_non_bare_repo(repo_path):
     """
     Determine if a directory is a non-bare git repository by checking for the
@@ -163,6 +178,19 @@ def git_clone_remote(remote_repo_url, local_repo_path):
 
     cmd = ['git', 'clone', remote_repo_url, local_repo_path]
     run_command(cmd)
+
+
+def git_checkout(repo_path, branch_or_commit):
+    """
+    Checkout a branch or a commit in a repository.
+
+    :param repo_path: path of the repository
+    :param branch_or_commit: name of the branch or the commit hash to checkout
+    """
+
+    cmd = ['git', 'checkout', branch_or_commit]
+
+    run_command_in_directory(repo_path, cmd)
 
 
 def git_head_hash(repo_path):

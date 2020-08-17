@@ -1,4 +1,4 @@
-# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,16 +26,17 @@ from gkeepcore.csv_files import CSVError
 from gkeepcore.git_commands import git_init, git_push, git_add_all, git_commit
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import faculty_assignment_dir_path, user_home_dir, \
-    class_student_csv_path
+    class_student_csv_path, user_gitkeeper_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.student import students_from_csv, StudentError, Student
 from gkeepcore.system_commands import touch, sudo_chown, mkdir
 from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, setup_student_assignment, StudentAssignmentError
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
-from gkeepserver.info_refresh_thread import info_refresher
+from gkeepserver.info_update_thread import info_updater
 from gkeepserver.server_configuration import config
 
 
@@ -50,12 +51,12 @@ class PublishHandler(EventHandler):
         class.
         """
 
-        faculty_home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
         # path to the directory that the assignment's files are kept in
         assignment_path = faculty_assignment_dir_path(self._class_name,
                                                       self._assignment_name,
-                                                      faculty_home_dir)
+                                                      gitkeeper_path)
 
         print('Handling publish:')
         print(' Faculty:        ', self._faculty_username)
@@ -64,13 +65,21 @@ class PublishHandler(EventHandler):
         print(' Assignment path:', assignment_path)
 
         try:
+            if not db.class_is_open(self._class_name, self._faculty_username):
+                raise HandlerException(
+                    '{} is not open'.format(self._class_name))
+
             assignment_dir = AssignmentDirectory(assignment_path)
             self._ensure_not_published(assignment_dir)
             students = self._setup_students_assignment_repos(assignment_dir)
             self._populate_reports_repo(assignment_dir, students)
-            self._create_published_flag(assignment_dir)
 
-            info_refresher.enqueue(self._faculty_username)
+            db.set_published(self._class_name, self._assignment_name,
+                             self._faculty_username)
+
+            info_updater.enqueue_assignment_scan(self._faculty_username,
+                                                 self._class_name,
+                                                 self._assignment_name)
 
             log_gkeepd_to_faculty(self._faculty_username, 'PUBLISH_SUCCESS',
                                   '{0} {1}'.format(self._class_name,
@@ -87,18 +96,9 @@ class PublishHandler(EventHandler):
 
     def _ensure_not_published(self, assignment_dir: AssignmentDirectory):
         # Throw an exception if the assignment is already published
-        if os.path.isfile(assignment_dir.published_flag_path):
+        if db.is_published(self._class_name, self._assignment_name,
+                           self._faculty_username):
             raise HandlerException('Assignment already published')
-
-    def _create_published_flag(self, assignment_dir: AssignmentDirectory):
-        # Mark the assignment as published by touching the published flag file.
-        try:
-            touch(assignment_dir.published_flag_path, sudo=True)
-            sudo_chown(assignment_dir.published_flag_path,
-                       self._faculty_username, config.keeper_group)
-        except CommandError as e:
-            error = 'Error flagging as published: {0}'.format(e)
-            raise HandlerException(error)
 
     def _populate_reports_repo(self, assignment_dir: AssignmentDirectory,
                                students: list):
@@ -130,12 +130,9 @@ class PublishHandler(EventHandler):
         #
         # Return a list of Student objects
 
-        home_dir = user_home_dir(self._faculty_username)
-
-        student_csv_path = class_student_csv_path(self._class_name, home_dir)
-
         try:
-            students = students_from_csv(LocalCSVReader(student_csv_path))
+            students = db.get_class_students(self._class_name,
+                                             self._faculty_username)
         except StudentError as e:
             error = 'Error in student CSV file: {0}'.format(e)
             raise HandlerException(error)

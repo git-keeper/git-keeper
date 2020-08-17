@@ -1,4 +1,4 @@
-# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
+# Copyright 2020 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,140 +14,45 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-"""Provides a handler for handling classes added by faculty."""
+"""Provides a handler for adding a new class."""
 
-import os
-
-from gkeepcore.local_csv_files import LocalCSVReader
-from gkeepcore.path_utils import user_from_log_path, student_class_dir_path, \
-    user_home_dir, faculty_class_dir_path, class_student_csv_path
-from gkeepcore.shell_command import CommandError
-from gkeepcore.student import students_from_csv
-from gkeepcore.system_commands import user_exists, mkdir, sudo_chown, cp, chmod
+from gkeepcore.path_utils import user_from_log_path
 from gkeepcore.valid_names import validate_class_name
-from gkeepserver.create_user import create_user, UserType
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
-from gkeepserver.info_refresh_thread import info_refresher
-from gkeepserver.server_configuration import config
+from gkeepserver.info_update_thread import info_updater
 
 
 class ClassAddHandler(EventHandler):
-    """Handle new classes added by faculty."""
+    """Handle creating a new class."""
 
     def handle(self):
         """
-        Handle adding a new class.
+        Handle creating a new class. The class will initially be empty.
 
         Writes success or failure to the gkeepd to faculty log.
-
-        Checks that none of the students are already in the class, creates
-        non-existent student accounts, and makes directories for the class
-        in each student's home directory.
         """
 
         try:
             validate_class_name(self._class_name)
-            reader = LocalCSVReader(self._uploaded_csv_path)
-            students = students_from_csv(reader)
 
-            for student in students:
-                if student.username == self._faculty_username:
-                    raise HandlerException('You cannot add yourself to your '
-                                           'own class')
+            if db.class_exists(self._class_name, self._faculty_username):
+                error = ('Class {} already exists. Use gkeep modify if you '
+                         'would like to modify this class'
+                         .format(self._class_name))
+                raise HandlerException(error)
 
-            self._copy_csv_to_class_dir()
-            self._add_students_class_dirs(students)
+            db.insert_class(self._class_name, self._faculty_username)
 
-            info_refresher.enqueue(self._faculty_username)
+            info_updater.enqueue_class_scan(self._faculty_username,
+                                            self._class_name)
 
             self._log_to_faculty('CLASS_ADD_SUCCESS', self._class_name)
         except Exception as e:
             self._log_error_to_faculty(str(e))
-            gkeepd_logger.log_warning('Class add failed: {0}'.format(e))
-
-    def _copy_csv_to_class_dir(self):
-        # copy the CSV file to its final destination
-
-        # uploaded CSV must be in place
-        if not os.path.isfile(self._uploaded_csv_path):
-            error = ('{0} does not exist, cannot add class'
-                     .format(self._uploaded_csv_path))
-            raise HandlerException(error)
-
-        home_dir = user_home_dir(self._faculty_username)
-
-        faculty_class_path = faculty_class_dir_path(self._class_name, home_dir)
-
-        # class must not already exist
-        if os.path.isdir(faculty_class_path):
-            error = ('class {0} already exists'.format(self._class_name))
-            raise HandlerException(error)
-
-        # create the class directory, copy the CSV, and fix permissions
-        try:
-            mkdir(faculty_class_path, sudo=True)
-            final_csv_path = class_student_csv_path(self._class_name, home_dir)
-            cp(self._uploaded_csv_path, final_csv_path, sudo=True)
-            chmod(faculty_class_path, '750', sudo=True)
-            sudo_chown(faculty_class_path, self._faculty_username,
-                       config.keeper_group, recursive=True)
-        except CommandError as e:
-            error = 'Error setting up class directory: {0}'.format(e)
-            raise HandlerException(error)
-
-    def _add_students_class_dirs(self, students):
-        # Add class directory in students' home directories. Add student
-        # accounts if necessary.
-
-        # students we need to add accounts for
-        new_students = []
-
-        # build new_students and check that existing students do not have a
-        # directory for the class already
-        for student in students:
-            if not user_exists(student.username):
-                new_students.append(student)
-            else:
-                home_dir = user_home_dir(student.username)
-
-                class_dir_path = student_class_dir_path(self._faculty_username,
-                                                        self._class_name,
-                                                        home_dir)
-                if os.path.isdir(class_dir_path):
-                    error = ('Student {0} already has a directory for class '
-                             '{1}/{2}'.format(student.username,
-                                              self._faculty_username,
-                                              self._class_name))
-                    raise HandlerException(error)
-
-        # create new student accounts
-        for student in new_students:
-            try:
-                groups = [config.student_group]
-                create_user(student.username, UserType.student,
-                            student.first_name, student.last_name,
-                            email_address=student.email_address,
-                            additional_groups=groups)
-            except Exception as e:
-                error = 'Error adding user {0}: {1}'.format(student.username,
-                                                            e)
-                raise HandlerException(error)
-
-        # for each student, create a directory for the class
-        for student in students:
-            home_dir = user_home_dir(student.username)
-
-            class_dir_path = student_class_dir_path(self._faculty_username,
-                                                    self._class_name,
-                                                    home_dir)
-            try:
-                mkdir(class_dir_path, sudo=True)
-                sudo_chown(class_dir_path, student.username,
-                           config.keeper_group)
-            except CommandError as e:
-                raise HandlerException(e)
+            gkeepd_logger.log_warning('Class creation failed: {0}'.format(e))
 
     def __repr__(self) -> str:
         """
@@ -169,18 +74,10 @@ class ClassAddHandler(EventHandler):
 
         _faculty_username - username of the faculty member
         _class_name - name of the class
-        _uploaded_csv_path - path to CSV file uploaded by the faculty
         """
 
         self._faculty_username = user_from_log_path(self._log_path)
-
-        try:
-            self._class_name, self._uploaded_csv_path =\
-                self._payload.split(' ')
-        except ValueError:
-            error = ('Payload must look like <class name> <uploaded CSV path> '
-                     ' not {0}'.format(self._payload))
-            raise HandlerException(error)
+        self._class_name = self._payload
 
     def _log_to_faculty(self, event_type, text):
         """

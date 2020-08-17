@@ -1,4 +1,4 @@
-# Copyright 2016 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -58,10 +58,10 @@ Attributes:
     student_group - group that all student accounts belong to
 
     log_file_path - path to system log
-    log_snapshot_file_path - path to file containing current log file sizes
+    db_path - path to gkeepd's SQLite database file
     log_level - how detailed the log messages should be
 
-    faculty_csv_path - path to file containing faculty members
+    faculty_json_path - path to file containing faculty members
     faculty_log_dir_path - path to directory containing faculty event logs
 
     DO NOT USE UNTIL FIXED
@@ -150,6 +150,7 @@ class ServerConfiguration:
         self._set_email_options()
         self._set_gkeepd_options()
         self._set_server_options()
+        self._set_admin_options()
 
         self._parsed = True
 
@@ -176,16 +177,18 @@ class ServerConfiguration:
         # logging
         self.log_file_path = os.path.join(self.home_dir, 'gkeepd.log')
 
-        log_snapshot_filename = 'snapshot.json'
-        self.log_snapshot_file_path = os.path.join(self.home_dir,
-                                                   log_snapshot_filename)
         self.log_level = LogLevel.DEBUG
 
-        # faculty info locations
-        self.faculty_csv_path = os.path.join(self.home_dir, 'faculty.csv')
+        # database file location
+        self.db_path = os.path.join(self.home_dir, 'gkeepd_db.sqlite')
+
+        # lock file to prevent multiple instances
+        self.lock_file_path = os.path.join(self.home_dir, 'gkeepd.lock')
 
         # testing student code
         self.test_thread_count = 1
+        self.tests_timeout = 300
+        self.tests_memory_limit = 1024
 
         # users and groups
         self.keeper_user = 'keeper'
@@ -199,6 +202,13 @@ class ServerConfiguration:
         self.email_username = None
         self.email_password = None
         self.email_interval = 2
+
+        # admin
+        self.admin_email = None
+        self.admin_first_name = None
+        self.admin_last_name = None
+
+        self.admin_username = None
 
     def _parse_config_file(self):
         # Use a ConfigParser object to parse the configuration file and store
@@ -281,6 +291,42 @@ class ServerConfiguration:
         except configparser.NoOptionError as e:
             raise ServerConfigurationError(e.message)
 
+    def _set_admin_options(self):
+        # set admin-related attributes
+
+        self._ensure_section_is_present('admin')
+
+        try:
+            # Required fields
+            self.admin_email = self._parser.get('admin', 'admin_email')
+            self.admin_first_name = self._parser.get('admin',
+                                                     'admin_first_name')
+            self.admin_last_name = self._parser.get('admin', 'admin_last_name')
+        except configparser.NoOptionError as e:
+            raise ServerConfigurationError(e.message)
+
+        try:
+            self.admin_username, _ = self.admin_email.split('@')
+        except ValueError:
+            raise ServerConfigurationError('{} is not a valid email address'
+                                           .format(self.admin_email))
+
+        self._ensure_options_are_valid('admin')
+
+    def _ensure_positive_integer(self, name):
+        # raises an exception if the attribute specified by name is not a
+        # positive integer
+
+        try:
+            setattr(self, name, int(getattr(self, name)))
+        except:
+            error = '{} must be an integer'
+            raise ServerConfigurationError(error)
+
+        if getattr(self, name) <= 0:
+            error = '{} must be a positive integer'
+            raise ServerConfigurationError(error)
+
     def _set_gkeepd_options(self):
         # get any optional parameters from the parser and update the attributes
         # from their default values
@@ -290,6 +336,8 @@ class ServerConfiguration:
 
         optional_options = [
             'test_thread_count',
+            'tests_timeout',
+            'tests_memory_limit',
             'keeper_user',
             'keeper_group',
             'tester_user',
@@ -305,12 +353,16 @@ class ServerConfiguration:
                 value = self._parser.get('gkeepd', name)
                 setattr(self, name, value)
 
-        # test_thread_count must be an integer
-        try:
-            self.test_thread_count = int(self.test_thread_count)
-        except ValueError:
-            error = 'test_thread_count must be an integer'
-            raise ServerConfigurationError(error)
+        # test_thread_count, tests_timeout, and tests_memory_limit must be
+        # positive integers
+        positive_integer_options = [
+            'test_thread_count',
+            'tests_timeout',
+            'tests_memory_limit'
+        ]
+
+        for name in positive_integer_options:
+            self._ensure_positive_integer(name)
 
         self._ensure_options_are_valid('gkeepd')
 

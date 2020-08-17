@@ -71,8 +71,9 @@ def run_command(command, sudo=False, stderr=STDOUT) -> str:
         # the CommandError exception will contain the output as a string
         raise CommandError(e.output.decode('utf-8'))
 
-    # convert the output from bytes to a string when returning
-    return output.decode('utf-8')
+    # convert the output from bytes to a string when returning, replacing any
+    # byte sequences that are not valid utf-8 with the � character
+    return output.decode('utf-8', 'replace')
 
 
 class ChangeDirectoryContext:

@@ -1,4 +1,4 @@
-# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,23 +21,24 @@ Event type: UPLOAD
 
 import os
 
-from gkeepcore.faculty import faculty_from_username
 from gkeepcore.git_commands import git_init_bare
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
-    faculty_assignment_dir_path, user_home_dir
+    faculty_assignment_dir_path, user_home_dir, user_gitkeeper_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.system_commands import chmod, sudo_chown, rm, mkdir
 from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
 from gkeepcore.valid_names import validate_assignment_name
 from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, create_base_code_repo, copy_email_txt_file, \
-    copy_tests_dir, setup_student_assignment, StudentAssignmentError
+    copy_tests_dir, setup_student_assignment, StudentAssignmentError, \
+    write_run_action_sh
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
-from gkeepserver.info_refresh_thread import info_refresher
+from gkeepserver.info_update_thread import info_updater
 from gkeepserver.server_configuration import config
 
 
@@ -53,12 +54,12 @@ class UploadHandler(EventHandler):
         to
         """
 
-        faculty_home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
         # path to the directory that the assignment's files will be kept in
         assignment_path = faculty_assignment_dir_path(self._class_name,
                                                       self._assignment_name,
-                                                      faculty_home_dir)
+                                                      gitkeeper_path)
 
         print('Handling upload:')
         print(' Faculty:        ', self._faculty_username)
@@ -70,11 +71,20 @@ class UploadHandler(EventHandler):
         assignment_dir = AssignmentDirectory(assignment_path, check=False)
 
         try:
+            if not db.class_is_open(self._class_name, self._faculty_username):
+                raise HandlerException('{} is not open'
+                                       .format(self._class_name))
+
             validate_assignment_name(assignment_dir.assignment_name)
             self._setup_assignment_dir(assignment_dir)
             self._setup_faculty_test_assignment(assignment_dir)
 
-            info_refresher.enqueue(self._faculty_username)
+            db.insert_assignment(self._class_name, self._assignment_name,
+                                 self._faculty_username)
+
+            info_updater.enqueue_assignment_scan(self._faculty_username,
+                                                 self._class_name,
+                                                 self._assignment_name)
 
             log_gkeepd_to_faculty(self._faculty_username, 'UPLOAD_SUCCESS',
                                   self._upload_path)
@@ -106,8 +116,7 @@ class UploadHandler(EventHandler):
         # Setup a bare repository so the faculty can test the assignment,
         # and email the faculty.
 
-        reader = LocalCSVReader(config.faculty_csv_path)
-        faculty = faculty_from_username(self._faculty_username, reader)
+        faculty = db.get_faculty_by_username(self._faculty_username)
 
         # set up the faculty's test assignment and send email
         try:
@@ -157,6 +166,8 @@ class UploadHandler(EventHandler):
         except GkeepException as e:
             error = ('error copying assignment files: {0}'.format(str(e)))
             raise HandlerException(error)
+
+        write_run_action_sh(assignment_dir, upload_dir)
 
         # set permissions on assignment directory
         try:

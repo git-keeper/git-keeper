@@ -1,4 +1,4 @@
-# Copyright 2016, 2017 Nathan Sommer and Ben Coleman
+# Copyright 2016, 2017, 2018 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,17 +21,15 @@ Event type: SUBMISSION
 """
 
 from gkeepcore.path_utils import user_from_log_path, \
-    parse_submission_repo_path
-from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.submission import Submission
-from gkeepcore.path_utils import user_home_dir, class_student_csv_path, \
-    faculty_assignment_dir_path
-from gkeepcore.student import student_from_username
+    parse_submission_repo_path, user_gitkeeper_path
+from gkeepcore.path_utils import faculty_assignment_dir_path
 from gkeepserver.assignments import AssignmentDirectory
+from gkeepserver.database import db
+from gkeepserver.email_sender_thread import email_sender
+from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.new_submission_queue import new_submission_queue
-from gkeepcore.local_csv_files import LocalCSVReader
-from gkeepserver.server_configuration import config
-from gkeepcore.faculty import faculty_from_username
+from gkeepserver.server_email import Email
+from gkeepserver.submission import Submission
 
 
 class SubmissionHandler(EventHandler):
@@ -41,11 +39,12 @@ class SubmissionHandler(EventHandler):
         """Take action after a student pushes a new submission."""
 
         print('Handling submission:')
-        print(' Student:   ', self._student_username)
-        print(' Faculty:   ', self._faculty_username)
-        print(' Class:     ', self._class_name)
-        print(' Assignment:', self._assignment_name)
-        print(' Repo path: ', self._submission_repo_path)
+        print(' Student:    ', self._student_username)
+        print(' Faculty:    ', self._faculty_username)
+        print(' Class:      ', self._class_name)
+        print(' Assignment: ', self._assignment_name)
+        print(' Repo path:  ', self._submission_repo_path)
+        print(' Commit hash:', self._commit_hash)
         print()
 
         # We need to create a submission object to put in the
@@ -53,22 +52,15 @@ class SubmissionHandler(EventHandler):
         # paths to student repo, tests (not a repo), and reports repo.
 
         # The AssignmentDirectory object can provide the paths we need
-        faculty_home_dir = user_home_dir(self._faculty_username)
+        gitkeeper_path = user_gitkeeper_path(self._faculty_username)
 
-        reader = LocalCSVReader(config.faculty_csv_path)
-        faculty = faculty_from_username(self._faculty_username, reader)
+        faculty = db.get_faculty_by_username(self._faculty_username)
         faculty_email = faculty.email_address
 
         assignment_path = faculty_assignment_dir_path(self._class_name,
                                                       self._assignment_name,
-                                                      faculty_home_dir)
+                                                      gitkeeper_path)
         assignment_directory = AssignmentDirectory(assignment_path)
-
-        tests_path = assignment_directory.tests_path
-        reports_repo_path = assignment_directory.reports_repo_path
-
-        reader = LocalCSVReader(class_student_csv_path(self._class_name,
-                                                       faculty_home_dir))
 
         # if the student is the facutly testing the assignment, use the
         # faculty as the student
@@ -76,13 +68,25 @@ class SubmissionHandler(EventHandler):
             student = faculty
         # otherwise build the Student from the csv for the class
         else:
-            student = student_from_username(self._student_username, reader)
+            student = db.get_class_student_by_username(self._student_username,
+                                                       self._class_name,
+                                                       self._faculty_username)
 
-        submission = Submission(student, self._submission_repo_path,
-                                tests_path, reports_repo_path,
-                                self._faculty_username, faculty_email)
+        if db.is_disabled(self._class_name, self._assignment_name,
+                          self._faculty_username):
+            email_subject = ('[{}] Assignment disabled: {}'
+                             .format(self._class_name, self._assignment_name))
+            email_body = ('Assignment {} in class {} has been disabled. '
+                          'No tests will be run if you push to your '
+                          'repository for this assignment.')
+            email_sender.enqueue(Email(student.email_address,
+                                       email_subject, email_body))
+        else:
+            submission = Submission(student, self._submission_repo_path,
+                                    self._commit_hash, assignment_directory,
+                                    self._faculty_username, faculty_email)
 
-        new_submission_queue.put(submission)
+            new_submission_queue.put(submission)
 
     def __repr__(self) -> str:
         """
@@ -113,8 +117,9 @@ class SubmissionHandler(EventHandler):
 
         self._parse_log_path()
 
-        # the payload simply contains the submission repository path
-        self._submission_repo_path = self._payload
+        # the payload contains the submission repository path and the hash of
+        # the commit of the submission
+        self._submission_repo_path, self._commit_hash = self._payload.split()
 
         self._parse_repo_path()
 

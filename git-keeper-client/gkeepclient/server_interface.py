@@ -58,9 +58,10 @@ from gkeepclient.client_configuration import config
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.log_file import log_append_command
 from gkeepcore.path_utils import user_log_path, gkeepd_to_faculty_log_path, \
-    faculty_upload_dir_path, faculty_assignment_dir_path,\
+    faculty_upload_dir_path, faculty_assignment_dir_path, \
     faculty_class_dir_path, assignment_published_file_path, \
-    faculty_classes_dir_path, class_student_csv_path, faculty_info_path
+    faculty_classes_dir_path, class_student_csv_path, faculty_info_path, \
+    user_gitkeeper_path, user_gitkeeper_path_from_home_dir
 from gkeepcore.student import Student
 from gkeepcore.faculty_class_info import FacultyClassInfo
 
@@ -135,6 +136,8 @@ class ServerInterface:
             self._sftp_client = self._ssh_client.open_sftp()
 
             self._home_dir = self.user_home_dir(config.server_username)
+            self._gitkeeper_path = \
+                user_gitkeeper_path_from_home_dir(self._home_dir)
             self._event_log_path = self.me_to_gkeepd_log_path()
         except Exception as e:
             error = ('Error connecting to {0}: {1}'.format(config.server_host,
@@ -257,6 +260,20 @@ class ServerInterface:
             self._sftp_client.put(local_path, remote_path)
         except Exception as e:
             raise ServerInterfaceError(e)
+
+    def create_empty_file(self, remote_path: str):
+        """
+        Create an empty file on the server.
+
+        It is the responsibility of the caller to ensure that the remote
+        path does not exist.
+
+        The remote_path is the full destination file path.
+
+        :param remote_path: full path on the server
+        """
+        cmd = ['touch', remote_path]
+        self.run_command(cmd)
 
     def create_directory(self, remote_path):
         """
@@ -447,7 +464,7 @@ class ServerInterface:
         :return: the path to the faculty user's event log file
         """
 
-        log_path = user_log_path(self._home_dir, config.server_username)
+        log_path = user_log_path(self._gitkeeper_path, config.server_username)
 
         return log_path
 
@@ -459,7 +476,7 @@ class ServerInterface:
         :return: gkeepd log path
         """
 
-        log_path = gkeepd_to_faculty_log_path(self._home_dir)
+        log_path = gkeepd_to_faculty_log_path(self._gitkeeper_path)
 
         return log_path
 
@@ -470,7 +487,7 @@ class ServerInterface:
         :return: upload directory path
         """
 
-        return faculty_upload_dir_path(self._home_dir)
+        return faculty_upload_dir_path(self._gitkeeper_path)
 
     def create_new_upload_dir(self):
         """
@@ -493,8 +510,18 @@ class ServerInterface:
         :return: True if the class exists, False otherwise
         """
 
-        path = faculty_class_dir_path(class_name, self._home_dir)
+        path = faculty_class_dir_path(class_name, self._gitkeeper_path)
         return self.is_directory(path)
+
+    def is_open(self, class_name: str) -> bool:
+        """
+        Determine if a class is open.
+
+        :param class_name: name of the class
+        :return: True if the class is open, False i fnot
+        """
+
+        return self.get_info().is_open(class_name)
 
     def assignment_exists(self, class_name: str, assignment_name: str) -> bool:
         """
@@ -506,7 +533,7 @@ class ServerInterface:
         """
 
         path = faculty_assignment_dir_path(class_name, assignment_name,
-                                           self._home_dir)
+                                           self._gitkeeper_path)
         return self.is_directory(path)
 
     def assignment_published(self, class_name: str,
@@ -519,9 +546,19 @@ class ServerInterface:
         :return: True if the assignment is published, False otherwise
         """
 
-        path = assignment_published_file_path(class_name, assignment_name,
-                                              self._home_dir)
-        return self.is_file(path)
+        return self.get_info().is_published(class_name, assignment_name)
+
+    def assignment_disabled(self, class_name: str,
+                            assignment_name: str) -> bool:
+        """
+        Determine if an assignment is disabled.
+
+        :param class_name: name of the class that the assignment belongs to
+        :param assignment_name: name of the assignment
+        :return: True if the assignment is disabled, False otherwise
+        """
+
+        return self.get_info().is_disabled(class_name, assignment_name)
 
     def get_classes(self):
         """
@@ -530,7 +567,7 @@ class ServerInterface:
         :return: list of class names
         """
 
-        classes_path = faculty_classes_dir_path(self._home_dir)
+        classes_path = faculty_classes_dir_path(self._gitkeeper_path)
 
         directory_items = self.list_directory(classes_path)
 
@@ -552,7 +589,7 @@ class ServerInterface:
         :return: list of assignment names
         """
 
-        class_path = faculty_class_dir_path(class_name, self._home_dir)
+        class_path = faculty_class_dir_path(class_name, self._gitkeeper_path)
 
         directory_items = self.list_directory(class_path)
 
@@ -579,23 +616,12 @@ class ServerInterface:
         :return: list of assignment information
         """
 
-        class_path = faculty_class_dir_path(class_name, self._home_dir)
-
-        directory_items = self.list_directory(class_path)
-
         assignments_info = []
 
-        for item in sorted(directory_items):
-            item_path = os.path.join(class_path, item)
-
-            if self.is_directory(item_path):
-                published_flag_path = \
-                    assignment_published_file_path(class_name, item,
-                                                   self._home_dir)
-
-                published = self.is_file(published_flag_path)
-
-                assignments_info.append((item, published))
+        for assignment_name in self.get_info().assignment_list(class_name):
+            published = self.get_info().is_published(class_name,
+                                                     assignment_name)
+            assignments_info.append((assignment_name, published))
 
         return assignments_info
 
@@ -608,7 +634,7 @@ class ServerInterface:
         """
         students = []
 
-        csv_path = class_student_csv_path(class_name, self._home_dir)
+        csv_path = class_student_csv_path(class_name, self._gitkeeper_path)
 
         if not self.is_file(csv_path):
             return []
@@ -641,7 +667,7 @@ class ServerInterface:
                 if freshness < freshness_threshold:
                     return self._info_cache
 
-        info_path = faculty_info_path(self._home_dir)
+        info_path = faculty_info_path(self._gitkeeper_path)
 
         # Get the contents of the last file in the directory, or an empty
         # string if the directory is empty.

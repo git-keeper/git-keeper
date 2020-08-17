@@ -27,27 +27,26 @@ submission_test_threads - list of SubmissionTestThread objects which run tests
 
 """
 import argparse
+import fcntl
 import sys
 from queue import Queue, Empty
 from signal import signal, SIGINT, SIGTERM
 from traceback import extract_tb
 
-from gkeepserver.version import __version__ as server_version
-from gkeepcore.version import __version__ as core_version
-
-from gkeepcore.faculty import faculty_from_csv_file
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.local_csv_files import LocalCSVReader
+from gkeepcore.version import __version__ as core_version
 from gkeepserver.check_system import check_system
+from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
+from gkeepserver.event_handler_assigner import EventHandlerAssignerThread
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
-from gkeepserver.info_refresh_thread import info_refresher
+from gkeepserver.info_update_thread import info_updater
 from gkeepserver.local_log_file_reader import LocalLogFileReader
-from gkeepserver.event_handler_assigner import EventHandlerAssignerThread
 from gkeepserver.log_polling import log_poller
 from gkeepserver.server_configuration import config, ServerConfigurationError
 from gkeepserver.submission_test_thread import SubmissionTestThread
+from gkeepserver.version import __version__ as server_version
 
 # switched to True by the signal handler on SIGINT or SIGTERM
 shutdown_flag = False
@@ -99,11 +98,22 @@ def main():
     except ServerConfigurationError as e:
         sys.exit(e)
 
+    # prevent multiple instances
+    try:
+        fp = open(config.lock_file_path, 'w')
+        fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except IOError:
+        error_message = ('Could not lock {}, gkeepd may already be running'
+                         .format(config.lock_file_path))
+        sys.exit(error_message)
+
     # initialize and start system logger
     logger.initialize(config.log_file_path, log_level=config.log_level)
     logger.start()
 
     logger.log_info('--- Starting gkeepd version {}---'.format(server_version))
+
+    db.connect(config.db_path)
 
     # check for fatal errors in the system state, and correct correctable
     # issues including new faculty members
@@ -116,13 +126,10 @@ def main():
         sys.exit(1)
 
     # start the info refresher thread and refresh the info for each faculty
-    info_refresher.start()
+    info_updater.start()
 
-    reader = LocalCSVReader(config.faculty_csv_path)
-    faculty_list = faculty_from_csv_file(reader)
-
-    for faculty in faculty_list:
-        info_refresher.enqueue(faculty.username)
+    for faculty in db.get_all_faculty():
+        info_updater.enqueue_full_scan(faculty.username)
 
     # queues for thread communication
     new_log_event_queue = Queue()
@@ -136,8 +143,7 @@ def main():
                                                   logger)
 
     # the log poller detects new events and passes them to the handler assigner
-    log_poller.initialize(new_log_event_queue, LocalLogFileReader,
-                          config.log_snapshot_file_path, logger)
+    log_poller.initialize(new_log_event_queue, LocalLogFileReader, logger)
 
     # start the rest of the threads
     email_sender.start()
@@ -192,7 +198,7 @@ def main():
     for thread in submission_test_threads:
         thread.shutdown()
 
-    info_refresher.shutdown()
+    info_updater.shutdown()
 
     email_sender.shutdown()
 

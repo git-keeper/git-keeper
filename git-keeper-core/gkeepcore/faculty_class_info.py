@@ -20,6 +20,7 @@ dictionary.
 The structure of this dictionary is as follows:
 {
  "class_name":{
+  "open": true,
   "assignments":{
    "assignment_name":{
     "name":"assignment_name",
@@ -89,6 +90,16 @@ class FacultyClassInfo:
 
         return list(self.info_dict.keys())
 
+    def is_open(self, class_name) -> bool:
+        """
+        Determine if a class is open.
+
+        :param class_name: name of a class
+        :return: True if the class is open, False if not
+        """
+
+        return self.info_dict[class_name]['open']
+
     def student_count(self, class_name: str) -> int:
         """
         Get the number of students in a class.
@@ -101,13 +112,25 @@ class FacultyClassInfo:
 
     def student_list(self, class_name: str) -> list:
         """
-        Get the list of the students in a class.
+        Get a list of the usernames of the students in a class.
 
         :param class_name: name of a class
-        :return: list of students in the class
+        :return: list of usernames of students in the class
         """
 
         return list(self.info_dict[class_name]['students'])
+
+    def class_students(self, class_name: str) -> dict:
+        """
+        Get a dictionary representing the students in a class. The dictionary
+        maps student usernames to dictionaries representing individual
+        students.
+
+        :param class_name: name of a class
+        :return: dictionary of students in the class
+        """
+
+        return self.info_dict[class_name]['students']
 
     def assignment_count(self, class_name: str) -> int:
         """
@@ -121,13 +144,19 @@ class FacultyClassInfo:
 
     def assignment_list(self, class_name: str) -> list:
         """
-        Get the  of assignments for a class.
+        Get the list of assignments for a class.
+
+        Returns an empty list if the class does not exist, or if the class
+        has no assignments.
 
         :param class_name: name of a class
-        :return:  of assignments for a class
+        :return: list of assignments for a class
         """
 
-        return list(self.info_dict[class_name]['assignments'])
+        try:
+            return list(self.info_dict[class_name]['assignments'])
+        except KeyError:
+            return []
 
     def is_published(self, class_name: str, assignment: str) -> bool:
         """
@@ -140,6 +169,21 @@ class FacultyClassInfo:
 
         assignment_info = self.info_dict[class_name]['assignments'][assignment]
         return assignment_info['published']
+
+    def is_disabled(self, class_name: str, assignment: str) -> bool:
+        """
+        Determine if an assignment is disabled.
+
+        :param class_name: name of a class
+        :param assignment: name of an assignment
+        :return: True if the assignment is disabled, False otherwise
+        """
+
+        if assignment not in self.info_dict[class_name]['assignments']:
+            return False
+
+        assignment_info = self.info_dict[class_name]['assignments'][assignment]
+        return assignment_info['disabled']
 
     def reports_hash(self, class_name: str, assignment: str) -> str:
         """

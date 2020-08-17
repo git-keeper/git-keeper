@@ -22,12 +22,15 @@ from shutil import which
 
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_home_dir, user_log_path, \
-    gkeepd_to_faculty_log_path
+    gkeepd_to_faculty_log_path, user_gitkeeper_path
+from gkeepcore.student import Student
 from gkeepcore.system_commands import (sudo_add_user, sudo_set_password, chmod,
                                        sudo_chown, mkdir, make_symbolic_link)
+from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
+from gkeepserver.faculty import Faculty
 from gkeepserver.generate_password import generate_password
-from gkeepserver.gkeepd_logger import gkeepd_logger as logger
+from gkeepserver.gkeepd_logger import gkeepd_logger as logger, gkeepd_logger
 from gkeepserver.initialize_log import initialize_log
 from gkeepserver.log_polling import log_poller
 from gkeepserver.server_configuration import config
@@ -53,8 +56,8 @@ def initialize_user_log(username):
     :param username: the user to make the log for
     """
 
-    home_dir = user_home_dir(username)
-    log_path = user_log_path(home_dir, username)
+    gitkeeper_path = user_gitkeeper_path(username)
+    log_path = user_log_path(gitkeeper_path, username)
 
     initialize_log(log_path, username, config.keeper_group, '640')
 
@@ -67,7 +70,7 @@ def initialize_gkeepd_to_faculty_log(username):
     Create the log file that gkeepd will write to in order to communicate with
     a faculty client.
 
-    It will be located at ~username/gkeepd.log
+    It will be located at <.gitkeeper path>/gkeepd.log
 
     It will be owned by the keeper user and the faculty group. The keeper user
     will have read/write permissions and the faculty group will have read
@@ -76,8 +79,8 @@ def initialize_gkeepd_to_faculty_log(username):
     :param username: faculty username
     """
 
-    home_dir = user_home_dir(username)
-    log_path = gkeepd_to_faculty_log_path(home_dir)
+    gitkeeper_path = user_gitkeeper_path(username)
+    log_path = gkeepd_to_faculty_log_path(gitkeeper_path)
 
     # this log will be owned and writable by keeper and readable by the
     # faculty's group
@@ -86,23 +89,27 @@ def initialize_gkeepd_to_faculty_log(username):
 
 def create_faculty_dirs(username: str):
     """
-    Create the classes and uploads directories in a faculty member's home
+    Create the classes and uploads directories in a faculty member's .gitkeeper
     directory.
 
     :param username: username of the faculty member
     """
 
-    home_dir = user_home_dir(username)
-    classes_dir_path = os.path.join(home_dir, 'classes')
+    gitkeeper_path = user_gitkeeper_path(username)
+    classes_dir_path = os.path.join(gitkeeper_path, 'classes')
 
-    mkdir(classes_dir_path, sudo=True)
+    if not os.path.isdir(classes_dir_path):
+        mkdir(classes_dir_path, sudo=True)
+
     # world readable for the handouts directory
     chmod(classes_dir_path, '755', sudo=True)
     sudo_chown(classes_dir_path, username, config.keeper_group)
 
-    uploads_dir_path = os.path.join(home_dir, 'uploads')
+    uploads_dir_path = os.path.join(gitkeeper_path, 'uploads')
 
-    mkdir(uploads_dir_path, sudo=True)
+    if not os.path.isdir(uploads_dir_path):
+        mkdir(uploads_dir_path, sudo=True)
+
     chmod(uploads_dir_path, '750', sudo=True)
     sudo_chown(uploads_dir_path, username, config.keeper_group)
 
@@ -125,16 +132,29 @@ def create_git_shell_commands(username: str, command_list: list):
     mkdir(git_shell_commands_path, sudo=True)
 
     for command in command_list:
-        path = which(command)
-        link_path = os.path.join(git_shell_commands_path, command)
+        command_path = which(command)
+        make_symbolic_link(command_path, git_shell_commands_path, sudo=True)
 
-        make_symbolic_link(path, link_path, sudo=True)
 
-    sudo_chown(git_shell_commands_path, username, username, recursive=True)
+def create_gitkeeper_directory(username):
+    """
+    Create a user's .gitkeeper directory.
+
+    :param username: username of the user
+    """
+
+    gitkeeper_path = user_gitkeeper_path(username)
+
+    if not os.path.isdir(gitkeeper_path):
+        mkdir(gitkeeper_path, sudo=True)
+
+    # read/write for user and keeper
+    chmod(gitkeeper_path, '770', sudo=True)
+    sudo_chown(gitkeeper_path, username, config.keeper_group)
 
 
 def create_user(username, user_type, first_name, last_name, email_address=None,
-                additional_groups=None):
+                additional_groups=None, shell='bash'):
     """
     Create a faculty or a student user, email them their credentials, and start
     watching their log file for events.
@@ -150,23 +170,23 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
     :param email_address: email address of the user
     :param additional_groups: groups beyond the default group to add the user
      to
+    :param shell: name of the shell for the user
     """
 
     if username == config.faculty_group or username == config.student_group:
         error = ('{0} is not a valid username. A username may not have the '
-                 'same name as the faculty or student user groups')
+                 'same name as the faculty or student '
+                 'user groups').format(username)
         raise GkeepException(error)
 
     logger.log_info('Creating user {0}'.format(username))
-
-    # for now everyone gets bash, students may eventually get git-shell
-    shell = 'bash'
 
     sudo_add_user(username, additional_groups, shell)
 
     password = generate_password()
     sudo_set_password(username, password)
 
+    create_gitkeeper_directory(username)
     initialize_user_log(username)
 
     if user_type == UserType.faculty:
@@ -174,8 +194,8 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
 
         create_faculty_dirs(username)
 
-    # if we start using git-shell for students, call
-    # create_git_shell_commands() here
+    if user_type == UserType.student:
+        create_git_shell_commands(username, ['passwd'])
 
     # email the credentials to the user if an email address was provided
     if email_address is not None:
@@ -196,3 +216,44 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
         body += 'Enjoy!'
 
         email_sender.enqueue(Email(email_address, subject, body))
+
+
+def create_student_user(student: Student):
+    """
+    Wrapper that calls create_user() to add a new student user.
+
+    The student is added to the student group specified in the server
+    configuration, and their shell is set to git-shell.
+
+    :param student: Student object representing the new student
+    """
+
+    groups = [config.student_group]
+    create_user(student.username, UserType.student,
+                student.first_name, student.last_name,
+                email_address=student.email_address,
+                additional_groups=groups, shell='git-shell')
+
+
+def add_faculty(last_name, first_name, email_address, admin=False):
+    """
+    Add a faculty user.
+
+    :param last_name: last name of the faculty member
+    :param first_name: first name of the faculty member
+    :param email_address: email address of the faculty member
+    :param admin: True if the faculty member should be an admin
+    """
+
+    faculty = db.insert_faculty(Faculty(last_name, first_name, '',
+                                        email_address, admin))
+
+    gkeepd_logger.log_info('Adding faculty user with email {}'
+                           .format(email_address))
+
+    groups = [config.keeper_group, config.faculty_group]
+
+    create_user(faculty.username, UserType.faculty, first_name, last_name,
+                email_address=email_address, additional_groups=groups)
+
+    gkeepd_logger.log_debug('User {} created'.format(faculty.username))
