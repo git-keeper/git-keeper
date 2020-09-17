@@ -29,6 +29,7 @@ from email.header import Header
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from enum import IntEnum
 from smtplib import SMTP
 
 from gkeepcore.gkeep_exception import GkeepException
@@ -40,13 +41,23 @@ class EmailException(GkeepException):
     pass
 
 
+class EmailPriority(IntEnum):
+    """
+    Enum used to specify an email's priority level for use by the priority
+    queue in the email sending thread.
+    """
+    NORMAL = 2
+    URGENT = 1
+    EXTREME = 0
+
+
 class Email:
     """
     Builds an email that can be sent using smtplib and provides a method
     to send the email.
     """
     def __init__(self, to_address, subject, body, files_to_attach=None,
-                 max_character_count=1000000):
+                 max_character_count=1000000, priority=EmailPriority.NORMAL):
         """
         Construct an email object.
 
@@ -60,6 +71,8 @@ class Email:
         :param files_to_attach: a list of file paths to attach to the email
         :param max_character_count: if the email is longer than this number of
          characters it will be truncated
+        :param priority: an EmailPriority representing the email's priority
+         in the send queue
         """
 
         self._send_attempts = 0
@@ -70,6 +83,8 @@ class Email:
 
         self._subject = subject
         self._files_to_attach = files_to_attach
+
+        self.priority = priority
 
         # regardless of how the body is passed in, represent it by a list of
         # lines that have trailing whitespace removed

@@ -41,7 +41,7 @@ Example usage:
 
 """
 
-from queue import Queue, Empty
+from queue import PriorityQueue, Empty
 from threading import Thread
 from time import time, sleep
 
@@ -78,7 +78,7 @@ class EmailSenderThread(Thread):
 
         Thread.__init__(self)
 
-        self._email_queue = Queue()
+        self._email_queue = PriorityQueue()
 
         self._last_send_time = 0
 
@@ -93,7 +93,7 @@ class EmailSenderThread(Thread):
         :param email: the email to send
         """
 
-        self._email_queue.put(email)
+        self._email_queue.put((email.priority, email))
 
     def shutdown(self):
         """
@@ -122,14 +122,20 @@ class EmailSenderThread(Thread):
         while not self._shutdown_flag:
             try:
                 while True:
-                    email = self._email_queue.get(block=True, timeout=0.1)
+                    payload = self._email_queue.get(block=True, timeout=0.1)
 
-                    if not isinstance(email, Email):
-                        warning = ('Item enqueued for emailing that is not an '
-                                   'email: {0}'.format(email))
+                    try:
+                        priority, email = payload
+                        if not isinstance(email, Email):
+                            warning = ('Item dequeued for emailing that is '
+                                       'not an email: {0}'.format(email))
+                            logger.log_warning(warning)
+                        else:
+                            self._send_email_with_rate_limiting(email)
+                    except ValueError:
+                        warning = ('Email queue contained an object that '
+                                   'was not a (priority, email) tuple')
                         logger.log_warning(warning)
-                    else:
-                        self._send_email_with_rate_limiting(email)
             except Empty:
                 pass
             except Exception as e:
