@@ -50,12 +50,13 @@ class MySMTPD(smtpd.DebuggingServer):
         :return: None
         """
 
-        smtpd.DebuggingServer.__init__(self, ('localhost', port), None)
+        smtpd.DebuggingServer.__init__(self, ('localhost', port), None,
+                                       decode_data=True)
         self.directory = directory
 
         self.users = {}
 
-    def process_message(self, peer, mailfrom, rcpttos, data):
+    def process_message(self, peer, mailfrom, rcpttos, data, **kwargs):
         """
         Process one message (save it to the appropriate file
 
