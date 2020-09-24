@@ -37,7 +37,7 @@ from gkeepcore.system_commands import cp, chmod, mkdir, sudo_chown, rm, mv
 from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.server_configuration import config
-from gkeepserver.server_email import Email, EmailException
+from gkeepserver.server_email import Email, EmailException, EmailPriority
 
 
 class StudentAssignmentError(GkeepException):
@@ -442,9 +442,15 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
     # clone URL followed by email.txt contents
     email_body = 'Clone URL:\n{0}\n\n{1}'.format(clone_url, email_body)
 
+    if student.username != faculty_username:
+        priority = EmailPriority.LOW
+    else:
+        priority = EmailPriority.HIGH
+
     # build the email
     try:
-        email = Email(student.email_address, email_subject, email_body)
+        email = Email(student.email_address, email_subject, email_body,
+                      priority=priority)
     except EmailException as e:
         raise StudentAssignmentError(e)
 

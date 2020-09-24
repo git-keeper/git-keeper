@@ -46,9 +46,9 @@ class EmailPriority(IntEnum):
     Enum used to specify an email's priority level for use by the priority
     queue in the email sending thread.
     """
-    NORMAL = 2
-    URGENT = 1
-    EXTREME = 0
+    LOW = 2
+    NORMAL = 1
+    HIGH = 0
 
 
 class Email:
