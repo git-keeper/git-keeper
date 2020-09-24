@@ -73,7 +73,8 @@ class DisableHandler(EventHandler):
                              .format(self._class_name, self._assignment_name))
             email_body = ('Assignment {} in class {} has been disabled. '
                           'No tests will be run if you push to your '
-                          'repository for this assignment.')
+                          'repository for this assignment.\n'
+                          .format(self._assignment_name, self._class_name))
             for student in db.get_class_students(self._class_name,
                                                  self._faculty_username):
                 email_sender.enqueue(Email(student.email_address,
