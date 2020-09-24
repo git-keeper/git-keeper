@@ -121,6 +121,10 @@ class Email:
                                                      self._subject)
         return repr_string
 
+    def __lt__(self, other):
+        # Provide < comparison for use by the PriorityQueue
+        return self.priority < other.priority
+
     def _build_mime_message(self, files_to_attach):
         # Create the final message by building up a MIMEMultipart object and
         # then storing the final message as a string in _message_string

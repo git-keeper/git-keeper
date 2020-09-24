@@ -93,7 +93,7 @@ class EmailSenderThread(Thread):
         :param email: the email to send
         """
 
-        self._email_queue.put((email.priority, email))
+        self._email_queue.put(email)
 
     def shutdown(self):
         """
@@ -122,20 +122,14 @@ class EmailSenderThread(Thread):
         while not self._shutdown_flag:
             try:
                 while True:
-                    payload = self._email_queue.get(block=True, timeout=0.1)
+                    email = self._email_queue.get(block=True, timeout=0.1)
 
-                    try:
-                        priority, email = payload
-                        if not isinstance(email, Email):
-                            warning = ('Item dequeued for emailing that is '
-                                       'not an email: {0}'.format(email))
-                            logger.log_warning(warning)
-                        else:
-                            self._send_email_with_rate_limiting(email)
-                    except ValueError:
-                        warning = ('Email queue contained an object that '
-                                   'was not a (priority, email) tuple')
+                    if not isinstance(email, Email):
+                        warning = ('Item dequeued for emailing that is '
+                                   'not an email: {0}'.format(email))
                         logger.log_warning(warning)
+                    else:
+                        self._send_email_with_rate_limiting(email)
             except Empty:
                 pass
             except Exception as e:
