@@ -15,13 +15,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-# This hook prevents students from pushing to a branch other than master.
+# This hook prevents students from pushing to a branch other than the one
+# existing branch.
 #
 # If this script exits with a 0 exit code the push is accepted, otherwise the
 # push is rejected.
 
-# we will only allow pushes to the master branch
-allowed_ref='refs/heads/master'
+# get the ref and name of the existing branch
+allowed_ref=$(git symbolic-ref HEAD)
+allowed_branch=$(git symbolic-ref HEAD | sed -e 's,.*/\(.*\),\1,')
 
 # this hook receives push information about each ref that is pushed in the
 # form <old hash> <new hash> <ref name>
@@ -29,7 +31,7 @@ while read old_hash new_hash ref_name
 do
     if [ $ref_name != $allowed_ref ]
     then
-        echo "ERROR: You may only push to the master branch"
+        echo "ERROR: You may only push to the $allowed_branch branch"
         exit 1
     fi
 done
