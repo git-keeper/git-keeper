@@ -164,10 +164,10 @@ class Submission:
                 temp_reports_repo_path = os.path.join(reports_temp.name,
                                                       'reports')
 
-                first_last_username = self.student.get_last_first_username()
+                last_first_username = self.student.get_last_first_username()
 
                 student_report_dir_path = os.path.join(temp_reports_repo_path,
-                                                       first_last_username)
+                                                       last_first_username)
                 os.makedirs(student_report_dir_path, exist_ok=True)
 
                 timestamp = strftime('%Y-%m-%d-%H:%M:%S-%Z')
@@ -187,7 +187,7 @@ class Submission:
                     f.write(body)
 
                 reports_commit_message = ('Submission report for {}'
-                                          .format(first_last_username))
+                                          .format(last_first_username))
 
                 git_add_all(temp_reports_repo_path)
                 git_commit(temp_reports_repo_path, reports_commit_message)
