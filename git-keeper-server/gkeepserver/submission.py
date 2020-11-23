@@ -186,8 +186,11 @@ class Submission:
                 with open(report_file_path, 'w') as f:
                     f.write(body)
 
+                reports_commit_message = ('Submission report for {}'
+                                          .format(first_last_username))
+
                 git_add_all(temp_reports_repo_path)
-                git_commit(temp_reports_repo_path, 'report submission')
+                git_commit(temp_reports_repo_path, reports_commit_message)
                 git_push(temp_reports_repo_path, dest='origin', sudo=True)
 
                 sudo_chown(self.reports_repo_path, faculty_username,
