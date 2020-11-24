@@ -87,7 +87,21 @@ def git_commit(repo_path, message):
     run_command_in_directory(repo_path, cmd)
 
 
-def git_push(repo_path, dest=None, branch='master', force=False, sudo=False):
+def get_git_branch(repo_path):
+    """
+    Get the current branch of a git repository.
+
+    :param repo_path: path of the repository
+    :return: name of the current branch
+    """
+
+    cmd = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
+    branch = run_command_in_directory(repo_path, cmd).strip()
+
+    return branch
+
+
+def git_push(repo_path, dest=None, branch=None, force=False, sudo=False):
     """
     Push a repository to its upstream remote, or to a specific destination.
 
@@ -105,6 +119,9 @@ def git_push(repo_path, dest=None, branch='master', force=False, sudo=False):
         cmd.append('-f')
 
     if dest is not None:
+        if branch is None:
+            branch = get_git_branch(repo_path)
+
         cmd += [dest, branch]
 
     run_command_in_directory(repo_path, cmd, sudo=sudo)
