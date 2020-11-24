@@ -29,9 +29,9 @@ submission_test_threads - list of SubmissionTestThread objects which run tests
 import argparse
 import fcntl
 import sys
+import traceback
 from queue import Queue, Empty
 from signal import signal, SIGINT, SIGTERM
-from traceback import extract_tb
 
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.version import __version__ as core_version
@@ -176,13 +176,15 @@ def main():
         except (GkeepException, Exception) as e:
             # A handler's handle() method should catch all exceptions. If we
             # get here there is likely an issue with the handler.
-            error = ('An exception was caught that should have been caught\n'
-                     'earlier. This is likely due to a bug in the code.\n'
-                     'Please report this to the git-keeper developers along\n'
+            error = ('**ERROR: UNEXPECTED EXCEPTION**\n'
+                     'This is likely due to a bug.\n'
+                     'Please report this to the git-keeper developers along '
                      'with the following stack trace:\n{0}'
-                     .format(extract_tb(e)))
-            print(error, file=sys.stderr)
-            logger.log_error('Unexpected exception. Please report this bug. '
+                     .format(traceback.format_exc()))
+            print(error)
+            logger.log_error('Unexpected exception. Please report this bug '
+                             'along with the stack trace from gkeepd\'s '
+                             'standard output if possible. '
                              '{0}: {1}'.format(type(e), e))
 
     print('Shutting down. Waiting for threads to finish ... ', end='')
