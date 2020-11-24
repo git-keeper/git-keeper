@@ -16,6 +16,7 @@
 
 from gkeeprobot.control.ClientControl import ClientControl
 from gkeeprobot.control.ServerControl import ServerControl
+from gkeeprobot.control.VMControl import ExitCodeException
 
 """Provides keywords for robotframework to configure faculty and student
 accounts before testing begins."""
@@ -95,6 +96,20 @@ class ClientSetupKeywords:
         client_control.run(student, commit_cmd)
         push_cmd = 'cd {}; git push origin master'.format(assignment_folder)
         client_control.run(student, push_cmd)
+
+    def student_submits_different_branch(self, student, class_name, assignment_name):
+        assignment_folder = '~/assignments/{}/{}'.format(class_name, assignment_name)
+        cp_cmd = 'cp /vagrant/assignments/{}/correct_solution/* {}'.format(assignment_name, assignment_folder)
+        client_control.run(student, cp_cmd)
+        new_branch_cmd = 'cd {}; git checkout -b other'.format(assignment_folder)
+        client_control.run(student, new_branch_cmd)
+        commit_cmd = 'cd {}; git commit -am "done"'.format(assignment_folder)
+        client_control.run(student, commit_cmd)
+        push_cmd = 'cd {}; git push origin other'.format(assignment_folder)
+        try:
+            client_control.run(student, push_cmd)
+        except ExitCodeException:
+            pass
 
     def fetch_assignment(self, faculty, class_name, assignment_name, target_dir=None):
         if target_dir is not None:

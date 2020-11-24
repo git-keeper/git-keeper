@@ -39,6 +39,15 @@ Student Submits Correct Solution
     Student Submits Correct Solution    student1    faculty1    cs1    good_simple
     Submission Test Results Email Exists    student1    cs1    good_simple    Done
 
+Student Submit From Other Branch
+    [Tags]  error
+    Add Assignment to Client  faculty1  good_simple
+    Gkeep Upload Succeeds   faculty1   cs1    good_simple
+    Gkeep Publish Succeeds  faculty1    cs1     good_simple
+    Clone Assignment  student1  faculty1    cs1     good_simple
+    Student Submits Different Branch    student1    cs1     good_simple
+    Submission Test Results Email Does Not Exist    student1    cs1     good_simple     Done
+
 Student Submits Python Action Solution
     [Tags]  happy_path
     Add Assignment to Client  faculty1  good_action_py
