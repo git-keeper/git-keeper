@@ -34,7 +34,7 @@ from gkeepserver.gkeepd_logger import gkeepd_logger as logger, gkeepd_logger
 from gkeepserver.initialize_log import initialize_log
 from gkeepserver.log_polling import log_poller
 from gkeepserver.server_configuration import config
-from gkeepserver.server_email import Email
+from gkeepserver.server_email import Email, EmailPriority
 
 
 class UserType(Enum):
@@ -215,7 +215,13 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
 
         body += 'Enjoy!'
 
-        email_sender.enqueue(Email(email_address, subject, body))
+        if user_type == UserType.student:
+            email_priority = EmailPriority.LOW
+        else:
+            email_priority = EmailPriority.NORMAL
+
+        email_sender.enqueue(Email(email_address, subject, body,
+                                   priority=email_priority))
 
 
 def create_student_user(student: Student):
