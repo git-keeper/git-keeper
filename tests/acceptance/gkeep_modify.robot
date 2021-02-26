@@ -51,4 +51,11 @@ Malformed CSV
     Add File To Client    faculty1    files/malformed_cs1.csv    cs1.csv
     Gkeep Modify Fails    faculty=faculty1    class_name=cs1
 
-
+Remove Then Add Student
+    [Tags]    happy_path
+    Remove From Class    faculty=faculty1    class_name=cs1    student=student2
+    Gkeep Modify Succeeds    faculty=faculty1    class_name=cs1
+    Class Does Not Contain Student    faculty1    cs1    student2
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student2
+    Gkeep Modify Succeeds    faculty=faculty1    class_name=cs1
+    Class Contains Student    faculty1    cs1    student2
