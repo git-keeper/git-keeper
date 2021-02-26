@@ -108,14 +108,17 @@ class PublishHandler(EventHandler):
 
         git_init(temp_dir_path)
 
+        reports_placeholder_path = os.path.join(temp_dir_path, '.placeholder')
+        touch(reports_placeholder_path)
+
         for student in students:
             student_report_path = \
                 os.path.join(temp_dir_path, student.get_last_first_username())
             mkdir(student_report_path)
 
-            placeholder_path = os.path.join(student_report_path,
-                                            '.placeholder')
-            touch(placeholder_path)
+            student_placeholder_path = os.path.join(student_report_path,
+                                                    '.placeholder')
+            touch(student_placeholder_path)
 
         git_add_all(temp_dir_path)
         git_commit(temp_dir_path, 'Initial commit')
