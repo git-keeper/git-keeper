@@ -36,7 +36,7 @@ Student Submits Correct Solution
     Gkeep Upload Succeeds   faculty1   cs1    good_simple
     Gkeep Publish Succeeds  faculty1    cs1     good_simple
     Clone Assignment  student1  faculty1    cs1     good_simple
-    Student Submits Correct Solution    student1    faculty1    cs1    good_simple
+    Student Submits    student1    faculty1    cs1    good_simple    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_simple    Done
 
 Student Submit From Other Branch
@@ -45,7 +45,7 @@ Student Submit From Other Branch
     Gkeep Upload Succeeds   faculty1   cs1    good_simple
     Gkeep Publish Succeeds  faculty1    cs1     good_simple
     Clone Assignment  student1  faculty1    cs1     good_simple
-    Student Submits Different Branch    student1    cs1     good_simple
+    Student Submits    student1    faculty1    cs1     good_simple    correct_solution    branch=other    expect_failure=True
     Submission Test Results Email Does Not Exist    student1    cs1     good_simple     Done
 
 Student Submits Python Action Solution
@@ -54,7 +54,7 @@ Student Submits Python Action Solution
     Gkeep Upload Succeeds   faculty1   cs1    good_action_py
     Gkeep Publish Succeeds  faculty1    cs1     good_action_py
     Clone Assignment  student1  faculty1    cs1     good_action_py
-    Student Submits Correct Solution    student1    faculty1    cs1    good_action_py
+    Student Submits    student1    faculty1    cs1    good_action_py    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_action_py    Done
 
 Bad Action.sh
@@ -63,7 +63,7 @@ Bad Action.sh
     Gkeep Upload Succeeds   faculty1   cs1    bad_action
     Gkeep Publish Succeeds  faculty1    cs1     bad_action
     Clone Assignment  student1  faculty1    cs1     bad_action
-    Student Submits Correct Solution    student1    faculty1    cs1    bad_action
+    Student Submits    student1    faculty1    cs1    bad_action    correct_solution
     Email Exists    student1    subject_contains="bad_action: Failed to process submission - contact instructor"    body_contains="instructor"
 
 Duplicate Assignment Name Across Courses Managed
@@ -74,13 +74,13 @@ Duplicate Assignment Name Across Courses Managed
     Gkeep Upload Succeeds   faculty1   cs1    good_simple
     Gkeep Publish Succeeds  faculty1    cs1     good_simple
     Clone Assignment  student1  faculty1    cs1     good_simple
-    Student Submits Correct Solution    student1    faculty1    cs1    good_simple
+    Student Submits    student1    faculty1    cs1    good_simple    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_simple    Done
     # good_simple used in cs2
     Gkeep Upload Succeeds   faculty1   cs2    good_simple
     Gkeep Publish Succeeds  faculty1    cs2     good_simple
     Clone Assignment  student1  faculty1    cs2     good_simple
-    Student Submits Correct Solution    student1    faculty1    cs2    good_simple
+    Student Submits    student1    faculty1    cs2    good_simple    correct_solution
     Submission Test Results Email Exists    student1    cs2    good_simple    Done
 
 Submissions While Gkeepd is Down
@@ -91,8 +91,17 @@ Submissions While Gkeepd is Down
     Clone Assignment  student1  faculty1    cs1     good_simple
     Stop Gkeepd
     gkeepd is not running
-    Student Submits Correct Solution    student1    faculty1    cs1    good_simple
+    Student Submits    student1    faculty1    cs1    good_simple    correct_solution
     Submission Test Results Email Does Not Exist    student1    cs1    good_simple    Done
     Start gkeepd
     Submission Test Results Email Exists    student1    cs1    good_simple    Done
 
+Global Timeout Catches Infinite Loop
+    [Tags]    happy_path
+    Add Assignment to Client  faculty1  run_py
+    Gkeep Upload Succeeds   faculty1   cs1    run_py
+    Gkeep Publish Succeeds  faculty1    cs1     run_py
+    Clone Assignment  student1  faculty1    cs1     run_py
+    Student Submits    student1    faculty1    cs1    run_py    infinite_loop_submission
+    Email Exists    student1    subject_contains="run_py: Failed to process submission - contact instructor"    body_contains="instructor"
+    Email Exists    faculty1    subject_contains="git-keeper run_tests failure"    body_contains="further information"
