@@ -37,7 +37,7 @@ Adding And Removing Students
     Create Git Config    student1
     New Assignment Email Exists    student1    cs1    good_simple
     Clone Assignment    student1    faculty1    cs1    good_simple
-    Student Submits Correct Solution    student1    faculty1    cs1    good_simple
+    Student Submits    student1    faculty1    cs1    good_simple    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_simple    Done
     # add student2, who should also get good_simple
     Add To Class CSV    faculty=faculty1    class_name=cs1    username=student2
@@ -46,7 +46,7 @@ Adding And Removing Students
     Create Git Config    student2
     New Assignment Email Exists    student2    cs1    good_simple
     Clone Assignment    student2    faculty1    cs1    good_simple
-    Student Submits Correct Solution    student2    faculty1    cs1    good_simple
+    Student Submits    student2    faculty1    cs1    good_simple    correct_solution
     Submission Test Results Email Exists    student2    cs1    good_simple    Done
     # remove student1
     Remove From Class    faculty=faculty1    class_name=cs1    student=student1
@@ -61,7 +61,7 @@ Adding And Removing Students
     New Assignment Email Exists    student2    cs1    good_simple2
     New Assignment Email Does Not Exist    student1    cs1    good_simple_2
     Clone Assignment    student2    faculty1    cs1    good_simple2
-    Student Submits Correct Solution    student2    faculty1    cs1    good_simple2
+    Student Submits    student2    faculty1    cs1    good_simple2    correct_solution
     Submission Test Results Email Exists    student2    cs1    good_simple2    Done
     # add student1 back in, who should get good_simple2
     Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
@@ -70,5 +70,5 @@ Adding And Removing Students
     Class Contains Student    faculty1    cs1    student2
     New Assignment Email Exists    student1    cs1    good_simple2
     Clone Assignment    student1    faculty1    cs1    good_simple2
-    Student Submits Correct Solution    student1    faculty1    cs1    good_simple2
+    Student Submits    student1    faculty1    cs1    good_simple2    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_simple2    Done
