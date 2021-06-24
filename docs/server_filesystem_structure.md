@@ -26,13 +26,13 @@
     │   ├── gkeepd.log
     │   ├── gkeepd_db.sqlite
     │   └── server.cfg
-    └── student
-        ├── faculty
-        │   └── example_class
-        │       └── hw01.git
-        ├── .gitkeeper
-        │   └── student.log
-        └── git-shell-commands
-            └── passwd
-
+    ├── student
+    │   ├── faculty
+    │   │   └── example_class
+    │   │       └── hw01.git
+    │   ├── .gitkeeper
+    │   │   └── student.log
+    │   └── git-shell-commands
+    │       └── passwd
+    └── tester
 ```
