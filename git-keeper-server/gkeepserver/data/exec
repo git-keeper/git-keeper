@@ -1,0 +1,15 @@
+#!/bin/bash
+# This is a dummy exec script that allows ssh-copy-id to work with the git
+# shell. It is to be placed in ~/git-shell-commands/ where the companion
+# add_ssh_id script must also exist.
+
+if [[ "$@" == *"authorized_keys"* ]]
+then
+    # exec is being used for a ssh-copy-id (likely) - run add_ssh_id
+    SCRIPT=$(readlink -f "$0")
+    DIR=$(readlink -f "$(dirname "$SCRIPT")")
+    $DIR/add_ssh_id
+else
+    # exec is being for something else - fail
+    exit 1
+fi
