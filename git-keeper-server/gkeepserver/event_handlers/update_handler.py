@@ -30,7 +30,7 @@ from gkeepcore.upload_directory import UploadDirectory
 from gkeepserver.assignments import AssignmentDirectory, \
     create_base_code_repo, copy_email_txt_file, \
     copy_tests_dir, remove_student_assignment, setup_student_assignment, \
-    StudentAssignmentError, write_run_action_sh
+    StudentAssignmentError
 from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
@@ -143,8 +143,6 @@ class UpdateHandler(EventHandler):
 
             rm(assignment_dir.tests_path, recursive=True)
             copy_tests_dir(assignment_dir, upload_dir.tests_path)
-
-            write_run_action_sh(assignment_dir, upload_dir)
 
         # sanity check
         assignment_dir.check()
