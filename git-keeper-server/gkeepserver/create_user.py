@@ -169,7 +169,7 @@ def setup_git_shell_commands_directory(username: str, command_list: list):
         command_path = which(command)
         make_symbolic_link(command_path, git_shell_commands_path, sudo=True)
 
-    for script in ('exec', 'add_ssh_id'):
+    for script in ('exec', 'add_ssh_id', 'exit'):
         dest_path = os.path.join(git_shell_commands_path, script)
         write_git_shell_command_script(script, dest_path, username)
 
