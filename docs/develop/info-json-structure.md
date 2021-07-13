@@ -1,0 +1,38 @@
+Many client operations fetch the contents of the latest info file from the server. An info file contains information about a faculty member's classes and assignments. Here is the structure of an example info file:
+
+```json
+{
+   "class_name":{
+      "assignments":{
+         "assignment_name":{
+            "name":"assignment_name",
+            "published":true,
+            "reports_repo":{
+               "hash":"202585432b8ff21ff4f93a886fff9b09c46eb18e",
+               "path":"/home/faculty/classes/class_name/assignment_name/reports.git"
+            },
+            "students_repos":{
+               "alovelace":{
+                  "first":"Ada",
+                  "hash":"76f608acf4d08ccd1bf07955e2600bdce3f80774",
+                  "last":"Lovelace",
+                  "path":"/home/alovelace/faculty/class_name/assignment_name.git",
+                  "submission_count":0,
+                  "time":1476986981
+               }
+            }
+         }
+      },
+      "students":{
+         "alovelace":{
+            "email_address":"alovelace@example.edu",
+            "first":"Ada",
+            "home_dir":"/home/alovelace",
+            "last":"Lovelace",
+            "last_first_username":"lovelace_ada_alovelace",
+            "username":"alovelace"
+         }
+      }
+   }
+}
+```
