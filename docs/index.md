@@ -2,8 +2,6 @@
 ## Admin
 
 * [Server Setup](admin/server-setup.md)
-* [The `server.cfg` file](admin/server_cfg.md)
-* [The `faculty.csv` file](admin/faculty_csv.md)
 
 ## Faculty
 
