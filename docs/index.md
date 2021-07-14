@@ -18,4 +18,4 @@
 * [`ActionRunner` Interface](develop/actionrunner-interface.md)
 * [JSON Structure](develop/info-json-structure.md)
 * [Log Structure](develop/log-events.md)
-* [Server File Structure](develop/server-filesystem-structure.md)
+* [Server File Structure](develop/server_filesystem_structure.md)
