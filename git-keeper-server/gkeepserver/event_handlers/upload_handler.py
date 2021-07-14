@@ -32,8 +32,7 @@ from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
 from gkeepcore.valid_names import validate_assignment_name
 from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, create_base_code_repo, copy_email_txt_file, \
-    copy_tests_dir, setup_student_assignment, StudentAssignmentError, \
-    write_run_action_sh
+    copy_tests_dir, setup_student_assignment, StudentAssignmentError
 from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
@@ -166,8 +165,6 @@ class UploadHandler(EventHandler):
         except GkeepException as e:
             error = ('error copying assignment files: {0}'.format(str(e)))
             raise HandlerException(error)
-
-        write_run_action_sh(assignment_dir, upload_dir)
 
         # set permissions on assignment directory
         try:

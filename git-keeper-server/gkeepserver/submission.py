@@ -23,13 +23,15 @@ import os
 from time import strftime, time
 from tempfile import TemporaryDirectory, mkdtemp
 
+from gkeepcore.action_scripts import get_action_script_and_interpreter
+from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.student import Student
 from gkeepserver.assignments import AssignmentDirectory
 from gkeepserver.database import db
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepcore.git_commands import git_clone, git_add_all, git_commit, \
     git_push, git_checkout
-from gkeepcore.system_commands import cp, sudo_chown, rm, chmod
+from gkeepcore.system_commands import cp, sudo_chown, rm, chmod, mv
 from gkeepcore.shell_command import run_command_in_directory
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.server_configuration import config
@@ -58,7 +60,6 @@ class Submission:
         self.student_repo_path = student_repo_path
         self.commit_hash = commit_hash
         self.tests_path = assignment_dir.tests_path
-        self.run_action_sh_path = assignment_dir.run_action_sh_path
         self.reports_repo_path = assignment_dir.reports_repo_path
         self.faculty_username = faculty_username
         self.faculty_email = faculty_email
@@ -128,7 +129,7 @@ class Submission:
         temp_tests_path = os.path.join(temp_path, 'tests')
 
         temp_run_action_sh_path = os.path.join(temp_path, 'run_action.sh')
-        cp(self.run_action_sh_path, temp_run_action_sh_path)
+        write_run_action_sh(temp_run_action_sh_path, self.tests_path)
 
         faculty_username, class_name, assignment_name = \
             parse_submission_repo_path(self.student_repo_path)
@@ -204,6 +205,49 @@ class Submission:
 
         logger.log_debug('Done running tests on {0}'
                          .format(self.student_repo_path))
+
+
+def write_run_action_sh(dest_path: str, tests_path: str):
+    """
+    Write run_action.sh before testing.
+
+    The contents of the script depend on the type of action script used in the
+    uploaded assignment.
+
+    :param dest_path: final path of run_action.sh
+    :param tests_path: path to a directory containing the tests
+    """
+    temp_dir = TemporaryDirectory()
+    temp_dir_path = temp_dir.name
+
+    temp_run_action_sh_path = os.path.join(temp_dir_path, 'run_action.sh')
+
+    template = '''#!/bin/bash
+GLOBAL_TIMEOUT={global_timeout}
+GLOBAL_MEM_LIMIT_MB={global_memory_limit}
+GLOBAL_MEM_LIMIT_KB=$(($GLOBAL_MEM_LIMIT_MB * 1024))
+ulimit -v $GLOBAL_MEM_LIMIT_KB
+trap 'kill -INT -$pid' INT
+timeout $GLOBAL_TIMEOUT {interpreter} {script_name} "$@" &
+pid=$!
+wait $pid
+'''
+
+    script_name, interpreter = get_action_script_and_interpreter(tests_path)
+
+    if script_name is None or interpreter is None:
+        raise GkeepException('No valid action script found')
+
+    run_action_sh_contents = \
+        template.format(global_timeout=config.tests_timeout,
+                        global_memory_limit=config.tests_memory_limit,
+                        interpreter=interpreter,
+                        script_name=script_name)
+
+    with open(temp_run_action_sh_path, 'w') as f:
+        f.write(run_action_sh_contents)
+
+    mv(temp_run_action_sh_path, dest_path, sudo=True)
 
 
 def report_failure(assignment, student, faculty_email, message):
