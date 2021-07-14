@@ -19,13 +19,18 @@
 import os
 from enum import Enum
 from shutil import which
+from tempfile import TemporaryDirectory
+
+from pkg_resources import resource_exists, resource_string, ResolutionError, \
+    ExtractionError
 
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_home_dir, user_log_path, \
     gkeepd_to_faculty_log_path, user_gitkeeper_path
 from gkeepcore.student import Student
 from gkeepcore.system_commands import (sudo_add_user, sudo_set_password, chmod,
-                                       sudo_chown, mkdir, make_symbolic_link)
+                                       sudo_chown, mkdir, make_symbolic_link,
+                                       mv)
 from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.faculty import Faculty
@@ -114,10 +119,39 @@ def create_faculty_dirs(username: str):
     sudo_chown(uploads_dir_path, username, config.keeper_group)
 
 
-def create_git_shell_commands(username: str, command_list: list):
+def write_git_shell_command_script(script, dest_path, username):
+    script_data_path = 'data/{}'.format(script)
+
+    if not resource_exists('gkeepserver', script_data_path):
+        raise GkeepException('Data sript {} does not exist'
+                             .format(script_data_path))
+
+    try:
+        script_text = resource_string('gkeepserver', script_data_path)
+        script_text = script_text.decode()
+    except (ResolutionError, ExtractionError, UnicodeDecodeError):
+        raise GkeepException('error reading {} script data'.format(script))
+
+    script_tempdir = TemporaryDirectory()
+    temp_script_path = os.path.join(script_tempdir.name, script)
+
+    try:
+        with open(temp_script_path, 'w') as f:
+            f.write(script_text)
+    except OSError as e:
+        error = 'error writing {}: {}'.format(temp_script_path, str(e))
+        raise GkeepException(error)
+
+    mv(temp_script_path, dest_path, sudo=True)
+    sudo_chown(dest_path, username, config.keeper_group)
+    chmod(dest_path, '750', sudo=True)
+
+
+def setup_git_shell_commands_directory(username: str, command_list: list):
     """
-    Create the git-shell-commands directory for a user and populate it with
-    symbolic links to allowed commands.
+    Create the git-shell-commands directory for a user, populate it with
+    symbolic links to allowed commands, and write custom scripts to allow
+    ssh-copy-id.
 
     The user will only be able to run the listed commands from an interactive
     shell.
@@ -134,6 +168,10 @@ def create_git_shell_commands(username: str, command_list: list):
     for command in command_list:
         command_path = which(command)
         make_symbolic_link(command_path, git_shell_commands_path, sudo=True)
+
+    for script in ('exec', 'add_ssh_id', 'exit'):
+        dest_path = os.path.join(git_shell_commands_path, script)
+        write_git_shell_command_script(script, dest_path, username)
 
 
 def create_gitkeeper_directory(username):
@@ -195,7 +233,7 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
         create_faculty_dirs(username)
 
     if user_type == UserType.student:
-        create_git_shell_commands(username, ['passwd'])
+        setup_git_shell_commands_directory(username, ['passwd'])
 
     # email the credentials to the user if an email address was provided
     if email_address is not None:

@@ -1,0 +1,5 @@
+#!/bin/bash
+# This is to be placed in ~/git-shell-commands so that ssh-copy-id has an exit
+# to call in the case where a key already exists.
+
+exit "$@"

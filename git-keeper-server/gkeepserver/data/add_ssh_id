@@ -1,0 +1,12 @@
+#!/bin/sh
+# This script is used along with a dummy exec script to allow users to use
+# ssh-copy-id along with the git shell. This file should be placed in
+# ~/git-shell-commands/ along with exec.
+
+cd
+umask 077
+mkdir -p .ssh && { [ -z "'`tail -1c .ssh/authorized_keys 2>/dev/null`'" ] || echo >> .ssh/authorized_keys ; } && cat >> .ssh/authorized_keys || exit 1
+if type restorecon >/dev/null 2>&1
+then
+    restorecon -F .ssh .ssh/authorized_keys
+fi
