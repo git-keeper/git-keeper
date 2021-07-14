@@ -152,7 +152,7 @@ class Submission:
             subject = ('[{0}] {1} submission test results'
                        .format(class_name, assignment_name))
             email_sender.enqueue(Email(self.student.email_address, subject,
-                                       body))
+                                       body, html_pre_body=True))
 
             if self.student.username != faculty_username:
                 # add the report to the reports repository

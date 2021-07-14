@@ -132,7 +132,11 @@ use_tls: <true or false, defaults to true>
 email_username: <username for the SMTP server>
 email_password: <password for the SMTP server>
 email_interval: <seconds to wait between sending emails>
+use_html: <true or false, defaults to false>
 ```
+
+If `use_html` is true, submission test results will be sent as an HTML email,
+placing the contents within pre tags so that they appear in a fixed width font.
 
 #### `[admin]`
 

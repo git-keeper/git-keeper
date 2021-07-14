@@ -202,6 +202,7 @@ class ServerConfiguration:
         self.email_username = None
         self.email_password = None
         self.email_interval = 2
+        self.use_html = False
 
         # admin
         self.admin_email = None
@@ -251,6 +252,7 @@ class ServerConfiguration:
             'email_username',
             'email_password',
             'email_interval',
+            'use_html',
         ]
 
         for name in optional_options:
@@ -261,15 +263,16 @@ class ServerConfiguration:
                 value = self._parser.get('email', name)
                 setattr(self, name, value)
 
-        # use_tls must be true or false
-        if isinstance(self.use_tls, str):
-            if self.use_tls.lower() == 'true':
-                self.use_tls = True
-            elif self.use_tls.lower() == 'false':
-                self.use_tls = False
-            else:
-                error = 'use_tls must be true or false'
-                raise ServerConfigurationError(error)
+        # use_tls and use_html must be true or false
+        for attr in ('use_tls', 'use_html'):
+            if isinstance(getattr(self, attr), str):
+                if getattr(self, attr).lower() == 'true':
+                    setattr(self, attr, True)
+                elif getattr(self, attr).lower() == 'false':
+                    setattr(self, attr, False)
+                else:
+                    error = '{} must be true or false'.format(attr)
+                    raise ServerConfigurationError(error)
 
         # email_interval must be a non-negative number
         if isinstance(self.email_interval, str):
