@@ -23,7 +23,7 @@ Emails should not be sent directly, but rather enqueued in the global
 EmailSenderThread which provides rate limiting.
 
 """
-
+import html
 import os
 from email.header import Header
 from email.mime.application import MIMEApplication
@@ -57,7 +57,8 @@ class Email:
     to send the email.
     """
     def __init__(self, to_address, subject, body, files_to_attach=None,
-                 max_character_count=1000000, priority=EmailPriority.NORMAL):
+                 max_character_count=1000000, priority=EmailPriority.NORMAL,
+                 html_pre_body=False):
         """
         Construct an email object.
 
@@ -73,6 +74,9 @@ class Email:
          characters it will be truncated
         :param priority: an EmailPriority representing the email's priority
          in the send queue
+        :param html_pre_body: if True, the body of the email will be sent both
+         as plain text and HTML, and for the latter the code will be escaped
+         and wrapped in <pre></pre> tags
         """
 
         self._send_attempts = 0
@@ -114,7 +118,7 @@ class Email:
                            'long length. If important information seems '
                            'missing, contact your instructor.\r\n')
 
-        self._build_mime_message(files_to_attach)
+        self._build_mime_message(files_to_attach, html_pre_body)
 
     def __repr__(self):
         repr_string = 'To: {0}, Subject: {1}'.format(self.to_address,
@@ -125,7 +129,7 @@ class Email:
         # Provide < comparison for use by the PriorityQueue
         return self.priority < other.priority
 
-    def _build_mime_message(self, files_to_attach):
+    def _build_mime_message(self, files_to_attach, html_pre_body):
         # Create the final message by building up a MIMEMultipart object and
         # then storing the final message as a string in _message_string
 
@@ -135,7 +139,10 @@ class Email:
         subject_header = Header('{0}'.format(self._subject), 'utf-8')
         reply_to_header = Header('{0}'.format(config.from_address), 'utf-8')
 
-        message = MIMEMultipart()
+        if html_pre_body and config.use_html:
+            message = MIMEMultipart('alternative')
+        else:
+            message = MIMEMultipart()
 
         # put the headers in the message
         message['Subject'] = subject_header
@@ -144,7 +151,12 @@ class Email:
         message['reply-to'] = reply_to_header
 
         # attach the body
-        message.attach(MIMEText(self._body, _charset='utf-8'))
+        if html_pre_body and config.use_html:
+            html_body = '<pre>{}</pre>\r\n'.format(html.escape(self._body))
+            message.attach(MIMEText(self._body, 'plain', _charset='utf-8'))
+            message.attach(MIMEText(html_body, 'html', _charset='utf-8'))
+        else:
+            message.attach(MIMEText(self._body, _charset='utf-8'))
 
         # attach any files
         for file_path in files_to_attach or []:
