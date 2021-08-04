@@ -142,7 +142,7 @@ class Submission:
 
         # execute action.sh and capture the output
         try:
-            cmd = ['sudo', '-u', config.tester_user, 'bash',
+            cmd = ['sudo', '--user', config.tester_user, '--set-home', 'bash',
                    temp_run_action_sh_path, temp_assignment_path,
                    self.student.username, self.student.email_address,
                    self.student.last_name, self.student.first_name]
