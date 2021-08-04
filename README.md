@@ -5,3 +5,6 @@ Git-keeper is an automated code-testing tool where students obtain and submit as
 Faculty interact with the system using a command-line tool to upload assignments to the server and to fetch student submissions for grading.  When assessing an assignment, git-keeper can utilize any language or tool that executes via the command line on a Linux system, making git-keeper adaptable to a wide range of classes and technologies.  In addition, git-keeper requires minimal dependencies and is easy to configure and administer on a local server. 
 
 
+## Documentation
+
+Documentation is hosted at [https://git-keeper.readthedocs.io/](https://git-keeper.readthedocs.io/).
