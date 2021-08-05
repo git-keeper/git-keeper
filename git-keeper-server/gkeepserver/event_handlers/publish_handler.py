@@ -58,12 +58,6 @@ class PublishHandler(EventHandler):
                                                       self._assignment_name,
                                                       gitkeeper_path)
 
-        print('Handling publish:')
-        print(' Faculty:        ', self._faculty_username)
-        print(' Class:          ', self._class_name)
-        print(' Assignment:     ', self._assignment_name)
-        print(' Assignment path:', assignment_path)
-
         try:
             if not db.class_is_open(self._class_name, self._faculty_username):
                 raise HandlerException(
