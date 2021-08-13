@@ -58,13 +58,6 @@ class UpdateHandler(EventHandler):
                                                       self._assignment_name,
                                                       gitkeeper_path)
 
-        print('Handling update:')
-        print(' Faculty:        ', self._faculty_username)
-        print(' Class:          ', self._class_name)
-        print(' Assignment:     ', self._assignment_name)
-        print(' Path:           ', self._upload_path)
-        print(' Assignment path:', assignment_path)
-
         if db.is_disabled(self._class_name, self._assignment_name,
                           self._faculty_username):
             error = ('Assignment {} in class {} is disabled and '

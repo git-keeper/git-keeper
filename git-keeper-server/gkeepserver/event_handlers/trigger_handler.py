@@ -47,12 +47,6 @@ class TriggerHandler(EventHandler):
                                                       self._assignment_name,
                                                       gitkeeper_path)
 
-        print('Handling trigger:')
-        print(' Faculty:        ', self._faculty_username)
-        print(' Class:          ', self._class_name)
-        print(' Assignment:     ', self._assignment_name)
-        print(' Students:       ', self._student_usernames)
-
         try:
             assignment_dir = AssignmentDirectory(assignment_path)
 

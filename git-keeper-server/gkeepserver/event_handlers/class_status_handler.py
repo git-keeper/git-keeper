@@ -44,11 +44,6 @@ class ClassStatusHandler(EventHandler):
             raise HandlerException('Invalid status for CLASS_STATUS: {}'
                                    .format(self._status))
 
-        print('Handling class status:')
-        print(' Faculty:', self._faculty_username)
-        print(' Class:  ', self._class_name)
-        print(' Status: ', self._status)
-
         try:
             if self._status == 'open':
                 db.open_class(self._class_name, self._faculty_username)

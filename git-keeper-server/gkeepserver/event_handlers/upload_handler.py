@@ -60,13 +60,6 @@ class UploadHandler(EventHandler):
                                                       self._assignment_name,
                                                       gitkeeper_path)
 
-        print('Handling upload:')
-        print(' Faculty:        ', self._faculty_username)
-        print(' Class:          ', self._class_name)
-        print(' Assignment:     ', self._assignment_name)
-        print(' Path:           ', self._upload_path)
-        print(' Assignment path:', assignment_path)
-
         assignment_dir = AssignmentDirectory(assignment_path, check=False)
 
         try:
