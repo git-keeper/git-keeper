@@ -22,7 +22,6 @@ from tempfile import TemporaryDirectory
 
 from gkeepcore.action_scripts import get_action_script_and_interpreter
 from gkeepcore.student import Student
-from gkeepcore.upload_directory import UploadDirectory
 from pkg_resources import resource_exists, resource_string, ResolutionError, \
     ExtractionError
 
@@ -94,10 +93,12 @@ class AssignmentDirectory:
         path_info = parse_faculty_assignment_path(path)
 
         if path_info is None:
+            self.faculty_username = None
             self.class_name = None
             self.assignment_name = None
         else:
-            self.class_name, self.assignment_name = path_info
+            self.faculty_username, self.class_name, self.assignment_name = \
+                path_info
 
         if check:
             self.check()

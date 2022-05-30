@@ -110,7 +110,8 @@ class TriggerHandler(EventHandler):
                                              self._class_name,
                                              self._assignment_name, home_dir)
 
-            commit_hash = git_head_hash(submission_repo_path)
+            commit_hash = git_head_hash(submission_repo_path,
+                                        user=student.username)
 
             submission = Submission(student, submission_repo_path, commit_hash,
                                     assignment_dir, self._faculty_username,
