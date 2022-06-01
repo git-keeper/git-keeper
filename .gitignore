@@ -15,3 +15,5 @@ report.html
 output.xml
 *.log
 .DS_Store
+.venv
+site
