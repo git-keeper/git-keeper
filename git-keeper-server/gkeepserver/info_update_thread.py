@@ -266,7 +266,6 @@ class InfoUpdateThread(Thread):
 
         try:
             if payload.instruction == InfoInstruction.FULL_SCAN:
-                logger.log_info(str(type(payload)))
                 self._full_scan(payload.faculty_username)
 
             elif payload.instruction == InfoInstruction.CLASS_SCAN:

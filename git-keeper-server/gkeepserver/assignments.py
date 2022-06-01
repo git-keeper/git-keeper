@@ -70,7 +70,6 @@ class AssignmentDirectory:
         base_code_repo_path - path to the base code repository
         reports_repo_path - path to the reports repository
         tests_path - path to the tests directory
-        action_sh_path - path to action.sh
     """
 
     def __init__(self, path, check=True):
@@ -84,7 +83,6 @@ class AssignmentDirectory:
         :param check: whether or not to check if everything exists
         """
         self.path = path
-        self.run_action_sh_path = os.path.join(self.path, 'run_action.sh')
         self.email_path = os.path.join(self.path, 'email.txt')
         self.base_code_repo_path = os.path.join(self.path, 'base_code.git')
         self.reports_repo_path = os.path.join(self.path, 'reports.git')
@@ -265,45 +263,6 @@ def copy_tests_dir(assignment_dir: AssignmentDirectory, tests_path: str):
     :param tests_path: path to tests directory
     """
     cp(tests_path, assignment_dir.tests_path, recursive=True, sudo=True)
-
-
-def write_run_action_sh(assignment_dir: AssignmentDirectory,
-                        upload_dir: UploadDirectory):
-    """
-    Write run_action.sh into an assignment directory.
-
-    The contents of the script depend on the type of action script used in the
-    uploaded assignment.
-
-    :param assignment_dir: AssignmentDirectory to write to
-    :param upload_dir: UploadDirectory containing uploaded assignment data
-    """
-    temp_dir = TemporaryDirectory()
-    temp_dir_path = temp_dir.name
-
-    temp_run_action_sh_path = os.path.join(temp_dir_path, 'run_action.sh')
-
-    template = '''#!/bin/bash
-GLOBAL_TIMEOUT={global_timeout}
-GLOBAL_MEM_LIMIT_MB={global_memory_limit}
-GLOBAL_MEM_LIMIT_KB=$(($GLOBAL_MEM_LIMIT_MB * 1024))
-ulimit -v $GLOBAL_MEM_LIMIT_KB
-trap 'kill -INT -$pid' INT
-timeout $GLOBAL_TIMEOUT {interpreter} {script_name} "$@" &
-pid=$!
-wait $pid
-'''
-
-    run_action_sh_contents = \
-        template.format(global_timeout=config.tests_timeout,
-                        global_memory_limit=config.tests_memory_limit,
-                        interpreter=upload_dir.action_script_interpreter,
-                        script_name=upload_dir.action_script)
-
-    with open(temp_run_action_sh_path, 'w') as f:
-        f.write(run_action_sh_contents)
-
-    mv(temp_run_action_sh_path, assignment_dir.path, sudo=True)
 
 
 def remove_student_assignment(assignment_dir: AssignmentDirectory,
