@@ -88,6 +88,9 @@ class ChangeDirectoryContext:
     For use as a context manager to change into a directory and change out
     again.
 
+    THE WORKING DIRECTORY IS CHANGED AT THE PROCESS LEVEL, AND AS SUCH IT IS
+    NOT SAFE FOR MORE THAN ONE THREAD TO USE THIS CONTEXT MANAGER.
+
     Example:
 
         with ChangeDirectoryContext('path/to/dir'):
@@ -111,6 +114,9 @@ def run_command_in_directory(path, command, sudo=False, user=None,
                              stderr=STDOUT):
     """
     Change into a new working directory, run a command, and change back.
+
+    THE WORKING DIRECTORY IS CHANGED AT THE PROCESS LEVEL, AND AS SUCH IT IS
+    NOT SAFE FOR MORE THAN ONE THREAD TO USE THIS FUNCTION.
 
     Raises CommandError if the command could not be called or has a non-zero
     exit code.
