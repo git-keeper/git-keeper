@@ -92,6 +92,14 @@ class ServerCheckKeywords:
             raise GkeepRobotException('Submission test result email exists for {}, {}, {}'.format(username, course_name,
                                                                                     assignment_name))
 
+    def verify_submission_test_result_count(self, username, course_name, assignment_name, body_contains, count):
+        subject = '"[{}] {} submission test results"'.format(course_name, assignment_name)
+        result = control.run_vm_python_script('keeper', 'email_to_count.py',
+                                              username, subject, body_contains, count)
+        if result != 'True':
+            raise GkeepRobotException('Did not see {} submission test result emails for {}, {}, {}'
+                                      .format(count, username, course_name, assignment_name))
+
     def email_exists(self, to_user, subject_contains=None, body_contains=None):
         result = control.run_vm_python_script('keeper', 'email_to.py',
                                               to_user, subject_contains, body_contains)

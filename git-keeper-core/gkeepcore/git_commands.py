@@ -101,6 +101,23 @@ def get_git_branch(repo_path):
     return branch
 
 
+def git_unstaged_changes_exist(repo_path):
+    """
+    Determine if a git repository has unstaged changes.
+
+    :param repo_path: path of the repository
+    :return: True if unstaged changes exist, False otherwise
+    """
+
+    cmd = ['git', '-C', repo_path, 'diff', '--exit-code']
+
+    try:
+        run_command(cmd)
+        return False
+    except CommandError:
+        return True
+
+
 def git_push(repo_path, dest=None, branch=None, force=False, sudo=False,
              user=None):
     """

@@ -37,6 +37,13 @@ Test Produces Email to Faculty
     Gkeep Test Succeeds    faculty1    cs1    good_simple    good_simple/correct_solution
     Submission Test Results Email Exists    faculty1    cs1    good_simple    Done
 
+
+Two Tests Produce Two Emails to Faculty
+    Gkeep Test Succeeds    faculty1    cs1    good_simple    good_simple/correct_solution
+    Gkeep Test Succeeds    faculty1    cs1    good_simple    good_simple/correct_solution
+    Verify Submission Test Result Count    faculty1    cs1    good_simple    Done    2
+
+
 Test Fails on Bad Course Name
     [Tags]  error
     Gkeep Test Fails    faculty1    bad_course    good_simple    good_simple/correct_solution
