@@ -156,11 +156,6 @@ The `[gkeepd]` section is optional. Below are the allowed parameters and their
 defaults:
 
 ```
-keeper_user: keeper
-keeper_group: keeper
-tester_user: tester
-faculty_group: faculty
-student_group: student
 tests_timeout: 300
 tests_memory_limit: 1024
 ```
@@ -194,11 +189,6 @@ admin_first_name:
 admin_last_name: 
 
 #[gkeepd]
-#keeper_user: keeper
-#keeper_group: keeper
-#tester_user: tester
-#faculty_group: faculty
-#student_group: student
 #tests_timeout: 300
 #tests_memory_limit: 1024
 ```

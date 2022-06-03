@@ -18,7 +18,7 @@
 This module allows the parsing of and provides access to the the server
 configuration file.
 
-The default configuration file localtion is ~/server.cfg. This can be
+The default configuration file location is ~/server.cfg. This can be
 customized by passing a path to parser().
 
 The configuration file must be in the INI format:
@@ -341,11 +341,6 @@ class ServerConfiguration:
             'test_thread_count',
             'tests_timeout',
             'tests_memory_limit',
-            'keeper_user',
-            'keeper_group',
-            'tester_user',
-            'faculty_group',
-            'student_group'
         ]
 
         for name in optional_options:
