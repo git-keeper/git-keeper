@@ -30,10 +30,11 @@ from gkeepserver.assignments import AssignmentDirectory
 from gkeepserver.database import db
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepcore.git_commands import git_clone, git_add_all, git_commit, \
-    git_push, git_checkout
+    git_checkout
 from gkeepcore.system_commands import cp, sudo_chown, rm, chmod, mv
 from gkeepcore.shell_command import run_command_in_directory
 from gkeepserver.email_sender_thread import email_sender
+from gkeepserver.reports import reports_clone
 from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email
 from gkeepcore.path_utils import parse_submission_repo_path, user_home_dir
@@ -56,6 +57,7 @@ class Submission:
          assignment
         """
 
+        self.assignment_dir = assignment_dir
         self.student = student
         self.student_repo_path = student_repo_path
         self.commit_hash = commit_hash
@@ -157,45 +159,34 @@ class Submission:
             if self.student.username != faculty_username:
                 # add the report to the reports repository
 
-                reports_temp = TemporaryDirectory()
+                with reports_clone(self.assignment_dir) as temp_reports_repo_path:
+                    last_first_username = self.student.get_last_first_username()
 
-                # put the report file into the reports repo
-                git_clone(self.reports_repo_path, reports_temp.name)
+                    student_report_dir_path = os.path.join(temp_reports_repo_path,
+                                                           last_first_username)
+                    os.makedirs(student_report_dir_path, exist_ok=True)
 
-                temp_reports_repo_path = os.path.join(reports_temp.name,
-                                                      'reports')
-
-                last_first_username = self.student.get_last_first_username()
-
-                student_report_dir_path = os.path.join(temp_reports_repo_path,
-                                                       last_first_username)
-                os.makedirs(student_report_dir_path, exist_ok=True)
-
-                timestamp = strftime('%Y-%m-%d-%H:%M:%S-%Z')
-                report_filename = 'report-{0}.txt'.format(timestamp)
-                report_file_path = os.path.join(student_report_dir_path,
-                                                report_filename)
-
-                counter = 1
-                while os.path.exists(report_file_path):
-                    report_filename = 'report-{0}-{1}.txt'.format(timestamp,
-                                                                  counter)
+                    timestamp = strftime('%Y-%m-%d-%H:%M:%S-%Z')
+                    report_filename = 'report-{0}.txt'.format(timestamp)
                     report_file_path = os.path.join(student_report_dir_path,
                                                     report_filename)
-                    counter += 1
 
-                with open(report_file_path, 'w') as f:
-                    f.write(body)
+                    counter = 1
+                    while os.path.exists(report_file_path):
+                        report_filename = 'report-{0}-{1}.txt'.format(timestamp,
+                                                                      counter)
+                        report_file_path = os.path.join(student_report_dir_path,
+                                                        report_filename)
+                        counter += 1
 
-                reports_commit_message = ('Submission report for {}'
-                                          .format(last_first_username))
+                    with open(report_file_path, 'w') as f:
+                        f.write(body)
 
-                git_add_all(temp_reports_repo_path)
-                git_commit(temp_reports_repo_path, reports_commit_message)
-                git_push(temp_reports_repo_path, dest='origin', sudo=True)
+                    reports_commit_message = ('Submission report for {}'
+                                              .format(last_first_username))
 
-                sudo_chown(self.reports_repo_path, faculty_username,
-                           config.keeper_group, recursive=True)
+                    git_add_all(temp_reports_repo_path)
+                    git_commit(temp_reports_repo_path, reports_commit_message)
         except Exception as e:
             report_failure(assignment_name, self.student,
                            self.faculty_email, str(e))

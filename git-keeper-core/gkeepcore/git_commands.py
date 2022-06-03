@@ -101,7 +101,8 @@ def get_git_branch(repo_path):
     return branch
 
 
-def git_push(repo_path, dest=None, branch=None, force=False, sudo=False):
+def git_push(repo_path, dest=None, branch=None, force=False, sudo=False,
+             user=None):
     """
     Push a repository to its upstream remote, or to a specific destination.
 
@@ -111,7 +112,8 @@ def git_push(repo_path, dest=None, branch=None, force=False, sudo=False):
     :param dest: optional destination to push to
     :param branch: optional branch, if dest is specified
     :param force: set to True to force a push (be careful!)
-    :param sudo: if true command is run as root
+    :param sudo: if true command is run as root or another user
+    :param user: if not none and sudo is True, the push is run as this user
     """
     cmd = ['git', 'push']
 
@@ -124,7 +126,7 @@ def git_push(repo_path, dest=None, branch=None, force=False, sudo=False):
 
         cmd += [dest, branch]
 
-    run_command_in_directory(repo_path, cmd, sudo=sudo)
+    run_command_in_directory(repo_path, cmd, sudo=sudo, user=user)
 
 
 def git_pull(repo_path, remote_url=None):
@@ -210,17 +212,21 @@ def git_checkout(repo_path, branch_or_commit):
     run_command_in_directory(repo_path, cmd)
 
 
-def git_head_hash(repo_path):
+def git_head_hash(repo_path, user=None):
     """
     Get the hash of the HEAD of a git repository.
 
     :param repo_path: path to the repository
+    :param user: username of the owner of the repository
     :return: commit hash of HEAD
     """
 
     cmd = ['git', 'rev-parse', 'HEAD']
 
-    return run_command_in_directory(repo_path, cmd).rstrip()
+    sudo = user is not None
+
+    return run_command_in_directory(repo_path, cmd, sudo=sudo,
+                                    user=user).rstrip()
 
 
 def git_head_hash_date(repo_path):
@@ -247,7 +253,7 @@ def git_head_hash_date(repo_path):
     return repo_hash, timestamp
 
 
-def git_hashes_and_times(repo_path):
+def git_hashes_and_times(repo_path, user=None):
     """
     Get the hashes and commit times of the commits to a git repository.
 
@@ -256,12 +262,15 @@ def git_hashes_and_times(repo_path):
     The hashes are strings.
 
     :param repo_path: path to the repository
+    :param user: the username of the repository owner
     :return: list containing (hash, time) tuples
     """
 
     cmd = ['git', 'log', '--format=%H %at']
 
-    output = run_command_in_directory(repo_path, cmd)
+    sudo = user is not None
+
+    output = run_command_in_directory(repo_path, cmd, sudo=sudo, user=user)
     lines = output.splitlines()
 
     hashes_and_times = []

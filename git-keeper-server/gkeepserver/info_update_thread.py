@@ -435,7 +435,8 @@ class InfoUpdateThread(Thread):
             return
 
         reports_repo_path = assignment_dir.reports_repo_path
-        reports_repo_hash = git_head_hash(assignment_dir.reports_repo_path)
+        reports_repo_hash = git_head_hash(assignment_dir.reports_repo_path,
+                                          user=faculty_username)
 
         reports_repo_info = {
             'path': reports_repo_path,
@@ -457,7 +458,8 @@ class InfoUpdateThread(Thread):
                                              assignment_name, student_home_dir)
 
             try:
-                hashes_and_times = git_hashes_and_times(assignment_repo_path)
+                hashes_and_times = git_hashes_and_times(assignment_repo_path,
+                                                        user=student.username)
             except GkeepException as e:
                 warning = ('Could not get hashes for {0}: {1}'
                            .format(assignment_repo_path, e))

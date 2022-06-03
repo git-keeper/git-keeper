@@ -20,16 +20,13 @@ Event type: PUBLISH
 """
 
 import os
-from tempfile import TemporaryDirectory
 
 from gkeepcore.csv_files import CSVError
-from gkeepcore.git_commands import git_init, git_push, git_add_all, git_commit
-from gkeepcore.local_csv_files import LocalCSVReader
-from gkeepcore.path_utils import faculty_assignment_dir_path, user_home_dir, \
-    class_student_csv_path, user_gitkeeper_path
-from gkeepcore.shell_command import CommandError
-from gkeepcore.student import students_from_csv, StudentError, Student
-from gkeepcore.system_commands import touch, sudo_chown, mkdir
+from gkeepcore.git_commands import git_add_all, git_commit
+from gkeepcore.path_utils import faculty_assignment_dir_path, \
+    user_gitkeeper_path
+from gkeepcore.student import StudentError, Student
+from gkeepcore.system_commands import touch, mkdir
 from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, setup_student_assignment, StudentAssignmentError
 from gkeepserver.database import db
@@ -37,7 +34,7 @@ from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_update_thread import info_updater
-from gkeepserver.server_configuration import config
+from gkeepserver.reports import reports_clone
 
 
 class PublishHandler(EventHandler):
@@ -64,7 +61,7 @@ class PublishHandler(EventHandler):
                     '{} is not open'.format(self._class_name))
 
             assignment_dir = AssignmentDirectory(assignment_path)
-            self._ensure_not_published(assignment_dir)
+            self._ensure_not_published()
             students = self._setup_students_assignment_repos(assignment_dir)
             self._populate_reports_repo(assignment_dir, students)
 
@@ -88,7 +85,7 @@ class PublishHandler(EventHandler):
             warning = 'Publish failed: {0}'.format(e)
             gkeepd_logger.log_warning(warning)
 
-    def _ensure_not_published(self, assignment_dir: AssignmentDirectory):
+    def _ensure_not_published(self):
         # Throw an exception if the assignment is already published
         if db.is_published(self._class_name, self._assignment_name,
                            self._faculty_username):
@@ -96,30 +93,23 @@ class PublishHandler(EventHandler):
 
     def _populate_reports_repo(self, assignment_dir: AssignmentDirectory,
                                students: list):
-        temp_dir = TemporaryDirectory()
-
-        temp_dir_path = temp_dir.name
-
-        git_init(temp_dir_path)
-
-        reports_placeholder_path = os.path.join(temp_dir_path, '.placeholder')
-        touch(reports_placeholder_path)
-
-        for student in students:
-            student_report_path = \
-                os.path.join(temp_dir_path, student.get_last_first_username())
-            mkdir(student_report_path)
-
-            student_placeholder_path = os.path.join(student_report_path,
+        with reports_clone(assignment_dir) as temp_dir_path:
+            reports_placeholder_path = os.path.join(temp_dir_path,
                                                     '.placeholder')
-            touch(student_placeholder_path)
+            touch(reports_placeholder_path)
 
-        git_add_all(temp_dir_path)
-        git_commit(temp_dir_path, 'Initial commit')
-        git_push(temp_dir_path, dest=assignment_dir.reports_repo_path,
-                 sudo=True)
-        sudo_chown(assignment_dir.reports_repo_path, self._faculty_username,
-                   config.keeper_group, recursive=True)
+            for student in students:
+                student_report_path = \
+                    os.path.join(temp_dir_path,
+                                 student.get_last_first_username())
+                mkdir(student_report_path)
+
+                student_placeholder_path = os.path.join(student_report_path,
+                                                        '.placeholder')
+                touch(student_placeholder_path)
+
+            git_add_all(temp_dir_path)
+            git_commit(temp_dir_path, 'Initial commit')
 
     def _setup_students_assignment_repos(self,
                                          assignment_dir: AssignmentDirectory):
