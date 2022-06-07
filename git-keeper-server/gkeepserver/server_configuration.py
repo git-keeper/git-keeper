@@ -116,7 +116,7 @@ class ServerConfiguration:
         self.home_dir = os.path.expanduser('~')
         self.username = getuser()
 
-        self._config_path = None
+        self.config_path = None
 
         self._parsed = False
 
@@ -136,12 +136,12 @@ class ServerConfiguration:
 
         if config_path is None:
             config_filename = 'server.cfg'
-            self._config_path = os.path.join(self.home_dir, config_filename)
+            self.config_path = os.path.join(self.home_dir, config_filename)
         else:
-            self._config_path = config_path
+            self.config_path = config_path
 
-        if not os.path.isfile(self._config_path):
-            error = '{0} does not exist'.format(self._config_path)
+        if not os.path.isfile(self.config_path):
+            error = '{0} does not exist'.format(self.config_path)
             raise ServerConfigurationError(error)
 
         self._initialize_default_attributes()
@@ -218,9 +218,9 @@ class ServerConfiguration:
         self._parser = configparser.ConfigParser()
 
         try:
-            self._parser.read(self._config_path)
+            self._parser.read(self.config_path)
         except configparser.ParsingError as e:
-            error = 'Error reading {0}: {1}'.format(self._config_path,
+            error = 'Error reading {0}: {1}'.format(self.config_path,
                                                     e.message)
             raise ServerConfigurationError(error)
 
@@ -229,7 +229,7 @@ class ServerConfiguration:
 
         if section not in self._parser.sections():
             error = ('section {0} is not present in {1}'
-                     .format(section, self._config_path))
+                     .format(section, self.config_path))
             raise ServerConfigurationError(error)
 
     def _set_email_options(self):

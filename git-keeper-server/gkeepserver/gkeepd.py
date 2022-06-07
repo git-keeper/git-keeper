@@ -35,6 +35,7 @@ from signal import signal, SIGINT, SIGTERM
 
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.version import __version__ as core_version
+from gkeepserver.check_config import check_config
 from gkeepserver.check_system import check_system
 from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
@@ -80,12 +81,22 @@ def main():
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('-v', '--version', action='store_true',
                         help='Print gkeepd version')
+    parser.add_argument('-c', '--check', action='store_true',
+                        help='Validate config and send test email to admins')
 
     args = parser.parse_args()
 
     if args.version:
         print('gkeepd version {}'.format(server_version))
         sys.exit(0)
+
+    if args.check:
+        try:
+            check_config()
+            sys.exit(0)
+        except Exception as e:
+            print(e)
+            sys.exit(1)
 
     # setup signal handling
     global shutdown_flag
