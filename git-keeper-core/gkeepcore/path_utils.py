@@ -112,6 +112,7 @@ def user_log_path(gitkeeper_path: str, username: str):
     <user .gitkeeper directory>/<username>.log
 
     :param gitkeeper_path: the path to the user's .gitkeeper directory
+    :param username: username of the log's owner
     :return: the user's log path
     """
 
@@ -190,28 +191,29 @@ def parse_submission_repo_path(path) -> (str, str, str, str):
     return faculty_username, class_name, assignment_name
 
 
-def parse_faculty_assignment_path(path) -> (str, str):
+def parse_faculty_assignment_path(path) -> (str, str, str):
     """
-    Extract the class name and assignment name from a path to a faculty
-    assignment directory.
+    Extract the faculty username, class name, and assignment name from a path
+    to a faculty assignment directory.
 
     :param path: path to the assignment directory
-    :return: a tuple containing the class name and the assignment name, or
-             None if the path is malformed
+    :return: a tuple containing the faculty username, the class name,
+     and the assignment name, or None if the path is malformed
     """
 
     # we're parsing a path that ends with this:
-    # <class>/<assignment>
+    # <faculty username>/.gitkeeper/classes/<class>/<assignment>
 
     path_list = path_to_list(path)
 
-    if len(path_list) < 2:
+    if len(path_list) < 5:
         return None
 
-    # the information we want is in the last 2 elements of the list
+    # the class name and assignment name are the last 2 elements of the list
     class_name, assignment_name = path_list[-2:]
+    faculty_username = path_list[-5]
 
-    return class_name, assignment_name
+    return faculty_username, class_name, assignment_name
 
 
 def parse_faculty_class_path(path) -> str:

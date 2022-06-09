@@ -38,15 +38,6 @@ class SubmissionHandler(EventHandler):
     def handle(self):
         """Take action after a student pushes a new submission."""
 
-        print('Handling submission:')
-        print(' Student:    ', self._student_username)
-        print(' Faculty:    ', self._faculty_username)
-        print(' Class:      ', self._class_name)
-        print(' Assignment: ', self._assignment_name)
-        print(' Repo path:  ', self._submission_repo_path)
-        print(' Commit hash:', self._commit_hash)
-        print()
-
         # We need to create a submission object to put in the
         # new_submission_queue.  This requires a Student object and
         # paths to student repo, tests (not a repo), and reports repo.

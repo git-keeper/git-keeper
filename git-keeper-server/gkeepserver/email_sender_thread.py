@@ -41,7 +41,7 @@ Example usage:
 
 """
 
-from queue import Queue, Empty
+from queue import PriorityQueue, Empty
 from threading import Thread
 from time import time, sleep
 
@@ -78,7 +78,7 @@ class EmailSenderThread(Thread):
 
         Thread.__init__(self)
 
-        self._email_queue = Queue()
+        self._email_queue = PriorityQueue()
 
         self._last_send_time = 0
 
@@ -125,8 +125,8 @@ class EmailSenderThread(Thread):
                     email = self._email_queue.get(block=True, timeout=0.1)
 
                     if not isinstance(email, Email):
-                        warning = ('Item enqueued for emailing that is not an '
-                                   'email: {0}'.format(email))
+                        warning = ('Item dequeued for emailing that is '
+                                   'not an email: {0}'.format(email))
                         logger.log_warning(warning)
                     else:
                         self._send_email_with_rate_limiting(email)

@@ -24,9 +24,10 @@ from tempfile import TemporaryDirectory
 from gkeepclient.client_configuration import config
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_exists, assignment_exists
+from gkeepclient.server_actions import trigger_tests
 from gkeepclient.server_interface import server_interface
 from gkeepcore.git_commands import git_clone_remote, git_add_all, git_commit, \
-    git_push
+    git_push, git_unstaged_changes_exist
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.system_commands import cp, rm
 
@@ -53,7 +54,7 @@ def test_solution(class_name: str, assignment_name: str, solution_path: str):
         error = '{} is not a directory'.format(solution_path)
         raise GkeepException(error)
 
-    print('Pushing {} for assignment {} in class {}'
+    print('Testing solution {} for assignment {} in class {}'
           .format(solution_path, assignment_name, class_name))
 
     solution_base_name = os.path.basename(os.path.normpath(solution_path))
@@ -83,8 +84,15 @@ def test_solution(class_name: str, assignment_name: str, solution_path: str):
     cp(os.path.join(repo_temp_path, '.git'), solution_temp_path,
        recursive=True)
 
-    git_add_all(solution_temp_path)
-    git_commit(solution_temp_path, 'Testing')
-    git_push(solution_temp_path, force=True)
-
-    print('Solution pushed successfully')
+    if git_unstaged_changes_exist(solution_temp_path):
+        git_add_all(solution_temp_path)
+        git_commit(solution_temp_path, 'Testing')
+        print('Pushing your solution using git')
+        git_push(solution_temp_path, force=True)
+        print('Solution pushed successfully, you should receive a report '
+              'via email')
+    else:
+        print('Solution is up to date with remote, using gkeep trigger to '
+              'trigger tests')
+        trigger_tests(class_name, assignment_name, [server_username])
+        print('You should receive a report via email')

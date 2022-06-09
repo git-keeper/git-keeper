@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-from gkeepcore.shell_command import run_command
+from gkeepcore.shell_command import run_command, CommandError
 
 
 def remove_users():
@@ -23,6 +23,11 @@ def remove_users():
 
     for user in os.listdir('/home'):
         if user not in expected:
+            try:
+                run_command('sudo pkill -9 -u {}'.format(user))
+            except CommandError:
+                pass
+
             run_command('sudo userdel -r {}'.format(user))
 
 

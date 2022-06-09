@@ -58,6 +58,11 @@ def remove_users():
 
     for user in os.listdir('/home'):
         if user not in expected:
+            try:
+                run_command('sudo pkill -9 -u {}'.format(user))
+            except CommandError:
+                pass
+
             run_command('sudo userdel -r {}'.format(user))
 
 

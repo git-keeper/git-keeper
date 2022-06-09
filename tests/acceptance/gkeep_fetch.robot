@@ -32,7 +32,7 @@ Setup Server and Client Accounts
     Gkeep Upload Succeeds   faculty1   cs1    good_simple
     Gkeep Publish Succeeds  faculty1    cs1     good_simple
     Clone Assignment  student1  faculty1    cs1     good_simple
-    Student Submits Correct Solution    student1    faculty1    cs1    good_simple
+    Student Submits    student1    faculty1    cs1    good_simple    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_simple    Done
 
 
@@ -51,7 +51,7 @@ Second Fetch Updates Submissions
     Verify Submission Count   faculty1    fetched_assignments    cs1    good_simple    student2    0
     # Student 2 submits and then re-fetch
     Clone Assignment  student2  faculty1    cs1     good_simple
-    Student Submits Correct Solution    student2    faculty1    cs1    good_simple
+    Student Submits    student2    faculty1    cs1    good_simple    correct_solution
     Submission Test Results Email Exists    student2    cs1    good_simple    Done
     Fetch Assignment    faculty1    cs1    good_simple    fetched_assignments
     Verify Submission Count   faculty1    fetched_assignments    cs1    good_simple    student1    1

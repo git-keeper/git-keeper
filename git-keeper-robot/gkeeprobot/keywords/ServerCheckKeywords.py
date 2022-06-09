@@ -65,6 +65,16 @@ class ServerCheckKeywords:
             raise GkeepRobotException('No new assignment email exists for {}, {}, {}'.format(username, course_name,
                                                                                    assignment_name))
 
+    def new_assignment_email_does_not_exist(self, username, course_name, assignment_name):
+        # assignment name is in the body of the message
+        subject = '"[{}] New assignment: {}"'.format(course_name, assignment_name)
+        result = control.run_vm_python_script('keeper', 'email_to.py',
+                                              username, subject,
+                                              assignment_name)
+        if result == 'True':
+            raise GkeepRobotException('New assignment email exists for {}, {}, {}'.format(username, course_name,
+                                                                                   assignment_name))
+
     def submission_test_results_email_exists(self, username, course_name, assignment_name, body_contains):
         subject = '"[{}] {} submission test results"'.format(course_name, assignment_name)
         result = control.run_vm_python_script('keeper', 'email_to.py',
@@ -81,6 +91,14 @@ class ServerCheckKeywords:
         if result != 'False':
             raise GkeepRobotException('Submission test result email exists for {}, {}, {}'.format(username, course_name,
                                                                                     assignment_name))
+
+    def verify_submission_test_result_count(self, username, course_name, assignment_name, body_contains, count):
+        subject = '"[{}] {} submission test results"'.format(course_name, assignment_name)
+        result = control.run_vm_python_script('keeper', 'email_to_count.py',
+                                              username, subject, body_contains, count)
+        if result != 'True':
+            raise GkeepRobotException('Did not see {} submission test result emails for {}, {}, {}'
+                                      .format(count, username, course_name, assignment_name))
 
     def email_exists(self, to_user, subject_contains=None, body_contains=None):
         result = control.run_vm_python_script('keeper', 'email_to.py',

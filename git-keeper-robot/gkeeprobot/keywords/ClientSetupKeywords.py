@@ -16,6 +16,8 @@
 
 from gkeeprobot.control.ClientControl import ClientControl
 from gkeeprobot.control.ServerControl import ServerControl
+from gkeeprobot.control.VMControl import ExitCodeException
+from gkeeprobot.exceptions import GkeepRobotException
 
 """Provides keywords for robotframework to configure faculty and student
 accounts before testing begins."""
@@ -87,14 +89,36 @@ class ClientSetupKeywords:
         command = 'git clone {} assignments/{}/{}'.format(url, class_name, assignment_name)
         client_control.run(student, command)
 
-    def student_submits_correct_solution(self, student, faculty, class_name, assignment_name):
-        assignment_folder = '~/assignments/{}/{}'.format(class_name, assignment_name)
-        cp_cmd = 'cp /vagrant/assignments/{}/correct_solution/* {}'.format(assignment_name, assignment_folder)
+    def student_submits(self, student, faculty, class_name, assignment_name,
+                        solution_folder, expect_failure=False, branch=None):
+        assignment_folder = '~/assignments/{}/{}'.format(class_name,
+                                                         assignment_name)
+        cp_cmd = ('cp /vagrant/assignments/{}/{}/* {}'
+                  .format(assignment_name, solution_folder, assignment_folder))
         client_control.run(student, cp_cmd)
+
+        if branch is not None:
+            new_branch_cmd = ('cd {}; git checkout -b {}'
+                              .format(assignment_folder, branch))
+            client_control.run(student, new_branch_cmd)
+
         commit_cmd = 'cd {}; git commit -am "done"'.format(assignment_folder)
         client_control.run(student, commit_cmd)
-        push_cmd = 'cd {}; git push origin master'.format(assignment_folder)
-        client_control.run(student, push_cmd)
+
+        if branch is None:
+            push_cmd = 'cd {}; git push'.format(assignment_folder)
+        else:
+            push_cmd = 'cd {}; git push origin {}'.format(assignment_folder,
+                                                          branch)
+
+        try:
+            client_control.run(student, push_cmd)
+            if expect_failure:
+                raise GkeepRobotException('Expected push to have a non-zero '
+                                          'exit code')
+        except ExitCodeException as e:
+            if not expect_failure:
+                raise e
 
     def fetch_assignment(self, faculty, class_name, assignment_name, target_dir=None):
         if target_dir is not None:

@@ -32,7 +32,7 @@ class CommandError(GkeepException):
     pass
 
 
-def run_command(command, sudo=False, stderr=STDOUT) -> str:
+def run_command(command, sudo=False, user=None, stderr=STDOUT) -> str:
     """
     Run a shell command and return the output.
 
@@ -43,6 +43,7 @@ def run_command(command, sudo=False, stderr=STDOUT) -> str:
     :param command: a shell command as a string or a list of strings
      representing each argument
     :param sudo: set to True to run the command using sudo
+    :param user: if sudo is True, run as this user or root if None
     :param stderr: where to send stderr
     :return: the output of the command
 
@@ -53,12 +54,18 @@ def run_command(command, sudo=False, stderr=STDOUT) -> str:
         raise CommandError('command must be a string or a list, not {0}'
                            .format(type(command)))
 
-    # prepend sudo if need be
+    # prepend sudo and specify user if need be
     if sudo:
         if isinstance(command, str):
-            command = 'sudo -n ' + command
+            if user is None:
+                command = 'sudo -n ' + command
+            else:
+                command = 'sudo -n -u {}'.format(user) + command
         else:
-            command = ['sudo', '-n'] + command
+            if user is None:
+                command = ['sudo', '-n'] + command
+            else:
+                command = ['sudo', '-n', '-u', user] + command
 
     # run the command
     try:
@@ -81,6 +88,9 @@ class ChangeDirectoryContext:
     For use as a context manager to change into a directory and change out
     again.
 
+    THE WORKING DIRECTORY IS CHANGED AT THE PROCESS LEVEL, AND AS SUCH IT IS
+    NOT SAFE FOR MORE THAN ONE THREAD TO USE THIS CONTEXT MANAGER.
+
     Example:
 
         with ChangeDirectoryContext('path/to/dir'):
@@ -100,9 +110,13 @@ class ChangeDirectoryContext:
         os.chdir(self._old_wd)
 
 
-def run_command_in_directory(path, command, sudo=False, stderr=STDOUT):
+def run_command_in_directory(path, command, sudo=False, user=None,
+                             stderr=STDOUT):
     """
     Change into a new working directory, run a command, and change back.
+
+    THE WORKING DIRECTORY IS CHANGED AT THE PROCESS LEVEL, AND AS SUCH IT IS
+    NOT SAFE FOR MORE THAN ONE THREAD TO USE THIS FUNCTION.
 
     Raises CommandError if the command could not be called or has a non-zero
     exit code.
@@ -114,12 +128,13 @@ def run_command_in_directory(path, command, sudo=False, stderr=STDOUT):
     :param command: a shell command as a string or a list of strings
      representing each argument
     :param sudo: set to True to run the command using sudo
+    :param user: if sudo is True, run as this user or root if None
     :param stderr: where to send stderr
     :return: the output of the command
     """
     try:
         with ChangeDirectoryContext(path):
-            output = run_command(command, sudo=sudo, stderr=stderr)
+            output = run_command(command, sudo=sudo, user=user, stderr=stderr)
     except Exception as e:
         raise CommandError(e)
 

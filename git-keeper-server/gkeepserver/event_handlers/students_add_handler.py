@@ -168,7 +168,7 @@ class StudentsAddHandler(EventHandler):
                                    class_dir_path: str):
         try:
             db.activate_student_in_class(self._class_name,
-                                         student.username,
+                                         student.email_address,
                                          self._faculty_username)
         except DatabaseException as e:
             warning = ('Error activating student {} in the database: '

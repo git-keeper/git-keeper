@@ -47,12 +47,6 @@ class TriggerHandler(EventHandler):
                                                       self._assignment_name,
                                                       gitkeeper_path)
 
-        print('Handling trigger:')
-        print(' Faculty:        ', self._faculty_username)
-        print(' Class:          ', self._class_name)
-        print(' Assignment:     ', self._assignment_name)
-        print(' Students:       ', self._student_usernames)
-
         try:
             assignment_dir = AssignmentDirectory(assignment_path)
 
@@ -116,7 +110,8 @@ class TriggerHandler(EventHandler):
                                              self._class_name,
                                              self._assignment_name, home_dir)
 
-            commit_hash = git_head_hash(submission_repo_path)
+            commit_hash = git_head_hash(submission_repo_path,
+                                        user=student.username)
 
             submission = Submission(student, submission_repo_path, commit_hash,
                                     assignment_dir, self._faculty_username,

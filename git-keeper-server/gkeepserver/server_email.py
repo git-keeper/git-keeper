@@ -23,12 +23,13 @@ Emails should not be sent directly, but rather enqueued in the global
 EmailSenderThread which provides rate limiting.
 
 """
-
+import html
 import os
 from email.header import Header
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from enum import IntEnum
 from smtplib import SMTP
 
 from gkeepcore.gkeep_exception import GkeepException
@@ -40,13 +41,24 @@ class EmailException(GkeepException):
     pass
 
 
+class EmailPriority(IntEnum):
+    """
+    Enum used to specify an email's priority level for use by the priority
+    queue in the email sending thread.
+    """
+    LOW = 2
+    NORMAL = 1
+    HIGH = 0
+
+
 class Email:
     """
     Builds an email that can be sent using smtplib and provides a method
     to send the email.
     """
     def __init__(self, to_address, subject, body, files_to_attach=None,
-                 max_character_count=1000000):
+                 max_character_count=1000000, priority=EmailPriority.NORMAL,
+                 html_pre_body=False):
         """
         Construct an email object.
 
@@ -60,6 +72,11 @@ class Email:
         :param files_to_attach: a list of file paths to attach to the email
         :param max_character_count: if the email is longer than this number of
          characters it will be truncated
+        :param priority: an EmailPriority representing the email's priority
+         in the send queue
+        :param html_pre_body: if True, the body of the email will be sent both
+         as plain text and HTML, and for the latter the code will be escaped
+         and wrapped in <pre></pre> tags
         """
 
         self._send_attempts = 0
@@ -70,6 +87,8 @@ class Email:
 
         self._subject = subject
         self._files_to_attach = files_to_attach
+
+        self.priority = priority
 
         # regardless of how the body is passed in, represent it by a list of
         # lines that have trailing whitespace removed
@@ -99,14 +118,18 @@ class Email:
                            'long length. If important information seems '
                            'missing, contact your instructor.\r\n')
 
-        self._build_mime_message(files_to_attach)
+        self._build_mime_message(files_to_attach, html_pre_body)
 
     def __repr__(self):
         repr_string = 'To: {0}, Subject: {1}'.format(self.to_address,
                                                      self._subject)
         return repr_string
 
-    def _build_mime_message(self, files_to_attach):
+    def __lt__(self, other):
+        # Provide < comparison for use by the PriorityQueue
+        return self.priority < other.priority
+
+    def _build_mime_message(self, files_to_attach, html_pre_body):
         # Create the final message by building up a MIMEMultipart object and
         # then storing the final message as a string in _message_string
 
@@ -116,7 +139,10 @@ class Email:
         subject_header = Header('{0}'.format(self._subject), 'utf-8')
         reply_to_header = Header('{0}'.format(config.from_address), 'utf-8')
 
-        message = MIMEMultipart()
+        if html_pre_body and config.use_html:
+            message = MIMEMultipart('alternative')
+        else:
+            message = MIMEMultipart()
 
         # put the headers in the message
         message['Subject'] = subject_header
@@ -125,7 +151,12 @@ class Email:
         message['reply-to'] = reply_to_header
 
         # attach the body
-        message.attach(MIMEText(self._body, _charset='utf-8'))
+        if html_pre_body and config.use_html:
+            html_body = '<pre>{}</pre>\r\n'.format(html.escape(self._body))
+            message.attach(MIMEText(self._body, 'plain', _charset='utf-8'))
+            message.attach(MIMEText(html_body, 'html', _charset='utf-8'))
+        else:
+            message.attach(MIMEText(self._body, _charset='utf-8'))
 
         # attach any files
         for file_path in files_to_attach or []:

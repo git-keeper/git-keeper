@@ -168,6 +168,7 @@ class GkeepdLoggerThread(Thread):
             # Replace newlines in text with spaces so the entire log text is on
             # one line
             text = text.replace('\n', ' ')
+            print('{}: {}'.format(log_level.name, text), flush=True)
             command = log_append_command(self._log_file_path,
                                          log_level.name, text,
                                          human_readable=True)

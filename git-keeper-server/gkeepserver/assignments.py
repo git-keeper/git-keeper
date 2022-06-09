@@ -22,7 +22,6 @@ from tempfile import TemporaryDirectory
 
 from gkeepcore.action_scripts import get_action_script_and_interpreter
 from gkeepcore.student import Student
-from gkeepcore.upload_directory import UploadDirectory
 from pkg_resources import resource_exists, resource_string, ResolutionError, \
     ExtractionError
 
@@ -37,7 +36,7 @@ from gkeepcore.system_commands import cp, chmod, mkdir, sudo_chown, rm, mv
 from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.server_configuration import config
-from gkeepserver.server_email import Email, EmailException
+from gkeepserver.server_email import Email, EmailException, EmailPriority
 
 
 class StudentAssignmentError(GkeepException):
@@ -70,7 +69,6 @@ class AssignmentDirectory:
         base_code_repo_path - path to the base code repository
         reports_repo_path - path to the reports repository
         tests_path - path to the tests directory
-        action_sh_path - path to action.sh
     """
 
     def __init__(self, path, check=True):
@@ -84,7 +82,6 @@ class AssignmentDirectory:
         :param check: whether or not to check if everything exists
         """
         self.path = path
-        self.run_action_sh_path = os.path.join(self.path, 'run_action.sh')
         self.email_path = os.path.join(self.path, 'email.txt')
         self.base_code_repo_path = os.path.join(self.path, 'base_code.git')
         self.reports_repo_path = os.path.join(self.path, 'reports.git')
@@ -96,10 +93,12 @@ class AssignmentDirectory:
         path_info = parse_faculty_assignment_path(path)
 
         if path_info is None:
+            self.faculty_username = None
             self.class_name = None
             self.assignment_name = None
         else:
-            self.class_name, self.assignment_name = path_info
+            self.faculty_username, self.class_name, self.assignment_name = \
+                path_info
 
         if check:
             self.check()
@@ -189,7 +188,7 @@ def create_base_code_repo(assignment_dir: AssignmentDirectory,
     Create a bare repository in an assignment directory which contains the
     base code for an assignment, a post-receive hook script for triggering
     tests, and a pre-receive hook for ensuring the students only push to
-    the master branch. The repository is configured to reject destructive
+    the one existing branch. The repository is configured to reject destructive
     pushes.
 
     Raises an AssignmentDirectoryError if anything goes wrong.
@@ -265,45 +264,6 @@ def copy_tests_dir(assignment_dir: AssignmentDirectory, tests_path: str):
     :param tests_path: path to tests directory
     """
     cp(tests_path, assignment_dir.tests_path, recursive=True, sudo=True)
-
-
-def write_run_action_sh(assignment_dir: AssignmentDirectory,
-                        upload_dir: UploadDirectory):
-    """
-    Write run_action.sh into an assignment directory.
-
-    The contents of the script depend on the type of action script used in the
-    uploaded assignment.
-
-    :param assignment_dir: AssignmentDirectory to write to
-    :param upload_dir: UploadDirectory containing uploaded assignment data
-    """
-    temp_dir = TemporaryDirectory()
-    temp_dir_path = temp_dir.name
-
-    temp_run_action_sh_path = os.path.join(temp_dir_path, 'run_action.sh')
-
-    template = '''#!/bin/bash
-GLOBAL_TIMEOUT={global_timeout}
-GLOBAL_MEM_LIMIT_MB={global_memory_limit}
-GLOBAL_MEM_LIMIT_KB=$(($GLOBAL_MEM_LIMIT_MB * 1024))
-ulimit -v $GLOBAL_MEM_LIMIT_KB
-trap 'kill -INT -$pid' INT
-timeout $GLOBAL_TIMEOUT {interpreter} {script_name} "$@" &
-pid=$!
-wait $pid
-'''
-
-    run_action_sh_contents = \
-        template.format(global_timeout=config.tests_timeout,
-                        global_memory_limit=config.tests_memory_limit,
-                        interpreter=upload_dir.action_script_interpreter,
-                        script_name=upload_dir.action_script)
-
-    with open(temp_run_action_sh_path, 'w') as f:
-        f.write(run_action_sh_contents)
-
-    mv(temp_run_action_sh_path, assignment_dir.path, sudo=True)
 
 
 def remove_student_assignment(assignment_dir: AssignmentDirectory,
@@ -442,9 +402,15 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
     # clone URL followed by email.txt contents
     email_body = 'Clone URL:\n{0}\n\n{1}'.format(clone_url, email_body)
 
+    if student.username != faculty_username:
+        priority = EmailPriority.LOW
+    else:
+        priority = EmailPriority.HIGH
+
     # build the email
     try:
-        email = Email(student.email_address, email_subject, email_body)
+        email = Email(student.email_address, email_subject, email_body,
+                      priority=priority)
     except EmailException as e:
         raise StudentAssignmentError(e)
 

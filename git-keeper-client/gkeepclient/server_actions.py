@@ -56,14 +56,16 @@ def class_add(class_name: str, csv_file_path: str, yes: bool):
             raise GkeepException('{0} does not exist'.format(csv_file_path))
 
         students = students_from_csv(LocalCSVReader(csv_file_path))
+    else:
+        students = []
 
+    if len(students) > 0:
         print('Class {0} will be added with the following students:'
               .format(class_name))
 
         for student in students:
             print(student)
     else:
-        students = []
         print('Class {} will be added with no students.'.format(class_name))
         print('You may add students at a later time using gkeep modify.')
 
