@@ -24,12 +24,14 @@ Library    gkeeprobot.keywords.ClientCheckKeywords
 
 Add Faculty and Configure Accounts on Client
     [Arguments]    @{faculty_names}
-    :FOR    ${username}    IN    @{faculty_names}
-    \        Gkeep Add Faculty Succeeds    admin_prof    ${username}
-    \        Wait For Email    to_user=${username}    subject_contains="New git-keeper account"    body_contains=Password
+    FOR    ${username}    IN    @{faculty_names}
+            Gkeep Add Faculty Succeeds    admin_prof    ${username}
+            Wait For Email    to_user=${username}    subject_contains="New git-keeper account"    body_contains=Password
+    END
     Create Accounts On Client  @{faculty_names}
-    :FOR    ${username}    IN    @{faculty_names}
-    \            Create Git Config    ${username}
+    FOR    ${username}    IN    @{faculty_names}
+                Create Git Config    ${username}
+    END
 
 Launch Gkeepd And Configure Admin Account on Client
     Reset Server
@@ -42,14 +44,16 @@ Launch Gkeepd And Configure Admin Account on Client
 
 Establish Course
     [Arguments]    ${faculty}    ${class}    @{students}
-    :FOR     ${student}    IN    @{students}
-    \    Add To Class CSV   faculty=${faculty}    class_name=${class}    username=${student}
+    FOR     ${student}    IN    @{students}
+        Add To Class CSV   faculty=${faculty}    class_name=${class}    username=${student}
+    END
     Gkeep Add Succeeds    faculty=${faculty}   class_name=${class}
 
 
 Create Accounts On Client
     [Arguments]    @{usernames}
-    :FOR    ${username}    IN    @{usernames}
-    \       Create Account    ${username}
-    \       Establish SSH Keys    ${username}
-    \       Create Gkeep Config File    ${username}
+    FOR    ${username}    IN    @{usernames}
+           Create Account    ${username}
+           Establish SSH Keys    ${username}
+           Create Gkeep Config File    ${username}
+    END
