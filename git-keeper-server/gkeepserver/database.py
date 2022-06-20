@@ -243,7 +243,9 @@ class Database:
             raise DatabaseException(error)
 
         student_id = self._user_id_from_username(student.username)
-        class_student = DBClassStudent.get(DBClassStudent.user_id == student_id)
+        class_id = self._get_class_id(class_name, faculty_username)
+        class_student = DBClassStudent.get(DBClassStudent.user_id == student_id,
+                                           DBClassStudent.class_id == class_id)
         class_student.first_name = student.first_name
         class_student.last_name = student.last_name
         class_student.save()
