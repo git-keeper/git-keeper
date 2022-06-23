@@ -41,12 +41,29 @@ class ServerCheckKeywords:
         except ExitCodeException:
             pass
 
+    def gkeepd_check_succeeds(self):
+        control.run('keeper', 'gkeepd --check')
+
+    def gkeepd_check_fails(self):
+        try:
+            control.run('keeper', 'gkeepd --check')
+            raise GkeepRobotException('gkeepd --check should return non-zero')
+        except ExitCodeException:
+            pass
+
     def new_account_email_exists(self, username):
         result = control.run_vm_python_script('keeper', 'email_to.py',
                                               username, '"New git-keeper account"',
                                               'Password')
         if result != 'True':
             raise GkeepRobotException('No new account email for {}'.format(username))
+
+    def gkeepd_check_email_exists(self, username):
+        result = control.run_vm_python_script('keeper', 'email_to.py',
+                                              username, '"git-keeper test email"',
+                                              'This is a test email')
+        if result != 'True':
+            raise GkeepRobotException('No gkeepd check email for {}'.format(username))
 
     def password_reset_email_exists(self, username):
         result = control.run_vm_python_script('keeper', 'email_to.py',
