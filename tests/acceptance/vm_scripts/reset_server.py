@@ -39,11 +39,10 @@ def remove(filename):
 
 
 def remove_gkeepd_files():
-    # remove gkeepd.log, gkeepd_db.sqlite, server.cfg, and faculty.json
     remove('gkeepd.log')
     remove('gkeepd_db.sqlite')
     remove('server.cfg')
-    remove('faculty.json')
+    remove('gkeepd.lock')
 
 
 def delete_email():
