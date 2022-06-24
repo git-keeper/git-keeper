@@ -166,7 +166,7 @@ class Submission:
                                                            last_first_username)
                     os.makedirs(student_report_dir_path, exist_ok=True)
 
-                    timestamp = strftime('%Y-%m-%d-%H:%M:%S-%Z')
+                    timestamp = strftime('%Y-%m-%d_%H-%M-%S-%Z')
                     report_filename = 'report-{0}.txt'.format(timestamp)
                     report_file_path = os.path.join(student_report_dir_path,
                                                     report_filename)
