@@ -41,5 +41,5 @@ Class With Assignment Results in JSON
 
     Gkeep Query JSON Produces Results    faculty1   classes   [{"name":"cs1","open":true}]
     Gkeep Query JSON Produces Results    faculty1   assignments   {"cs1":[{"name":"good_simple","published":false,"disabled":false}]}
-    Gkeep Query JSON Produces Results    faculty1   students   {"cs1":[{"first_name":"First","last_name":"Last","username":"student1","email_address":"student1@gitkeeper.edu"}]}
+    Gkeep Query JSON Produces Results    faculty1   students   {"cs1":[{"first_name":"First","last_name":"Last","username":"student1","email_address":"student1@school.edu"}]}
     Gkeep Query JSON Produces Results    faculty1   recent   {}
