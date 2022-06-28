@@ -27,6 +27,7 @@ Vagrant.configure("2") do |config|
         apt-get update && apt-get install -y python3-pip git
         apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
         apt-get clean
+        usermod -aG keeper docker
         mkdir /email
         chown vagrant /email
         chgrp vagrant /email
