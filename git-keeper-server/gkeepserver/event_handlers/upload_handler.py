@@ -25,8 +25,9 @@ from gkeepcore.git_commands import git_init_bare
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_from_log_path, \
     faculty_assignment_dir_path, user_gitkeeper_path
-from gkeepcore.shell_command import CommandError
+from gkeepcore.shell_command import CommandError, run_command
 from gkeepcore.system_commands import chmod, sudo_chown, rm, mkdir
+from gkeepcore.test_env_yaml import load_test_env_yaml
 from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
 from gkeepcore.valid_names import validate_assignment_name
 from gkeepserver.assignments import AssignmentDirectory, \
@@ -48,6 +49,9 @@ class UploadHandler(EventHandler):
         """
         Take action after a faculty member uploads a new assignment.
 
+        If a Docker image is specified in test_env.yaml, verifies that the
+        image exists
+
         Copies uploaded files into the proper directory, creates bare
         repositories, and creates a repository the faculty member can use
         to
@@ -63,6 +67,10 @@ class UploadHandler(EventHandler):
         assignment_dir = AssignmentDirectory(assignment_path, check=False)
 
         try:
+            # We need to verify the Docker image before we create
+            # the files in the assignment_dir, so we use the upload path
+            self._verify_docker_image(os.path.join(self._upload_path, 'test_env.yaml'))
+
             if not db.class_is_open(self._class_name, self._faculty_username):
                 raise HandlerException('{} is not open'
                                        .format(self._class_name))
@@ -213,4 +221,25 @@ class UploadHandler(EventHandler):
         except ValueError:
             error = ('Expected <class name> <assignment name> <upload path> '
                      'not {0}'.format(self._payload))
+            raise HandlerException(error)
+
+    def _verify_docker_image(self, test_env_path):
+        """
+        Determine whether the Docker image in the test_env.yaml file exits.
+        Returns without error if the image exists or if the test_env_path
+        does not exist.
+
+        Raises HandlerException if the image does not exist
+        """
+        if not os.path.exists(test_env_path):
+            return
+
+        data = load_test_env_yaml(test_env_path)
+
+        # This command taken from https://github.com/distribution/distribution/issues/2412
+        cmd = ['docker', 'buildx', 'imagetools', 'inspect', data['image']]
+        try:
+            run_command(cmd)
+        except CommandError:
+            error = ('Docker image not found: {}'.format(data['image']))
             raise HandlerException(error)

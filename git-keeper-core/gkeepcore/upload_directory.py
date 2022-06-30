@@ -24,6 +24,7 @@ import os
 from gkeepcore.action_scripts import get_action_script_and_interpreter
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import path_to_assignment_name
+from gkeepcore.test_env_yaml import load_test_env_yaml
 
 
 class UploadDirectoryError(GkeepException):
@@ -39,6 +40,20 @@ class UploadDirectoryError(GkeepException):
         :param path: nonexistant path
         """
         Exception.__init__(self, '{0} does not exist'.format(path))
+
+
+class UploadDirectoryYAMLError(GkeepException):
+    """
+    Thrown by the UploadDirectory constructor if the test_env.yaml
+    file exists but has a bad format
+    """
+    def __init__(self, path):
+        """
+        Call superclass constructor with a message indicating a format error
+
+        :param path: path to file
+        """
+        Exception.__init__(self, '{0} must contain "type" and "image"'.format(path))
 
 
 class UploadDirectory:
@@ -65,7 +80,9 @@ class UploadDirectory:
         """
         Assign attributes based on path.
 
-        Raise ConfigDirectoryError if any required paths do not exist.
+        Raise ConfigDirectoryError if any required paths do not exist.  Also
+              if test_env.yaml is present, this exception is raise if there
+              is an error in the file.
 
         :param path: path to the assignment directory
         :param check: if True, raise an exception if any files or directories
@@ -103,3 +120,13 @@ class UploadDirectory:
             # ensure email.txt exists
             if not os.path.isfile(self.email_path):
                 raise UploadDirectoryError(self.email_path)
+
+            # Verify test_env.yaml if it exists
+            if os.path.exists(self.test_env_path):
+                data = load_test_env_yaml(self.test_env_path)
+
+                if 'image' not in data:
+                    raise UploadDirectoryYAMLError(self.test_env_path)
+
+                if 'type' not in data:
+                    raise UploadDirectoryYAMLError(self.test_env_path)

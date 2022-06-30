@@ -39,9 +39,31 @@ Student Submits to Docker Assignment
     Student Submits    student1    faculty1    cs1    good_docker    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_docker    "In Docker"
 
+Student Submits to NonDocker Assignment
+    [Tags]    happy_path
+    Add Assignment to Client  faculty1  good_not_docker
+    Gkeep Upload Succeeds   faculty1   cs1    good_not_docker
+    Gkeep Publish Succeeds  faculty1    cs1     good_not_docker
+    Clone Assignment  student1  faculty1    cs1     good_not_docker
+    Student Submits    student1    faculty1    cs1    good_not_docker    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_not_docker    "On Host"
 
-# Docker container does not exist
-# malformed yaml file
-# missing image field
-# missing type field
+Bad YAML No Image
+    [Tags]  Error
+    Add Assignment to Client    faculty1    bad_docker_no_image
+    Gkeep Upload Fails   faculty1   cs1    bad_docker_no_image
+
+Bad YAML No Type
+    [Tags]  Error
+    Add Assignment to Client    faculty1    bad_docker_no_type
+    Gkeep Upload Fails   faculty1   cs1    bad_docker_no_type
+
+Docker Container Does Not Exist
+    [Tags]  Error
+    Add Assignment to Client    faculty1    bad_docker_container
+    Gkeep Upload Fails   faculty1   cs1    bad_docker_container
+
+# TODO:
 # type is not "docker"
+# These same tests for update
+# gkeep test on server
