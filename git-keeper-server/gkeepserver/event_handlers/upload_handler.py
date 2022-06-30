@@ -23,16 +23,16 @@ import os
 
 from gkeepcore.git_commands import git_init_bare
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
-    faculty_assignment_dir_path, user_home_dir, user_gitkeeper_path
+    faculty_assignment_dir_path, user_gitkeeper_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.system_commands import chmod, sudo_chown, rm, mkdir
 from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
 from gkeepcore.valid_names import validate_assignment_name
 from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, create_base_code_repo, copy_email_txt_file, \
-    copy_tests_dir, setup_student_assignment, StudentAssignmentError
+    copy_tests_dir, setup_student_assignment, StudentAssignmentError, \
+    copy_test_env_yaml_file_if_exists
 from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
@@ -151,10 +151,11 @@ class UploadHandler(EventHandler):
         except GkeepException as e:
             raise HandlerException(e)
 
-        # copy email.txt and tests directory to assignment directory
+        # copy email.txt, test_env.yaml, and tests directory to assignment directory
         try:
             copy_email_txt_file(assignment_dir, upload_dir.email_path)
             copy_tests_dir(assignment_dir, upload_dir.tests_path)
+            copy_test_env_yaml_file_if_exists(assignment_dir, upload_dir.test_env_path)
         except GkeepException as e:
             error = ('error copying assignment files: {0}'.format(str(e)))
             raise HandlerException(error)

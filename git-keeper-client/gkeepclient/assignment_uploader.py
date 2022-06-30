@@ -63,3 +63,9 @@ class AssignmentUploader:
         """Upload the tests directory to the server."""
         target = os.path.join(self._target_path, 'tests')
         server_interface.copy_directory(self._upload_dir.tests_path, target)
+
+    def upload_test_env_if_present(self):
+        """Upload the test_env.yml if it is present in the assignment"""
+        target = os.path.join(self._target_path, 'test_env.yaml')
+        if os.path.exists(self._upload_dir.test_env_path):
+            server_interface.copy_file(self._upload_dir.test_env_path, target)

@@ -23,19 +23,16 @@ Be sure to parse the server configuration and start the system logger before
 calling check_system()
 
 """
-import json
 import os
 
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_home_dir
 from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
-                                       sudo_add_group, mode, chmod, touch,
+                                       sudo_add_group, mode, chmod,
                                        this_user, this_group, sudo_add_user,
-                                       group_owner, sudo_chown)
-from gkeepserver.user_setup import setup_user, UserType, add_faculty
+                                       group_owner, sudo_chown, sudo_add_user_to_group)
+from gkeepserver.user_setup import add_faculty
 from gkeepserver.database import db
-from gkeepserver.faculty import Faculty
 from gkeepserver.gkeepd_logger import gkeepd_logger as gkeepd_logger
 from gkeepserver.server_configuration import config
 
@@ -109,6 +106,7 @@ def check_paths_and_permissions():
     # create the tester user if it does not exist
     if not user_exists(config.tester_user):
         sudo_add_user(config.tester_user)
+        sudo_add_user_to_group(config.tester_user, 'docker')
 
     tester_home_dir = user_home_dir(config.tester_user)
 

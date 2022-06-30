@@ -69,6 +69,7 @@ class AssignmentDirectory:
         base_code_repo_path - path to the base code repository
         reports_repo_path - path to the reports repository
         tests_path - path to the tests directory
+        test_env_path - path to test_env.yaml (if present)
     """
 
     def __init__(self, path, check=True):
@@ -86,6 +87,7 @@ class AssignmentDirectory:
         self.base_code_repo_path = os.path.join(self.path, 'base_code.git')
         self.reports_repo_path = os.path.join(self.path, 'reports.git')
         self.tests_path = os.path.join(self.path, 'tests')
+        self.test_env_path = os.path.join(self.path, 'test_env.yaml')
 
         self.action_script, self.action_script_interpreter = \
             get_action_script_and_interpreter(self.tests_path)
@@ -254,6 +256,18 @@ def copy_email_txt_file(assignment_dir: AssignmentDirectory,
     :param email_txt_path: path to email.txt
     """
     cp(email_txt_path, assignment_dir.path, sudo=True)
+
+
+def copy_test_env_yaml_file_if_exists(assignment_dir: AssignmentDirectory,
+                                      test_env_yaml_path: str):
+    """
+    Copy test_env.yaml into an assignment directory if it exists.
+
+    :param assignment_dir: AssignmentDirectory to copy into
+    :param test_env_yaml_path: path to test_env.yaml
+    """
+    if os.path.exists(test_env_yaml_path):
+        cp(test_env_yaml_path, assignment_dir.path, sudo=True)
 
 
 def copy_tests_dir(assignment_dir: AssignmentDirectory, tests_path: str):

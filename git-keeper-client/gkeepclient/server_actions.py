@@ -660,6 +660,7 @@ def upload_assignment(class_name: str, upload_dir_path: str):
         uploader.upload_base_code()
         uploader.upload_email_txt()
         uploader.upload_tests()
+        uploader.upload_test_env_if_present()
     except GkeepException as e:
         error = 'Error uploading assignment: {0}'.format(str(e))
         raise GkeepException(error)

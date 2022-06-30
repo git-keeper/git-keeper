@@ -67,6 +67,7 @@ class Submission:
         self.faculty_email = faculty_email
         self.class_name = assignment_dir.class_name
         self.assignment_name = assignment_dir.assignment_name
+        self.test_env_path = assignment_dir.test_env_path
 
     def run_tests(self):
         """
@@ -128,6 +129,10 @@ class Submission:
 
         # copy the tests - this creates a tests folder inside the temp dir
         cp(self.tests_path, temp_path, recursive=True)
+        # copy the test_env.yaml file (if present)
+        if os.path.exists(self.test_env_path):
+            cp(self.test_env_path, temp_path)
+
         temp_tests_path = os.path.join(temp_path, 'tests')
 
         temp_run_action_sh_path = os.path.join(temp_path, 'run_action.sh')
@@ -144,10 +149,19 @@ class Submission:
 
         # execute action.sh and capture the output
         try:
-            cmd = ['sudo', '--user', config.tester_user, '--set-home', 'bash',
-                   temp_run_action_sh_path, temp_assignment_path,
-                   self.student.username, self.student.email_address,
-                   self.student.last_name, self.student.first_name]
+            if os.path.exists(self.test_env_path):
+                cmd = ['docker', 'run', '-v', '{}:/git-keeper-tester'.format(temp_path),
+                       'git-keeper-tester', 'bash',
+                       '/git-keeper-tester/run_action.sh',
+                       temp_assignment_path,
+                       self.student.username, self.student.email_address,
+                       self.student.last_name, self.student.first_name]
+            else:
+                cmd = ['sudo', '--user', config.tester_user, '--set-home', 'bash',
+                       temp_run_action_sh_path, temp_assignment_path,
+                       self.student.username, self.student.email_address,
+                       self.student.last_name, self.student.first_name]
+
             body = run_command_in_directory(temp_tests_path, cmd)
 
             # send output as email
