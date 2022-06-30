@@ -43,7 +43,12 @@ When you run tests, Robot Framework has two behaviors:
 
 In order to avoid side effects, Robot Framework will reset `gkserver` and `gkclient` before each test.  See `vmscripts/reset_server.py` and `vmscripts/reset_client.py` to see what is reset.
 
-To run one test, use `robot -t "<test_name>" .` - For example, `robot -t "Valid Class" .`
+### Run Subset of Tests
+
+We use a `__init__.robot` file to setup the VMs, and so you have to be careful when you want to run a subset of tests.  In the following commands, note the period at the end of the commands.  This tells Robot Framework to  look in the current directory when it runs tests, and this causes it to find the `__init__.robot` file.
+
+* To run one test, use `robot -t "<test_name>" .` - For example, `robot -t "Valid Class" .`. 
+* To run one suite (file) of tests, use `robot -s "file_name> .` - For example, `robot -s gkeepd_launch .`
 
 ## Manual Execution
 
