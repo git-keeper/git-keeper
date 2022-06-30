@@ -67,6 +67,19 @@ def test_insert_faculty(db):
         db.insert_faculty(faculty1)
 
 
+def test_student_username_exists(db):
+    faculty = Faculty('last', 'first', 'faculty1', 'faculty1@school.edu',
+                      False)
+    student = Student('last', 'first', 'student1', 'student1@school.edu')
+
+    db.insert_faculty(faculty)
+    db.insert_student(student)
+
+    assert db.student_username_exists('student1')
+    assert not db.student_username_exists('student2')
+    assert not db.student_username_exists('faculty1')
+
+
 def test_duplicate_email_usernames(db):
     student0 = db.insert_student(Student('last', 'first', 'user',
                                          'user@schoolzero.edu'))
@@ -421,13 +434,25 @@ def test_get_class_assignments(db):
     db.set_published('class', 'assgn3', 'faculty')
     db.disable_assignment('class', 'assgn3', 'faculty')
 
-    assignments = db.get_class_assignments('class', 'faculty')
+    all_assignments = db.get_class_assignments('class', 'faculty',
+                                               include_disabled=True)
 
-    assert len(assignments) == 3
+    assert len(all_assignments) == 3
 
     assgn1 = Assignment('assgn1', 'class', 'faculty', False, False)
     assgn2 = Assignment('assgn2', 'class', 'faculty', True, False)
     assgn3 = Assignment('assgn3', 'class', 'faculty', True, True)
 
     for assignment in (assgn1, assgn2, assgn3):
-        assert assignment in assignments
+        assert assignment in all_assignments
+
+    enabled_assignments = db.get_class_assignments('class', 'faculty')
+
+    assert len(enabled_assignments) == 2
+
+    assgn1 = Assignment('assgn1', 'class', 'faculty', False, False)
+    assgn2 = Assignment('assgn2', 'class', 'faculty', True, False)
+
+    for assignment in (assgn1, assgn2):
+        assert assignment in enabled_assignments
+

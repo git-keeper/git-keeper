@@ -30,7 +30,7 @@ from gkeepcore.path_utils import user_home_dir, user_log_path, \
 from gkeepcore.student import Student
 from gkeepcore.system_commands import (sudo_add_user, sudo_set_password, chmod,
                                        sudo_chown, mkdir, make_symbolic_link,
-                                       mv)
+                                       mv, sudo_set_shell, sudo_add_user_to_groups)
 from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.faculty import Faculty
@@ -64,7 +64,8 @@ def initialize_user_log(username):
     gitkeeper_path = user_gitkeeper_path(username)
     log_path = user_log_path(gitkeeper_path, username)
 
-    initialize_log(log_path, username, config.keeper_group, '640')
+    if not os.path.isfile(log_path):
+        initialize_log(log_path, username, config.keeper_group, '640')
 
     # start watching the file for events
     log_poller.watch_log_file(log_path)
@@ -191,11 +192,31 @@ def create_gitkeeper_directory(username):
     sudo_chown(gitkeeper_path, username, config.keeper_group)
 
 
-def create_user(username, user_type, first_name, last_name, email_address=None,
-                additional_groups=None, shell='bash'):
+def create_user(username, additional_groups=None, shell='bash'):
     """
-    Create a faculty or a student user, email them their credentials, and start
+    Create a new user on the system.
+
+    :param username:
+    :param additional_groups:
+    :param shell:
+    :return:
+    """
+    sudo_add_user(username, additional_groups, shell)
+
+    password = generate_password()
+    sudo_set_password(username, password)
+
+    return password
+
+
+def setup_user(username, user_type, first_name, last_name, email_address=None,
+               additional_groups=None, shell='bash', user_exists=False):
+    """
+    Setup a faculty or a student user, email them their credentials, and start
     watching their log file for events.
+
+    A new user is created if there is not yet a student or faculty account
+    that exists with the provided username.
 
     A group will be created that matches the name of the user and the user
     will be placed in this group. The additional_groups parameter should only
@@ -208,6 +229,8 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
     :param email_address: email address of the user
     :param additional_groups: groups beyond the default group to add the user
      to
+    :param user_exists: True if the user already exists as a faculty or
+     student user
     :param shell: name of the shell for the user
     """
 
@@ -217,12 +240,15 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
                  'user groups').format(username)
         raise GkeepException(error)
 
-    logger.log_info('Creating user {0}'.format(username))
+    logger.log_info('Setting up user {0}'.format(username))
 
-    sudo_add_user(username, additional_groups, shell)
-
-    password = generate_password()
-    sudo_set_password(username, password)
+    if not user_exists:
+        password = create_user(username, additional_groups, shell)
+    else:
+        sudo_set_shell(username, shell)
+        if additional_groups is not None:
+            sudo_add_user_to_groups(username, additional_groups)
+        password = None
 
     create_gitkeeper_directory(username)
     initialize_user_log(username)
@@ -236,35 +262,50 @@ def create_user(username, user_type, first_name, last_name, email_address=None,
         setup_git_shell_commands_directory(username, ['passwd'])
 
     # email the credentials to the user if an email address was provided
-    if email_address is not None:
-        subject = 'New git-keeper account'
-        body = ('Hello {0},\n\n'
-                'An account has been created for you on the '
-                'git-keeper server. Here are your credentials:\n\n'
-                'Username: {1}\n'
-                'Password: {2}\n\n').format(first_name, username, password)
+    # and a new user was just created
+    if email_address is not None and password is not None:
+        email_new_user(email_address, first_name, username, password,
+                       user_type)
 
-        # let the students know they should direct questions to their
-        # instructor rather than reply to the git-keeper
-        if user_type == UserType.student:
-            body += ('If you have any questions, please contact your '
-                     'instructor rather than responding to this email '
-                     'directly.\n\n')
 
-        body += 'Enjoy!'
+def email_new_user(email_address, first_name, username, password, user_type):
+    """
+    Send an email containing a password to a new user.
 
-        if user_type == UserType.student:
-            email_priority = EmailPriority.LOW
-        else:
-            email_priority = EmailPriority.NORMAL
+    :param email_address: email address of the user
+    :param first_name: first name of the user
+    :param username: username of the user
+    :param password: password of the user
+    :param user_type: UserType.student or UserType.faculty
+    """
+    subject = 'New git-keeper account'
+    body = ('Hello {0},\n\n'
+            'An account has been created for you on the '
+            'git-keeper server. Here are your credentials:\n\n'
+            'Username: {1}\n'
+            'Password: {2}\n\n').format(first_name, username, password)
 
-        email_sender.enqueue(Email(email_address, subject, body,
-                                   priority=email_priority))
+    # let the students know they should direct questions to their
+    # instructor rather than reply to the git-keeper
+    if user_type == UserType.student:
+        body += ('If you have any questions, please contact your '
+                 'instructor rather than responding to this email '
+                 'directly.\n\n')
+
+    body += 'Enjoy!'
+
+    if user_type == UserType.student:
+        email_priority = EmailPriority.LOW
+    else:
+        email_priority = EmailPriority.NORMAL
+
+    email_sender.enqueue(Email(email_address, subject, body,
+                               priority=email_priority))
 
 
 def create_student_user(student: Student):
     """
-    Wrapper that calls create_user() to add a new student user.
+    Wrapper that calls setup_user() to add a new student user.
 
     The student is added to the student group specified in the server
     configuration, and their shell is set to git-shell.
@@ -273,31 +314,37 @@ def create_student_user(student: Student):
     """
 
     groups = [config.student_group]
-    create_user(student.username, UserType.student,
-                student.first_name, student.last_name,
-                email_address=student.email_address,
-                additional_groups=groups, shell='git-shell')
+    setup_user(student.username, UserType.student,
+               student.first_name, student.last_name,
+               email_address=student.email_address,
+               additional_groups=groups, shell='git-shell')
 
 
-def add_faculty(last_name, first_name, email_address, admin=False):
+def add_faculty(last_name, first_name, email_address, admin=False,
+                user_exists=False):
     """
-    Add a faculty user.
+    Add a faculty user. If the user already exists as a student user,
+    user_exists must be set to True.
 
     :param last_name: last name of the faculty member
     :param first_name: first name of the faculty member
     :param email_address: email address of the faculty member
     :param admin: True if the faculty member should be an admin
+    :param user_exists: True if the user already exists as a student
     """
 
     faculty = db.insert_faculty(Faculty(last_name, first_name, '',
-                                        email_address, admin))
+                                        email_address, admin), user_exists)
 
-    gkeepd_logger.log_info('Adding faculty user with email {}'
+    gkeepd_logger.log_info('Setting up faculty user with email {}'
                            .format(email_address))
 
     groups = [config.keeper_group, config.faculty_group]
 
-    create_user(faculty.username, UserType.faculty, first_name, last_name,
-                email_address=email_address, additional_groups=groups)
+    setup_user(faculty.username, UserType.faculty, first_name, last_name,
+               email_address=email_address, additional_groups=groups,
+               user_exists=user_exists)
 
-    gkeepd_logger.log_debug('User {} created'.format(faculty.username))
+    gkeepd_logger.log_debug('Set up faculty user {}'.format(faculty.username))
+
+    return faculty

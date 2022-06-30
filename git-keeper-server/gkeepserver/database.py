@@ -203,16 +203,22 @@ class Database:
         )
         return query.exists()
 
-    def insert_student(self, student: Student) -> Student:
+    def insert_student(self, student: Student, user_exists=False) -> Student:
         """
         Inserts a student into the database. The username attribute of the
         provided Student object is ignored, and is updated with the username
         assigned by the database. The updated Student object is returned.
 
         :param student: a Student object representing the student to insert
+        :param user_exists: True if the user already exists as faculty
         :return: the Student object, which may have an updated username field
         """
-        username = self._insert_user(student.email_address)
+
+        if not user_exists:
+            username = self._insert_user(student.email_address)
+        else:
+            username = self.get_username_from_email(student.email_address)
+
         user_id = self._user_id_from_username(username)
         DBStudentUser.create(user_id=user_id)
         student.username = username
@@ -243,12 +249,14 @@ class Database:
             raise DatabaseException(error)
 
         student_id = self._user_id_from_username(student.username)
-        class_student = DBClassStudent.get(DBClassStudent.user_id == student_id)
+        class_id = self._get_class_id(class_name, faculty_username)
+        class_student = DBClassStudent.get(DBClassStudent.user_id == student_id,
+                                           DBClassStudent.class_id == class_id)
         class_student.first_name = student.first_name
         class_student.last_name = student.last_name
         class_student.save()
 
-    def insert_faculty(self, faculty: Faculty) -> Faculty:
+    def insert_faculty(self, faculty: Faculty, user_exists=False) -> Faculty:
         """
         Inserts a faculty member into the database. The username attribute of
         the provided Faculty object is ignored, and is updated with the
@@ -256,9 +264,15 @@ class Database:
         returned.
 
         :param faculty: a Faculty object representing the faculty to insert
+        :param user_exists: True if the user exists as a student
         :return: the Faculty object, which may have an updated username field
         """
-        username = self._insert_user(faculty.email_address)
+
+        if user_exists:
+            username = self.get_username_from_email(faculty.email_address)
+        else:
+            username = self._insert_user(faculty.email_address)
+
         user_id = self._user_id_from_username(username)
         DBFacultyUser.create(user_id=user_id,
                              first_name=faculty.first_name,
@@ -365,6 +379,23 @@ class Database:
             self.get_faculty_by_username(username)
             return True
         except DatabaseException:
+            return False
+
+    def student_username_exists(self, username: str):
+        """
+        Determines if a student user exists with the given username.
+
+        :param username: username of the student user
+        :return: True if the username exists, False if not
+        """
+
+        try:
+            user = (DBUser
+                    .select()
+                    .join(DBStudentUser)
+                    .where(DBUser.username == username)).get()
+            return True
+        except DBUser.DoesNotExist:
             return False
 
     def is_admin(self, username: str):

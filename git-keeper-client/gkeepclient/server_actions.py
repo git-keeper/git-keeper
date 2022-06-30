@@ -199,7 +199,7 @@ def class_modify(class_name: str, csv_file_path: str, yes: bool):
             old_last = existing_students_by_email[email_address]['last']
             print('{}, {} -> {}, {}'.format(old_last, old_first, last_name,
                                             first_name))
-            update_name_rows.append((first_name, last_name, email_address))
+            update_name_rows.append((last_name, first_name, email_address))
 
     if not changes_exist:
         raise GkeepException('There are no changes to be made')

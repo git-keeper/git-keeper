@@ -26,7 +26,7 @@ from gkeepcore.student import students_from_csv, Student
 from gkeepcore.system_commands import user_exists, mkdir, sudo_chown
 from gkeepserver.assignments import get_class_assignment_dirs, \
     setup_student_assignment, student_assignment_exists, StudentAssignmentError
-from gkeepserver.create_user import create_student_user
+from gkeepserver.user_setup import create_student_user
 from gkeepserver.database import db, DatabaseException
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
@@ -80,22 +80,22 @@ class StudentsAddHandler(EventHandler):
         # accounts if necessary.
 
         # students we need to add accounts for
-        new_students = []
+        new_users = []
+        # students who are already faculty users
+        faculty_users = []
 
-        # update usernames for existing users, and add nonexistant users to
-        # new_students
+        # determine if students are new users or faculty users
         for student in students:
-            try:
-                # if the student account already exists, update the student's
-                # username from the database, in case the student's username is
-                # not the email username
+            if not db.email_exists(student.email_address):
+                new_users.append(student)
+            else:
                 student.username = \
                     db.get_username_from_email(student.email_address)
-            except DatabaseException:
-                new_students.append(student)
+                if db.faculty_username_exists(student.username):
+                    faculty_users.append(student)
 
         # create new student accounts
-        for student in new_students:
+        for student in new_users:
             try:
                 db.insert_student(student)
                 if not user_exists(student.username):
@@ -103,6 +103,15 @@ class StudentsAddHandler(EventHandler):
             except Exception as e:
                 error = ('Error adding student with email {0}: {1}'
                          .format(student.email_address, e))
+                raise HandlerException(error)
+
+        # update the database for students that are already faculty users
+        for student in faculty_users:
+            try:
+                db.insert_student(student, user_exists=True)
+            except Exception as e:
+                error = ('Error adding faculty user with email {} '
+                         'as a student: {}'.format(student.email_address, e))
                 raise HandlerException(error)
 
         for student in students:

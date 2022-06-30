@@ -33,7 +33,7 @@ from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
                                        sudo_add_group, mode, chmod, touch,
                                        this_user, this_group, sudo_add_user,
                                        group_owner, sudo_chown)
-from gkeepserver.create_user import create_user, UserType, add_faculty
+from gkeepserver.user_setup import setup_user, UserType, add_faculty
 from gkeepserver.database import db
 from gkeepserver.faculty import Faculty
 from gkeepserver.gkeepd_logger import gkeepd_logger as gkeepd_logger
