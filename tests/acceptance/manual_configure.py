@@ -44,7 +44,7 @@ client.establish_ssh_keys('admin_prof')
 client.create_gkeep_config_file('admin_prof')
 
 print('Adding prof1 as faculty on gkserver')
-client.run_gkeep_command('admin_prof', 'add_faculty', 'prof1', 'doctor', 'prof1@gitkeeper.edu')
+client.run_gkeep_command('admin_prof', 'add_faculty', 'prof1', 'doctor', 'prof1@school.edu')
 
 print('Making prof1 account on gkclient')
 client.create_account('prof1')

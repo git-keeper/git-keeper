@@ -67,6 +67,19 @@ def test_insert_faculty(db):
         db.insert_faculty(faculty1)
 
 
+def test_student_username_exists(db):
+    faculty = Faculty('last', 'first', 'faculty1', 'faculty1@school.edu',
+                      False)
+    student = Student('last', 'first', 'student1', 'student1@school.edu')
+
+    db.insert_faculty(faculty)
+    db.insert_student(student)
+
+    assert db.student_username_exists('student1')
+    assert not db.student_username_exists('student2')
+    assert not db.student_username_exists('faculty1')
+
+
 def test_duplicate_email_usernames(db):
     student0 = db.insert_student(Student('last', 'first', 'user',
                                          'user@schoolzero.edu'))

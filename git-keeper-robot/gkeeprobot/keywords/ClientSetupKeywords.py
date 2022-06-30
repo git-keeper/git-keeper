@@ -47,11 +47,11 @@ class ClientSetupKeywords:
     def create_git_config(self, username):
         name_cmd = 'git config --global user.name "{}"'.format(username)
         client_control.run(username, name_cmd)
-        email_cmd = 'git config --global user.email {}@gitkeeper.edu'.format(username)
+        email_cmd = 'git config --global user.email {}@school.edu'.format(username)
         client_control.run(username, email_cmd)
 
     def add_to_class_csv(self, faculty, class_name, username, last_name='Last',
-                         first_name='First', email_domain='gitkeeper.edu'):
+                         first_name='First', email_domain='school.edu'):
         line = '{},{},{}@{}'.format(last_name, first_name, username,
                                     email_domain)
         client_control.run_vm_python_script(faculty, 'add_to_file.py',
