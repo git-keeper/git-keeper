@@ -626,6 +626,10 @@ def upload_assignment(class_name: str, upload_dir_path: str):
         tests/
             action.sh
 
+    The following file is optional:
+
+        test_env.yaml
+
     Copies files to the server, writes a log entry to notify the server of the
     upload, and waits for a logged confirmation of success or error from the
     server.
