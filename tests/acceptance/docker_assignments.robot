@@ -17,6 +17,7 @@
 *** Settings ***
 Resource    resources/setup.robot
 Test Setup    Setup Server and Client Accounts
+Suite Setup     Add Docker Images
 Force Tags    gkeepd_launch
 
 *** Keywords ***
@@ -27,6 +28,9 @@ Setup Server and Client Accounts
     Establish Course  faculty1    cs1     student1
     Create Accounts On Client    student1
     Create Git Config    student1
+
+Add Docker Images
+    Load Docker Image   gitkeeper/git-keeper-tester:python3.10
 
 *** Test Cases ***
 
@@ -62,6 +66,12 @@ Docker Container Does Not Exist
     [Tags]  Error
     Add Assignment to Client    faculty1    bad_docker_container
     Gkeep Upload Fails   faculty1   cs1    bad_docker_container
+
+
+# update with test_env keyword when no yaml file is present
+# Move from test_env to on host
+# Move from on host to test_env
+# Change docker image
 
 # TODO:
 # type is not "docker"

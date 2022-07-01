@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+import time
 
 from gkeeprobot.control.ServerControl import ServerControl
 
@@ -39,3 +39,7 @@ class ServerSetupKeywords:
 
     def reset_server(self):
         control.run_vm_python_script('keeper', 'reset_server.py')
+
+    def load_docker_image(self, image_name):
+        cmd = 'docker pull {}'.format(image_name)
+        control.run('keeper', cmd)
