@@ -32,7 +32,7 @@ from gkeepcore.path_utils import parse_faculty_assignment_path, \
     user_home_dir, faculty_class_dir_path, student_assignment_repo_path, \
     student_class_dir_path, faculty_assignment_dir_path, user_gitkeeper_path
 from gkeepcore.shell_command import CommandError
-from gkeepcore.system_commands import cp, chmod, mkdir, sudo_chown, rm, mv
+from gkeepcore.system_commands import cp, chmod, mkdir, sudo_chown, rm
 from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.server_configuration import config
@@ -131,6 +131,11 @@ class AssignmentDirectory:
             get_action_script_and_interpreter(self.tests_path)
         if self.action_script is None:
             raise AssignmentDirectoryError('action script')
+
+        # ensure there is a test_env.yaml.  It is optional on the
+        # client, but a default version is made on upload/update
+        if not os.path.isfile(self.test_env_path):
+            raise AssignmentDirectoryError('test_env.yaml')
 
 
 def get_assignment_dir(faculty_username: str, class_name: str,
@@ -258,16 +263,15 @@ def copy_email_txt_file(assignment_dir: AssignmentDirectory,
     cp(email_txt_path, assignment_dir.path, sudo=True)
 
 
-def copy_test_env_yaml_file_if_exists(assignment_dir: AssignmentDirectory,
-                                      test_env_yaml_path: str):
+def copy_test_env_yaml_file(assignment_dir: AssignmentDirectory,
+                            test_env_yaml_path: str):
     """
-    Copy test_env.yaml into an assignment directory if it exists.
+    Copy test_env.yaml into an assignment directory
 
     :param assignment_dir: AssignmentDirectory to copy into
     :param test_env_yaml_path: path to test_env.yaml
     """
-    if os.path.exists(test_env_yaml_path):
-        cp(test_env_yaml_path, assignment_dir.path, sudo=True)
+    cp(test_env_yaml_path, assignment_dir.path, sudo=True)
 
 
 def copy_tests_dir(assignment_dir: AssignmentDirectory, tests_path: str):

@@ -31,7 +31,7 @@ from gkeepserver.database import db
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepcore.git_commands import git_clone, git_add_all, git_commit, \
     git_checkout
-from gkeepcore.test_env_yaml import load_test_env_yaml
+from gkeepcore.test_env_yaml import TestEnv
 from gkeepcore.system_commands import cp, sudo_chown, rm, chmod, mv
 from gkeepcore.shell_command import run_command_in_directory
 from gkeepserver.email_sender_thread import email_sender
@@ -150,8 +150,9 @@ class Submission:
 
         # execute action.sh and capture the output
         try:
-            if os.path.exists(self.test_env_path):
-                cmd = self.make_docker_command(temp_path, assignment_name)
+            test_env = TestEnv(self.test_env_path)
+            if test_env.type() == 'docker':
+                cmd = self.make_docker_command(temp_path, assignment_name, test_env.image())
             else:
                 cmd = ['sudo', '--user', config.tester_user, '--set-home', 'bash',
                        temp_run_action_sh_path, temp_assignment_path,
@@ -207,20 +208,15 @@ class Submission:
         logger.log_debug('Done running tests on {0}'
                          .format(self.student_repo_path))
 
-    def make_docker_command(self, temp_path, assignment_name):
-        # The test_env.yaml file is verified before it is uploaded, so we'll assume
-        # that it contains and 'image' field
-        data = load_test_env_yaml(self.test_env_path)
-        container_image = data['image']
-
+    def make_docker_command(self, temp_path, assignment_name, container_image):
         temp_assignment_path = os.path.join(temp_path, assignment_name)
 
         return ['docker', 'run', '-v', '{}:/git-keeper-tester'.format(temp_path),
-                       container_image, 'bash',
-                       '/git-keeper-tester/run_action.sh',
-                       temp_assignment_path,
-                       self.student.username, self.student.email_address,
-                       self.student.last_name, self.student.first_name]
+                container_image, 'bash',
+                '/git-keeper-tester/run_action.sh',
+                temp_assignment_path,
+                self.student.username, self.student.email_address,
+                self.student.last_name, self.student.first_name]
 
 
 def write_run_action_sh(dest_path: str, tests_path: str):

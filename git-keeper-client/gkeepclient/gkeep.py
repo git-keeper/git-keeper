@@ -180,7 +180,7 @@ def add_update_subparser(subparsers):
     add_class_name_argument(subparser)
     add_assignment_path_argument(subparser)
     subparser.add_argument('item', metavar='<update item>',
-                           help='item to update: base_code, email, tests, '
+                           help='item to update: base_code, email, tests, test_env'
                                 'or all')
 
 
@@ -496,7 +496,7 @@ def take_action(parsed_args):
         upload_assignment(class_name, parsed_args.assignment_path)
     elif action_name == 'update':
         if parsed_args.item == 'all':
-            items = ('base_code', 'email', 'tests')
+            items = ('base_code', 'email', 'tests', 'test_env')
         else:
             items = (parsed_args.item,)
         update_assignment(class_name, parsed_args.assignment_path, items)

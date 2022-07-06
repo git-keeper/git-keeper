@@ -351,3 +351,21 @@ class ClientCheckKeywords:
             raise GkeepRobotException(error)
         except ExitCodeException:
             pass
+
+    def gkeep_update_succeeds(self, faculty, class_name, assignment_name, update_type):
+        cmd = 'gkeep update {} {} {}'.format(class_name, assignment_name, update_type)
+        try:
+            client_control.run(faculty, cmd)
+        except ExitCodeException as e:
+            error = 'Command failed: {}\n{}'.format(cmd, e)
+            raise GkeepRobotException(error)
+
+    def gkeep_update_fails(self, faculty, class_name, assignment_name, update_type):
+        cmd = 'gkeep update {} {} {}'.format(class_name, assignment_name, update_type)
+        try:
+            client_control.run(faculty, cmd)
+            error = ('Command should have had non-zero exit code: {}'
+                     .format(cmd))
+            raise GkeepRobotException(error)
+        except ExitCodeException as e:
+            pass

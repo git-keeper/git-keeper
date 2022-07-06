@@ -52,6 +52,15 @@ Student Submits to NonDocker Assignment
     Student Submits    student1    faculty1    cs1    good_not_docker    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_not_docker    "On Host"
 
+Student Submits to NonDocker Assignment With On Host Specified
+    [Tags]    happy_path
+    Add Assignment to Client  faculty1  good_not_docker_test_env
+    Gkeep Upload Succeeds   faculty1   cs1    good_not_docker_test_env
+    Gkeep Publish Succeeds  faculty1    cs1     good_not_docker_test_env
+    Clone Assignment  student1  faculty1    cs1     good_not_docker_test_env
+    Student Submits    student1    faculty1    cs1    good_not_docker_test_env    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_not_docker_test_env    "On Host"
+
 Bad YAML No Image
     [Tags]  Error
     Add Assignment to Client    faculty1    bad_docker_no_image
@@ -67,13 +76,80 @@ Docker Container Does Not Exist
     Add Assignment to Client    faculty1    bad_docker_container
     Gkeep Upload Fails   faculty1   cs1    bad_docker_container
 
+Bad Type in Test Env
+    [Tags]  Error
+    Add Assignment to Client    faculty1    bad_type
+    Gkeep Upload Fails   faculty1   cs1    bad_type
 
-# update with test_env keyword when no yaml file is present
-# Move from test_env to on host
-# Move from on host to test_env
-# Change docker image
+Faculty Updates to Include Docker Before Publish
+    [Tags]  happy_path
+    Add Assignment to Client  faculty1  good_not_docker
+    Gkeep Upload Succeeds   faculty1   cs1    good_not_docker
+    Add File to Client      faculty1    files/good_test_env.yaml    good_not_docker/test_env.yaml
+    Gkeep Update Succeeds   faculty1    cs1     good_not_docker     all
+    Gkeep Publish Succeeds  faculty1    cs1     good_not_docker
+    Clone Assignment  student1  faculty1    cs1     good_not_docker
+    Student Submits    student1    faculty1    cs1    good_not_docker    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_not_docker    "In Docker"
 
-# TODO:
-# type is not "docker"
-# These same tests for update
-# gkeep test on server
+Faculty Updates to Include Docker After Publish
+    [Tags]  happy_path
+    Add Assignment to Client  faculty1  good_not_docker
+    Gkeep Upload Succeeds   faculty1   cs1    good_not_docker
+    Gkeep Publish Succeeds  faculty1    cs1     good_not_docker
+    Add File to Client      faculty1    files/good_test_env.yaml    good_not_docker/test_env.yaml
+    Gkeep Update Succeeds   faculty1    cs1     good_not_docker     test_env
+    Clone Assignment  student1  faculty1    cs1     good_not_docker
+    Student Submits    student1    faculty1    cs1    good_not_docker    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_not_docker    "In Docker"
+
+Faculty Updates to Remove Docker Before Publish
+    [Tags]    happy_path
+    Add Assignment to Client  faculty1  good_docker
+    Gkeep Upload Succeeds   faculty1   cs1    good_docker
+    Delete File on Client   faculty1    good_docker/test_env.yaml
+    Gkeep Update Succeeds   faculty1    cs1     good_docker     test_env
+    Gkeep Publish Succeeds  faculty1    cs1     good_docker
+    Clone Assignment  student1  faculty1    cs1     good_docker
+    Student Submits    student1    faculty1    cs1    good_docker    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_docker    "On Host"
+
+Faculty Updates to Remove Docker After Publish
+    [Tags]    happy_path
+    Add Assignment to Client  faculty1  good_docker
+    Gkeep Upload Succeeds   faculty1   cs1    good_docker
+    Gkeep Publish Succeeds  faculty1    cs1     good_docker
+    Delete File on Client   faculty1    good_docker/test_env.yaml
+    Gkeep Update Succeeds   faculty1    cs1     good_docker     test_env
+    Clone Assignment  student1  faculty1    cs1     good_docker
+    Student Submits    student1    faculty1    cs1    good_docker    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_docker    "On Host"
+
+Update to Bad YAML No Image
+    [Tags]  Error
+    Add Assignment to Client  faculty1  good_docker
+    Gkeep Upload Succeeds   faculty1   cs1    good_docker
+    Add File to Client      faculty1    files/bad_no_image_test_env.yaml    good_docker/test_env.yaml
+    Gkeep Update Fails   faculty1   cs1    good_docker  test_env
+
+Update to Bad YAML No Type
+    [Tags]  Error
+    Add Assignment to Client  faculty1  good_docker
+    Gkeep Upload Succeeds   faculty1   cs1    good_docker
+    Add File to Client      faculty1    files/bad_no_type_test_env.yaml    good_docker/test_env.yaml
+    Gkeep Update Fails   faculty1   cs1    good_docker  test_env
+
+Update to Docker Container Does Not Exist
+    [Tags]  Error
+    Add Assignment to Client  faculty1  good_docker
+    Gkeep Upload Succeeds   faculty1   cs1    good_docker
+    Add File to Client      faculty1    files/bad_container_test_env.yaml    good_docker/test_env.yaml
+    Gkeep Update Fails   faculty1   cs1    good_docker  test_env
+
+Test Produces Email to Faculty in Docker
+    [Tags]  happy_path
+    Add Assignment to Client  faculty1  good_docker
+    Gkeep Upload Succeeds   faculty1   cs1    good_docker
+    Gkeep Test Succeeds    faculty1    cs1    good_docker    good_docker/correct_solution
+    Submission Test Results Email Exists    faculty1    cs1    good_docker    "In Docker"
+

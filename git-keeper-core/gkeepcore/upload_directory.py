@@ -24,7 +24,7 @@ import os
 from gkeepcore.action_scripts import get_action_script_and_interpreter
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import path_to_assignment_name
-from gkeepcore.test_env_yaml import load_test_env_yaml
+from gkeepcore.test_env_yaml import TestEnv
 
 
 class UploadDirectoryError(GkeepException):
@@ -121,12 +121,9 @@ class UploadDirectory:
             if not os.path.isfile(self.email_path):
                 raise UploadDirectoryError(self.email_path)
 
-            # Verify test_env.yaml if it exists
+            # Verify test_env.yaml if it exists.  This does NOT verify
+            # whether a specified Docker container is valid because this class
+            # is used on the client (where we do not require Docker)
             if os.path.exists(self.test_env_path):
-                data = load_test_env_yaml(self.test_env_path)
-
-                if 'image' not in data:
-                    raise UploadDirectoryYAMLError(self.test_env_path)
-
-                if 'type' not in data:
-                    raise UploadDirectoryYAMLError(self.test_env_path)
+                test_env = TestEnv(self.test_env_path)
+                test_env.validate()

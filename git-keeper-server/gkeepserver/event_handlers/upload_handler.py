@@ -25,15 +25,15 @@ from gkeepcore.git_commands import git_init_bare
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_from_log_path, \
     faculty_assignment_dir_path, user_gitkeeper_path
-from gkeepcore.shell_command import CommandError, run_command
+from gkeepcore.shell_command import CommandError
 from gkeepcore.system_commands import chmod, sudo_chown, rm, mkdir
-from gkeepcore.test_env_yaml import load_test_env_yaml
+from gkeepcore.test_env_yaml import TestEnv
 from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
 from gkeepcore.valid_names import validate_assignment_name
 from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, create_base_code_repo, copy_email_txt_file, \
     copy_tests_dir, setup_student_assignment, StudentAssignmentError, \
-    copy_test_env_yaml_file_if_exists
+    copy_test_env_yaml_file
 from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
@@ -67,9 +67,10 @@ class UploadHandler(EventHandler):
         assignment_dir = AssignmentDirectory(assignment_path, check=False)
 
         try:
-            # We need to verify the Docker image before we create
-            # the files in the assignment_dir, so we use the upload path
-            self._verify_docker_image(os.path.join(self._upload_path, 'test_env.yaml'))
+            # verify the contents of the test_env.yaml file including checking whether
+            # the Docker image exists
+            test_env = TestEnv(os.path.join(self._upload_path, 'test_env.yaml'))
+            test_env.validate(verify_image=True)
 
             if not db.class_is_open(self._class_name, self._faculty_username):
                 raise HandlerException('{} is not open'
@@ -163,7 +164,7 @@ class UploadHandler(EventHandler):
         try:
             copy_email_txt_file(assignment_dir, upload_dir.email_path)
             copy_tests_dir(assignment_dir, upload_dir.tests_path)
-            copy_test_env_yaml_file_if_exists(assignment_dir, upload_dir.test_env_path)
+            copy_test_env_yaml_file(assignment_dir, upload_dir.test_env_path)
         except GkeepException as e:
             error = ('error copying assignment files: {0}'.format(str(e)))
             raise HandlerException(error)
@@ -221,25 +222,4 @@ class UploadHandler(EventHandler):
         except ValueError:
             error = ('Expected <class name> <assignment name> <upload path> '
                      'not {0}'.format(self._payload))
-            raise HandlerException(error)
-
-    def _verify_docker_image(self, test_env_path):
-        """
-        Determine whether the Docker image in the test_env.yaml file exits.
-        Returns without error if the image exists or if the test_env_path
-        does not exist.
-
-        Raises HandlerException if the image does not exist
-        """
-        if not os.path.exists(test_env_path):
-            return
-
-        data = load_test_env_yaml(test_env_path)
-
-        # This command taken from https://github.com/distribution/distribution/issues/2412
-        cmd = ['docker', 'buildx', 'imagetools', 'inspect', data['image']]
-        try:
-            run_command(cmd)
-        except CommandError:
-            error = ('Docker image not found: {}'.format(data['image']))
             raise HandlerException(error)

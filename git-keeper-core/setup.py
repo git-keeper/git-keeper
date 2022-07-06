@@ -27,5 +27,6 @@ setup(
         'Topic :: Education :: Testing',
         'Topic :: Education'
     ],
-    packages=['gkeepcore', 'pyyaml'],
+    packages=['gkeepcore'],
+    install_requires=['pyyaml'],
 )
