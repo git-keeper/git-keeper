@@ -34,10 +34,14 @@ class TestEnv:
 
     def __init__(self, test_env_path):
         """
-        Open the file and load the value.  No validation is performed at the step.
+        Open the file and load the value.  This will raise a GKeepException if
+        the YAML is not valid, but no additional validation is performed.
         """
         with open(test_env_path) as test_env_file:
-            self.data = yaml.safe_load(test_env_file)
+            try:
+                self.data = yaml.safe_load(test_env_file)
+            except yaml.YAMLError:
+                raise GkeepException('Bad YAML file: {}'.format(test_env_path))
 
     def type(self):
         """ Get the type """

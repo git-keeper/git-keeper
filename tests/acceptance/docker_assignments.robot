@@ -61,6 +61,11 @@ Student Submits to NonDocker Assignment With On Host Specified
     Student Submits    student1    faculty1    cs1    good_not_docker_test_env    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_not_docker_test_env    "On Host"
 
+Bad YAML Format
+    [Tags]  Error
+    Add Assignment to Client    faculty1    bad_test_yaml
+    Gkeep Upload Fails      faculty1    cs1     bad_test_yaml
+
 Bad YAML No Image
     [Tags]  Error
     Add Assignment to Client    faculty1    bad_docker_no_image
