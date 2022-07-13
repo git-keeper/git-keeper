@@ -64,4 +64,4 @@ Change Student Name
     [Tags]    happy_path
     Add File To Client    faculty1    files/cs1_change_name.csv    cs1.csv
     Gkeep Modify Succeeds    faculty=faculty1    class_name=cs1
-    Gkeep Query JSON Produces Results    faculty1   students   {"cs1":[{"first_name":"NewFirst","last_name":"NewLast","username":"student1","email_address":"student1@gitkeeper.edu"},{"first_name":"First","last_name":"Last","username":"student2","email_address":"student2@gitkeeper.edu"}]}
+    Gkeep Query JSON Produces Results    faculty1   students   {"cs1":[{"first_name":"NewFirst","last_name":"NewLast","username":"student1","email_address":"student1@school.edu"},{"first_name":"First","last_name":"Last","username":"student2","email_address":"student2@school.edu"}]}
