@@ -45,6 +45,7 @@ class Submission:
     """
     Stores student submission information and allows test running.
     """
+
     def __init__(self, student: Student, student_repo_path, commit_hash,
                  assignment_dir: AssignmentDirectory, faculty_username,
                  faculty_email):
@@ -150,14 +151,24 @@ class Submission:
 
         # execute action.sh and capture the output
         try:
-            test_env = TestEnv(self.test_env_path)
-            if test_env.type() == 'docker':
-                cmd = self.make_docker_command(temp_path, assignment_name, test_env.image())
+            # For backwards compatibility to old systems before docker and the
+            # test_env.yaml file, we have to check whether the yaml file exists.
+            # This gives 2 possible ways to run on host: if the file does not
+            # exist (i.e. an assignment created with a previous version of gkeepd
+            # OR if the test_env.yaml file specifies the type is "host"
+            host_cmd = ['sudo', '--user', config.tester_user, '--set-home', 'bash',
+                        temp_run_action_sh_path, temp_assignment_path,
+                        self.student.username, self.student.email_address,
+                        self.student.last_name, self.student.first_name]
+
+            if not os.path.exists(self.test_env_path):
+                cmd = host_cmd
             else:
-                cmd = ['sudo', '--user', config.tester_user, '--set-home', 'bash',
-                       temp_run_action_sh_path, temp_assignment_path,
-                       self.student.username, self.student.email_address,
-                       self.student.last_name, self.student.first_name]
+                test_env = TestEnv(self.test_env_path)
+                if test_env.type() == 'docker':
+                    cmd = self.make_docker_command(temp_path, assignment_name, test_env.image())
+                else:
+                    cmd = host_cmd
 
             body = run_command_in_directory(temp_tests_path, cmd)
 
@@ -263,7 +274,6 @@ wait $pid
 
 
 def report_failure(assignment, student, faculty_email, message):
-
     s_subject = ('{0}: Failed to process submission - contact instructor'
                  .format(assignment))
     s_body = ['Your submission was received, but something went wrong.',
