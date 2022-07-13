@@ -28,4 +28,5 @@ setup(
         'Topic :: Education'
     ],
     packages=['gkeepcore'],
+    install_requires=['pyyaml'],
 )

@@ -22,15 +22,15 @@ Event type: UPDATE
 import os
 
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
-    faculty_assignment_dir_path, user_home_dir, user_gitkeeper_path
+    faculty_assignment_dir_path, user_gitkeeper_path
 from gkeepcore.system_commands import sudo_chown, rm
+from gkeepcore.test_env_yaml import TestEnv
 from gkeepcore.upload_directory import UploadDirectory
 from gkeepserver.assignments import AssignmentDirectory, \
     create_base_code_repo, copy_email_txt_file, \
     copy_tests_dir, remove_student_assignment, setup_student_assignment, \
-    StudentAssignmentError
+    StudentAssignmentError, copy_test_env_yaml_file
 from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
@@ -75,6 +75,12 @@ class UpdateHandler(EventHandler):
                        config.keeper_group, recursive=True)
 
             upload_dir = UploadDirectory(self._upload_path, check=False)
+
+            # validate the test_env.yaml file (including whether the specified image exists)
+            if os.path.isfile(upload_dir.test_env_path):
+                # verify the contents of the test_env.yaml file
+                test_env = TestEnv(os.path.join(self._upload_path, 'test_env.yaml'))
+                test_env.validate(verify_image=True)
 
             self._update_items(assignment_dir, upload_dir)
             self._replace_faculty_test_assignment(assignment_dir)
@@ -136,6 +142,10 @@ class UpdateHandler(EventHandler):
 
             rm(assignment_dir.tests_path, recursive=True)
             copy_tests_dir(assignment_dir, upload_dir.tests_path)
+
+        if os.path.isfile(upload_dir.test_env_path):
+            rm(assignment_dir.test_env_path)
+            copy_test_env_yaml_file(assignment_dir, upload_dir.test_env_path)
 
         # sanity check
         assignment_dir.check()

@@ -64,6 +64,10 @@ class ClientSetupKeywords:
     def add_file_to_client(self, username, filename, target_filename):
         client_control.copy(username, filename, target_filename)
 
+    def delete_file_on_client(self, username, filename):
+        cmd = 'rm {}'.format(filename)
+        client_control.run(username, cmd)
+
     def make_empty_file(self, username, filename):
         client_control.run(username, 'touch {}'.format(filename))
 

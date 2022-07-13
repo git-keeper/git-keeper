@@ -31,6 +31,7 @@ from gkeepserver.database import db
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepcore.git_commands import git_clone, git_add_all, git_commit, \
     git_checkout
+from gkeepcore.test_env_yaml import TestEnv
 from gkeepcore.system_commands import cp, sudo_chown, rm, chmod, mv
 from gkeepcore.shell_command import run_command_in_directory
 from gkeepserver.email_sender_thread import email_sender
@@ -44,6 +45,7 @@ class Submission:
     """
     Stores student submission information and allows test running.
     """
+
     def __init__(self, student: Student, student_repo_path, commit_hash,
                  assignment_dir: AssignmentDirectory, faculty_username,
                  faculty_email):
@@ -67,6 +69,7 @@ class Submission:
         self.faculty_email = faculty_email
         self.class_name = assignment_dir.class_name
         self.assignment_name = assignment_dir.assignment_name
+        self.test_env_path = assignment_dir.test_env_path
 
     def run_tests(self):
         """
@@ -128,6 +131,10 @@ class Submission:
 
         # copy the tests - this creates a tests folder inside the temp dir
         cp(self.tests_path, temp_path, recursive=True)
+        # copy the test_env.yaml file (if present)
+        if os.path.exists(self.test_env_path):
+            cp(self.test_env_path, temp_path)
+
         temp_tests_path = os.path.join(temp_path, 'tests')
 
         temp_run_action_sh_path = os.path.join(temp_path, 'run_action.sh')
@@ -144,10 +151,25 @@ class Submission:
 
         # execute action.sh and capture the output
         try:
-            cmd = ['sudo', '--user', config.tester_user, '--set-home', 'bash',
-                   temp_run_action_sh_path, temp_assignment_path,
-                   self.student.username, self.student.email_address,
-                   self.student.last_name, self.student.first_name]
+            # For backwards compatibility to old systems before docker and the
+            # test_env.yaml file, we have to check whether the yaml file exists.
+            # This gives 2 possible ways to run on host: if the file does not
+            # exist (i.e. an assignment created with a previous version of gkeepd
+            # OR if the test_env.yaml file specifies the type is "host"
+            host_cmd = ['sudo', '--user', config.tester_user, '--set-home', 'bash',
+                        temp_run_action_sh_path, temp_assignment_path,
+                        self.student.username, self.student.email_address,
+                        self.student.last_name, self.student.first_name]
+
+            if not os.path.exists(self.test_env_path):
+                cmd = host_cmd
+            else:
+                test_env = TestEnv(self.test_env_path)
+                if test_env.type() == 'docker':
+                    cmd = self.make_docker_command(temp_path, assignment_name, test_env.image())
+                else:
+                    cmd = host_cmd
+
             body = run_command_in_directory(temp_tests_path, cmd)
 
             # send output as email
@@ -197,6 +219,16 @@ class Submission:
         logger.log_debug('Done running tests on {0}'
                          .format(self.student_repo_path))
 
+    def make_docker_command(self, temp_path, assignment_name, container_image):
+        temp_assignment_path = os.path.join(temp_path, assignment_name)
+
+        return ['docker', 'run', '-v', '{}:/git-keeper-tester'.format(temp_path),
+                container_image, 'bash',
+                '/git-keeper-tester/run_action.sh',
+                temp_assignment_path,
+                self.student.username, self.student.email_address,
+                self.student.last_name, self.student.first_name]
+
 
 def write_run_action_sh(dest_path: str, tests_path: str):
     """
@@ -242,7 +274,6 @@ wait $pid
 
 
 def report_failure(assignment, student, faculty_email, message):
-
     s_subject = ('{0}: Failed to process submission - contact instructor'
                  .format(assignment))
     s_body = ['Your submission was received, but something went wrong.',

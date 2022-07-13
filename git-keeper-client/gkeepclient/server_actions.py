@@ -22,7 +22,7 @@ from tempfile import TemporaryDirectory
 from gkeepclient.client_configuration import config
 from gkeepclient.text_ui import confirmation
 from gkeepcore.valid_names import validate_class_name, validate_assignment_name
-
+from gkeepcore.test_env_yaml import TestEnv
 from gkeepclient.assignment_uploader import AssignmentUploader
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_does_not_exist, class_exists, \
@@ -527,7 +527,7 @@ def trigger_tests(class_name: str, assignment_name: str,
 @class_is_open
 @assignment_not_disabled
 def update_assignment(class_name: str, upload_dir_path: str,
-                      items=('base_code', 'email', 'tests'),
+                      items=('base_code', 'email', 'tests', 'test_env'),
                       response_timeout=20):
     """
     Update an assignment on the server
@@ -553,7 +553,7 @@ def update_assignment(class_name: str, upload_dir_path: str,
     :param response_timeout: seconds to wait for server response
     """
 
-    valid_items = {'base_code', 'email', 'tests'}
+    valid_items = {'base_code', 'email', 'tests', 'test_env'}
 
     for item in items:
         if item not in valid_items:
@@ -581,8 +581,13 @@ def update_assignment(class_name: str, upload_dir_path: str,
                                               upload_dir.assignment_name)
 
     if is_published and ('base_code' in items or 'email' in items):
-        error = 'Assignment is already published, only tests may be updated.'
+        error = 'Assignment is already published, only tests or test_env may be updated.'
         raise GkeepException(error)
+
+    # validate the contents of the (optional) test_env.yaml file
+    if os.path.isfile(upload_dir.test_env_path):
+        test_env = TestEnv(upload_dir.test_env_path)
+        test_env.validate()
 
     print('updating', upload_dir.assignment_name, 'in', class_name)
 
@@ -595,6 +600,8 @@ def update_assignment(class_name: str, upload_dir_path: str,
             uploader.upload_email_txt()
         if 'tests' in items:
             uploader.upload_tests()
+        if 'test_env' in items:
+            uploader.upload_test_env()
     except GkeepException as e:
         error = 'Error uploading assignment updates: {0}'.format(str(e))
         raise GkeepException(error)
@@ -626,6 +633,10 @@ def upload_assignment(class_name: str, upload_dir_path: str):
         tests/
             action.sh
 
+    The following file is optional:
+
+        test_env.yaml
+
     Copies files to the server, writes a log entry to notify the server of the
     upload, and waits for a logged confirmation of success or error from the
     server.
@@ -646,6 +657,11 @@ def upload_assignment(class_name: str, upload_dir_path: str):
 
     validate_assignment_name(upload_dir.assignment_name)
 
+    # validate the contents of the (optional) test_env.yaml file
+    if os.path.isfile(upload_dir.test_env_path):
+        test_env = TestEnv(upload_dir.test_env_path)
+        test_env.validate()
+
     if server_interface.assignment_exists(class_name,
                                           upload_dir.assignment_name):
         error = ('Assignment {0} already exists in class {1}'
@@ -654,12 +670,13 @@ def upload_assignment(class_name: str, upload_dir_path: str):
 
     print('uploading', upload_dir.assignment_name, 'in', class_name)
 
-    # upload base_code, email.txt, and tests
+    # upload base_code, email.txt, , test_env.yaml, and tests
     try:
         uploader = AssignmentUploader(upload_dir)
         uploader.upload_base_code()
         uploader.upload_email_txt()
         uploader.upload_tests()
+        uploader.upload_test_env()
     except GkeepException as e:
         error = 'Error uploading assignment: {0}'.format(str(e))
         raise GkeepException(error)

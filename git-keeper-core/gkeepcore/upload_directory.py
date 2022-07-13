@@ -24,6 +24,7 @@ import os
 from gkeepcore.action_scripts import get_action_script_and_interpreter
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import path_to_assignment_name
+from gkeepcore.test_env_yaml import TestEnv
 
 
 class UploadDirectoryError(GkeepException):
@@ -39,6 +40,20 @@ class UploadDirectoryError(GkeepException):
         :param path: nonexistant path
         """
         Exception.__init__(self, '{0} does not exist'.format(path))
+
+
+class UploadDirectoryYAMLError(GkeepException):
+    """
+    Thrown by the UploadDirectory constructor if the test_env.yaml
+    file exists but has a bad format
+    """
+    def __init__(self, path):
+        """
+        Call superclass constructor with a message indicating a format error
+
+        :param path: path to file
+        """
+        Exception.__init__(self, '{0} must contain "type" and "image"'.format(path))
 
 
 class UploadDirectory:
@@ -58,13 +73,16 @@ class UploadDirectory:
         tests_path = path to the tests directory
         action_script_path - path to action script
         action_script_interpreter - name of interpreter to run action script
+        test_env_path - path to test_env.yml (if present)
     """
 
     def __init__(self, path, check=True):
         """
         Assign attributes based on path.
 
-        Raise ConfigDirectoryError if any required paths do not exist.
+        Raise ConfigDirectoryError if any required paths do not exist.  Also
+              if test_env.yaml is present, this exception is raise if there
+              is an error in the file.
 
         :param path: path to the assignment directory
         :param check: if True, raise an exception if any files or directories
@@ -74,6 +92,7 @@ class UploadDirectory:
         self.email_path = os.path.join(self.path, 'email.txt')
         self.base_code_path = os.path.join(self.path, 'base_code')
         self.tests_path = os.path.join(self.path, 'tests')
+        self.test_env_path = os.path.join(self.path, 'test_env.yaml')
 
         self.assignment_name = path_to_assignment_name(self.path)
 
@@ -101,3 +120,10 @@ class UploadDirectory:
             # ensure email.txt exists
             if not os.path.isfile(self.email_path):
                 raise UploadDirectoryError(self.email_path)
+
+            # Verify test_env.yaml if it exists.  This does NOT verify
+            # whether a specified Docker container is valid because this class
+            # is used on the client (where we do not require Docker)
+            if os.path.exists(self.test_env_path):
+                test_env = TestEnv(self.test_env_path)
+                test_env.validate()
