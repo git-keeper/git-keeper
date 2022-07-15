@@ -1,3 +1,1 @@
-
-def go():
-    pass
+print('Unpushed')

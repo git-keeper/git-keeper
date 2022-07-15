@@ -22,7 +22,6 @@ from tempfile import TemporaryDirectory
 from gkeepclient.client_configuration import config
 from gkeepclient.text_ui import confirmation
 from gkeepcore.valid_names import validate_class_name, validate_assignment_name
-from gkeepcore.test_env_yaml import TestEnv
 from gkeepclient.assignment_uploader import AssignmentUploader
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_does_not_exist, class_exists, \
@@ -584,11 +583,6 @@ def update_assignment(class_name: str, upload_dir_path: str,
         error = 'Assignment is already published, only tests or test_env may be updated.'
         raise GkeepException(error)
 
-    # validate the contents of the (optional) test_env.yaml file
-    if os.path.isfile(upload_dir.test_env_path):
-        test_env = TestEnv(upload_dir.test_env_path)
-        test_env.validate()
-
     print('updating', upload_dir.assignment_name, 'in', class_name)
 
     # upload base_code, email.txt, and tests
@@ -657,10 +651,10 @@ def upload_assignment(class_name: str, upload_dir_path: str):
 
     validate_assignment_name(upload_dir.assignment_name)
 
-    # validate the contents of the (optional) test_env.yaml file
-    if os.path.isfile(upload_dir.test_env_path):
-        test_env = TestEnv(upload_dir.test_env_path)
-        test_env.validate()
+    if not os.path.isfile(upload_dir.test_env_path):
+        print('NOTE: There is no test_env.yaml file for this assignment.')
+        print('      Tests for this assignment will be run directly on the '
+              'server.')
 
     if server_interface.assignment_exists(class_name,
                                           upload_dir.assignment_name):

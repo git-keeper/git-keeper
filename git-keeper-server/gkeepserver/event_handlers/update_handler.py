@@ -76,11 +76,12 @@ class UpdateHandler(EventHandler):
 
             upload_dir = UploadDirectory(self._upload_path, check=False)
 
-            # validate the test_env.yaml file (including whether the specified image exists)
+            # validate the fields in test_env.yaml file (including whether the
+            # required components that support the environment are in place)
             if os.path.isfile(upload_dir.test_env_path):
-                # verify the contents of the test_env.yaml file
-                test_env = TestEnv(os.path.join(self._upload_path, 'test_env.yaml'))
-                test_env.validate(verify_image=True)
+                test_env = TestEnv(os.path.join(self._upload_path,
+                                                'test_env.yaml'))
+                test_env.verify_env()
 
             self._update_items(assignment_dir, upload_dir)
             self._replace_faculty_test_assignment(assignment_dir)
@@ -91,7 +92,7 @@ class UpdateHandler(EventHandler):
                                                    self._class_name)
             gkeepd_logger.log_info(info)
         except GkeepException as e:
-            error = '{0} {1}'.format(self._upload_path, str(e))
+            error = '{0}'.format(str(e))
             log_gkeepd_to_faculty(self._faculty_username, 'UPDATE_ERROR',
                                   error)
             warning = 'Faculty update failed: {0}'.format(str(e))

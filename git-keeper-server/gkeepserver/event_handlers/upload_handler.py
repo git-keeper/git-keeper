@@ -27,7 +27,8 @@ from gkeepcore.path_utils import user_from_log_path, \
     faculty_assignment_dir_path, user_gitkeeper_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.system_commands import chmod, sudo_chown, rm, mkdir
-from gkeepcore.test_env_yaml import TestEnv
+from gkeepcore.test_env_yaml import TestEnv, TestEnvType, verify_docker_installed, verify_docker_image, \
+    verify_firejail_installed
 from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
 from gkeepcore.valid_names import validate_assignment_name
 from gkeepserver.assignments import AssignmentDirectory, \
@@ -66,11 +67,17 @@ class UploadHandler(EventHandler):
 
         assignment_dir = AssignmentDirectory(assignment_path, check=False)
 
+        gkeepd_logger.log_debug('pre-try')
+
         try:
-            # verify the contents of the test_env.yaml file including checking whether
-            # the Docker image exists
-            test_env = TestEnv(os.path.join(self._upload_path, 'test_env.yaml'))
-            test_env.validate(verify_image=True)
+            # validate the fields in test_env.yaml file (including whether the
+            # required components that support the environment are in place)
+            test_env = TestEnv(os.path.join(self._upload_path,
+                                            'test_env.yaml'))
+            gkeepd_logger.log_debug('test env created')
+            test_env.verify_env()
+
+            gkeepd_logger.log_info('verified')
 
             if not db.class_is_open(self._class_name, self._faculty_username):
                 raise HandlerException('{} is not open'
@@ -94,7 +101,7 @@ class UploadHandler(EventHandler):
                                                     self._class_name)
             gkeepd_logger.log_info(info)
         except Exception as e:
-            error = '{0} {1}'.format(self._upload_path, str(e))
+            error = '{0}'.format(str(e))
             log_gkeepd_to_faculty(self._faculty_username, 'UPLOAD_ERROR',
                                   error)
             warning = 'Faculty upload failed: {0}'.format(str(e))
