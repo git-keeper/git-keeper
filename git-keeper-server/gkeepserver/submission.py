@@ -122,6 +122,8 @@ class Submission:
             # the tests point of view
             write_run_action_sh(temp_run_action_sh_path, self.tests_path,
                                 user_home_dir(config.tester_user))
+        elif test_env.type == TestEnvType.DOCKER:
+            write_run_action_sh(temp_run_action_sh_path, self.tests_path)
         else:
             write_run_action_sh(temp_run_action_sh_path, self.tests_path,
                                 temp_path)
@@ -202,13 +204,11 @@ class Submission:
 
     def _make_docker_command(self, temp_path, assignment_name,
                              container_image):
-        temp_assignment_path = os.path.join(temp_path, assignment_name)
-
         return ['docker', 'run', '-v',
                 '{}:/git-keeper-tester'.format(temp_path),
                 container_image, 'bash',
                 '/git-keeper-tester/run_action.sh',
-                temp_assignment_path,
+                os.path.join('/git-keeper-tester/', assignment_name),
                 self.student.username, self.student.email_address,
                 self.student.last_name, self.student.first_name]
 
@@ -261,7 +261,7 @@ class Submission:
                                 class_name))
 
 
-def write_run_action_sh(dest_path: str, tests_path: str, run_path: str):
+def write_run_action_sh(dest_path: str, tests_path: str, run_path=None):
     """
     Write run_action.sh before testing.
 
@@ -278,8 +278,13 @@ def write_run_action_sh(dest_path: str, tests_path: str, run_path: str):
 
     temp_run_action_sh_path = os.path.join(temp_dir_path, 'run_action.sh')
 
+    if run_path is None:
+        cd_command = ''
+    else:
+        cd_command = 'cd {}/tests'.format(run_path)
+
     template = '''#!/bin/bash
-cd {run_path}/tests
+{cd_command}
 GLOBAL_TIMEOUT={global_timeout}
 GLOBAL_MEM_LIMIT_MB={global_memory_limit}
 GLOBAL_MEM_LIMIT_KB=$(($GLOBAL_MEM_LIMIT_MB * 1024))
@@ -296,7 +301,7 @@ wait $pid
         raise GkeepException('No valid action script found')
 
     run_action_sh_contents = \
-        template.format(run_path=run_path,
+        template.format(cd_command=cd_command,
                         global_timeout=config.tests_timeout,
                         global_memory_limit=config.tests_memory_limit,
                         interpreter=interpreter,
