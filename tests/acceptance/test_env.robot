@@ -120,23 +120,23 @@ Bad Type in Test Env
 
 Faculty Updates to Include Docker Before Publish
     [Tags]  happy_path
-    Add Assignment to Client  faculty1  good_not_docker
-    Gkeep Upload Succeeds   faculty1   cs1    good_not_docker
-    Add File to Client      faculty1    files/good_test_env.yaml    good_not_docker/test_env.yaml
-    Gkeep Update Succeeds   faculty1    cs1     good_not_docker     all
-    Gkeep Publish Succeeds  faculty1    cs1     good_not_docker
-    Clone Assignment  student1  faculty1    cs1     good_not_docker
-    Student Submits    student1    faculty1    cs1    good_not_docker    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_not_docker    "In Docker"
+    Add Assignment to Client  faculty1  good_host
+    Gkeep Upload Succeeds   faculty1   cs1    good_host
+    Add File to Client      faculty1    files/good_test_env.yaml    good_host/test_env.yaml
+    Gkeep Update Succeeds   faculty1    cs1     good_host     all
+    Gkeep Publish Succeeds  faculty1    cs1     good_host
+    Clone Assignment  student1  faculty1    cs1     good_host
+    Student Submits    student1    faculty1    cs1    good_host    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_host    "In Docker"
 
 Faculty Updates to Include Docker After Publish
     [Tags]  happy_path
-    Add Upload and Publish Assignment   faculty1    cs1     good_not_docker
-    Add File to Client      faculty1    files/good_test_env.yaml    good_not_docker/test_env.yaml
-    Gkeep Update Succeeds   faculty1    cs1     good_not_docker     test_env
-    Clone Assignment  student1  faculty1    cs1     good_not_docker
-    Student Submits    student1    faculty1    cs1    good_not_docker    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_not_docker    "In Docker"
+    Add Upload and Publish Assignment   faculty1    cs1     good_host
+    Add File to Client      faculty1    files/good_test_env.yaml    good_host/test_env.yaml
+    Gkeep Update Succeeds   faculty1    cs1     good_host     test_env
+    Clone Assignment  student1  faculty1    cs1     good_host
+    Student Submits    student1    faculty1    cs1    good_host    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_host    "In Docker"
 
 Faculty Updates to Remove Docker Before Publish
     [Tags]    happy_path
