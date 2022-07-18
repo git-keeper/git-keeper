@@ -69,6 +69,19 @@ def signal_handler(signum, frame):
     shutdown_flag = True
 
 
+def verify_core_version_match():
+    """
+    Exits with a non-zero exit code if the gkeepserver version does not match
+    the gkeepcore version.
+    """
+
+    if server_version != core_version:
+        error = 'git-keeper-server and git-keeper-core versions must match.\n'
+        error += 'server version: {}\n'.format(server_version)
+        error += 'core version: {}'.format(core_version)
+        sys.exit(error)
+
+
 def main():
     """
     Entry point of the gkeepd process.
@@ -76,6 +89,8 @@ def main():
     If gkeepd is run with the --version or -v flags, it will print the current
     version and exit.
     """
+
+    verify_core_version_match()
 
     description = ('gkeepd, the git-keeper server, version {}'
                    .format(server_version))
@@ -204,10 +219,4 @@ def main():
 
 
 if __name__ == '__main__':
-    if server_version != core_version:
-        error = 'git-keeper-server and git-keeper-core versions must match.\n'
-        error += 'server version: {}\n'.format(server_version)
-        error += 'core version: {}'.format(core_version)
-        sys.exit(error)
-
     main()
