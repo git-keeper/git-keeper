@@ -41,6 +41,12 @@ class FacultyAddHandler(EventHandler):
         user_exists = False
 
         try:
+            try:
+                _, _ = self._email_address.split('@')
+            except ValueError:
+                raise HandlerException('{} is not an email address'
+                                       .format(self._email_address))
+
             if db.email_exists(self._email_address):
                 username = db.get_username_from_email(self._email_address)
                 if db.faculty_username_exists(username):
@@ -112,12 +118,6 @@ class FacultyAddHandler(EventHandler):
         self._first_name = faculty_dictionary['first_name']
         self._email_address = faculty_dictionary['email_address']
         self._admin = faculty_dictionary['admin']
-
-        try:
-            _, _ = self._email_address.split('@')
-        except ValueError:
-            raise HandlerException('{} is not an email address'
-                                   .format(self._email_address))
 
     def _log_to_faculty(self, event_type, text):
         """
