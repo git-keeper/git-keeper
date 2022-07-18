@@ -67,17 +67,12 @@ class UploadHandler(EventHandler):
 
         assignment_dir = AssignmentDirectory(assignment_path, check=False)
 
-        gkeepd_logger.log_debug('pre-try')
-
         try:
             # validate the fields in test_env.yaml file (including whether the
             # required components that support the environment are in place)
             test_env = TestEnv(os.path.join(self._upload_path,
                                             'test_env.yaml'))
-            gkeepd_logger.log_debug('test env created')
             test_env.verify_env()
-
-            gkeepd_logger.log_info('verified')
 
             if not db.class_is_open(self._class_name, self._faculty_username):
                 raise HandlerException('{} is not open'
