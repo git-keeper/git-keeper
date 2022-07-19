@@ -434,6 +434,19 @@ def run_query(query_type: str, number_of_days: int, output_json: bool):
         list_recent(number_of_days, output_json)
 
 
+def verify_core_version_match():
+    """
+    Exits with a non-zero exit code if the gkeepclient version does not match
+    the gkeepcore version.
+    """
+
+    if client_version != core_version:
+        error = 'git-keeper-client and git-keeper-core versions must match.\n'
+        error += 'client version: {}\n'.format(client_version)
+        error += 'core version: {}'.format(core_version)
+        sys.exit(error)
+
+
 def main():
     """
     gkeep entry point.
@@ -441,6 +454,8 @@ def main():
     Setup the command line argument parser, parse the arguments, and call the
     appropriate function.
     """
+
+    verify_core_version_match()
 
     # Initialize the parser object that will interpret the passed in
     # command line arguments
@@ -536,10 +551,4 @@ def take_action(parsed_args):
 
 
 if __name__ == '__main__':
-    if core_version != client_version:
-        error = 'git-keeper-client and git-keeper-core versions must match.\n'
-        error += 'client version: {}\n'.format(client_version)
-        error += 'core version: {}'.format(core_version)
-        sys.exit(error)
-
     main()
