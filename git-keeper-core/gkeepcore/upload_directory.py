@@ -121,9 +121,7 @@ class UploadDirectory:
             if not os.path.isfile(self.email_path):
                 raise UploadDirectoryError(self.email_path)
 
-            # Verify test_env.yaml if it exists.  This does NOT verify
-            # whether a specified Docker container is valid because this class
-            # is used on the client (where we do not require Docker)
+            # Verify that the appropriate fields are present in test_env.yaml
+            # if it exists.
             if os.path.exists(self.test_env_path):
-                test_env = TestEnv(self.test_env_path)
-                test_env.validate()
+                TestEnv(self.test_env_path)

@@ -31,9 +31,9 @@ from gkeepserver.database import db
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepcore.git_commands import git_clone, git_add_all, git_commit, \
     git_checkout
-from gkeepcore.test_env_yaml import TestEnv
+from gkeepcore.test_env_yaml import TestEnv, TestEnvType
 from gkeepcore.system_commands import cp, sudo_chown, rm, chmod, mv
-from gkeepcore.shell_command import run_command_in_directory
+from gkeepcore.shell_command import run_command
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.reports import reports_clone
 from gkeepserver.server_configuration import config
@@ -90,29 +90,11 @@ class Submission:
             parse_submission_repo_path(self.student_repo_path)
 
         if not db.class_is_open(class_name, faculty_username):
-            # inform the student that the class is closed
-            subject = ('[{0}] class is closed'.format(class_name))
-            body = ('You have pushed a submission for a class that is is '
-                    'closed.')
-            email_sender.enqueue(Email(self.student.email_address, subject,
-                                       body))
-            logger.log_info('{} pushed to {} in {}, which is closed'
-                            .format(self.student.username, assignment_name,
-                                    class_name))
+            self._send_closed_email(class_name, assignment_name)
             return
 
         if db.is_disabled(class_name, assignment_name, faculty_username):
-            # inform the student that the assignment is disabled
-            subject = ('[{0}] assignment {1} is disabled'
-                       .format(class_name, assignment_name))
-            body = ('You have pushed a submission for assignment {} which is '
-                    'disabled. No tests were run on your submission.'
-                    .format(assignment_name))
-            email_sender.enqueue(Email(self.student.email_address, subject,
-                                       body))
-            logger.log_info('{} pushed to {} in {}, which is disabled'
-                            .format(self.student.username, assignment_name,
-                                    class_name))
+            self._send_disabled_email(class_name, assignment_name)
             return
 
         logger.log_debug('Running tests on {0}'.format(self.student_repo_path))
@@ -120,9 +102,6 @@ class Submission:
         temp_path = mkdtemp(dir=user_home_dir(config.tester_user),
                             prefix='{}_'.format(int(time())))
         chmod(temp_path, '770')
-
-        faculty_username, class_name, assignment_name = \
-            parse_submission_repo_path(self.student_repo_path)
 
         temp_assignment_path = os.path.join(temp_path, assignment_name)
 
@@ -135,13 +114,19 @@ class Submission:
         if os.path.exists(self.test_env_path):
             cp(self.test_env_path, temp_path)
 
-        temp_tests_path = os.path.join(temp_path, 'tests')
-
         temp_run_action_sh_path = os.path.join(temp_path, 'run_action.sh')
-        write_run_action_sh(temp_run_action_sh_path, self.tests_path)
 
-        faculty_username, class_name, assignment_name = \
-            parse_submission_repo_path(self.student_repo_path)
+        test_env = TestEnv(self.test_env_path)
+        if test_env.type == TestEnvType.FIREJAIL:
+            # firejail makes the temp directory look like /home/tester from
+            # the tests point of view
+            write_run_action_sh(temp_run_action_sh_path, self.tests_path,
+                                user_home_dir(config.tester_user))
+        elif test_env.type == TestEnvType.DOCKER:
+            write_run_action_sh(temp_run_action_sh_path, self.tests_path)
+        else:
+            write_run_action_sh(temp_run_action_sh_path, self.tests_path,
+                                temp_path)
 
         temp_assignment_path = os.path.join(temp_path, assignment_name)
 
@@ -151,26 +136,21 @@ class Submission:
 
         # execute action.sh and capture the output
         try:
-            # For backwards compatibility to old systems before docker and the
-            # test_env.yaml file, we have to check whether the yaml file exists.
-            # This gives 2 possible ways to run on host: if the file does not
-            # exist (i.e. an assignment created with a previous version of gkeepd
-            # OR if the test_env.yaml file specifies the type is "host"
-            host_cmd = ['sudo', '--user', config.tester_user, '--set-home', 'bash',
-                        temp_run_action_sh_path, temp_assignment_path,
-                        self.student.username, self.student.email_address,
-                        self.student.last_name, self.student.first_name]
-
-            if not os.path.exists(self.test_env_path):
-                cmd = host_cmd
+            test_env = TestEnv(self.test_env_path)
+            if test_env.type == TestEnvType.DOCKER:
+                cmd = self._make_docker_command(temp_path, assignment_name,
+                                                test_env.image)
+            elif test_env.type == TestEnvType.FIREJAIL:
+                cmd = self._make_firejail_command(temp_path, assignment_name,
+                                                  test_env.append_args)
+            elif test_env.type == TestEnvType.HOST:
+                cmd = self._make_host_command(temp_run_action_sh_path,
+                                              temp_assignment_path)
             else:
-                test_env = TestEnv(self.test_env_path)
-                if test_env.type() == 'docker':
-                    cmd = self.make_docker_command(temp_path, assignment_name, test_env.image())
-                else:
-                    cmd = host_cmd
+                raise GkeepException('Unknown test env type {}'
+                                     .format(test_env.type))
 
-            body = run_command_in_directory(temp_tests_path, cmd)
+            body = run_command(cmd)
 
             # send output as email
             subject = ('[{0}] {1} submission test results'
@@ -179,36 +159,8 @@ class Submission:
                                        body, html_pre_body=True))
 
             if self.student.username != faculty_username:
-                # add the report to the reports repository
+                self._add_report(body)
 
-                with reports_clone(self.assignment_dir) as temp_reports_repo_path:
-                    last_first_username = self.student.get_last_first_username()
-
-                    student_report_dir_path = os.path.join(temp_reports_repo_path,
-                                                           last_first_username)
-                    os.makedirs(student_report_dir_path, exist_ok=True)
-
-                    timestamp = strftime('%Y-%m-%d_%H-%M-%S-%Z')
-                    report_filename = 'report-{0}.txt'.format(timestamp)
-                    report_file_path = os.path.join(student_report_dir_path,
-                                                    report_filename)
-
-                    counter = 1
-                    while os.path.exists(report_file_path):
-                        report_filename = 'report-{0}-{1}.txt'.format(timestamp,
-                                                                      counter)
-                        report_file_path = os.path.join(student_report_dir_path,
-                                                        report_filename)
-                        counter += 1
-
-                    with open(report_file_path, 'w') as f:
-                        f.write(body)
-
-                    reports_commit_message = ('Submission report for {}'
-                                              .format(last_first_username))
-
-                    git_add_all(temp_reports_repo_path)
-                    git_commit(temp_reports_repo_path, reports_commit_message)
         except Exception as e:
             report_failure(assignment_name, self.student,
                            self.faculty_email, str(e))
@@ -219,33 +171,120 @@ class Submission:
         logger.log_debug('Done running tests on {0}'
                          .format(self.student_repo_path))
 
-    def make_docker_command(self, temp_path, assignment_name, container_image):
-        temp_assignment_path = os.path.join(temp_path, assignment_name)
+    def _add_report(self, body):
+        # Add the results of running tests to the reports repository
+        with reports_clone(self.assignment_dir) as temp_reports_repo_path:
+            last_first_username = self.student.get_last_first_username()
 
-        return ['docker', 'run', '-v', '{}:/git-keeper-tester'.format(temp_path),
+            student_report_dir_path = os.path.join(temp_reports_repo_path,
+                                                   last_first_username)
+            os.makedirs(student_report_dir_path, exist_ok=True)
+
+            timestamp = strftime('%Y-%m-%d_%H-%M-%S-%Z')
+            report_filename = 'report-{0}.txt'.format(timestamp)
+            report_file_path = os.path.join(student_report_dir_path,
+                                            report_filename)
+
+            counter = 1
+            while os.path.exists(report_file_path):
+                report_filename = 'report-{0}-{1}.txt'.format(timestamp,
+                                                              counter)
+                report_file_path = os.path.join(student_report_dir_path,
+                                                report_filename)
+                counter += 1
+
+            with open(report_file_path, 'w') as f:
+                f.write(body)
+
+            reports_commit_message = ('Submission report for {}'
+                                      .format(last_first_username))
+
+            git_add_all(temp_reports_repo_path)
+            git_commit(temp_reports_repo_path, reports_commit_message)
+
+    def _make_docker_command(self, temp_path, assignment_name,
+                             container_image):
+        return ['docker', 'run', '-v',
+                '{}:/git-keeper-tester'.format(temp_path),
                 container_image, 'bash',
                 '/git-keeper-tester/run_action.sh',
-                temp_assignment_path,
+                os.path.join('/git-keeper-tester/', assignment_name),
                 self.student.username, self.student.email_address,
                 self.student.last_name, self.student.first_name]
 
+    def _make_host_command(self, temp_run_action_sh_path,
+                           temp_assignment_path):
+        return ['sudo', '--user', config.tester_user, '--set-home', 'bash',
+                temp_run_action_sh_path, temp_assignment_path,
+                self.student.username, self.student.email_address,
+                self.student.last_name, self.student.first_name]
 
-def write_run_action_sh(dest_path: str, tests_path: str):
+    def _make_firejail_command(self, temp_path, assignment_name, append_args):
+        tester_home = user_home_dir(config.tester_user)
+
+        cmd = ['sudo', '--user', config.tester_user, '--set-home',
+               'firejail', '--noprofile', '--quiet',
+               '--private={}'.format(temp_path)]
+
+        if append_args is not None:
+            cmd.extend(append_args.split())
+
+        cmd.extend(['bash', os.path.join(tester_home, 'run_action.sh'),
+                    os.path.join(tester_home, assignment_name),
+                    self.student.username, self.student.email_address,
+                    self.student.last_name, self.student.first_name])
+
+        return cmd
+
+    def _send_closed_email(self, class_name, assignment_name):
+        # Send an email to the submitter that the class has closed
+        subject = ('[{0}] class is closed'.format(class_name))
+        body = ('You have pushed a submission for a class that is is '
+                'closed.')
+        email_sender.enqueue(Email(self.student.email_address, subject,
+                                   body))
+        logger.log_info('{} pushed to {} in {}, which is closed'
+                        .format(self.student.username, assignment_name,
+                                class_name))
+
+    def _send_disabled_email(self, class_name, assignment_name):
+        # Send an email to the submitter that the class is disabled
+        subject = ('[{0}] assignment {1} is disabled'
+                   .format(class_name, assignment_name))
+        body = ('You have pushed a submission for assignment {} which is '
+                'disabled. No tests were run on your submission.'
+                .format(assignment_name))
+        email_sender.enqueue(Email(self.student.email_address, subject,
+                                   body))
+        logger.log_info('{} pushed to {} in {}, which is disabled'
+                        .format(self.student.username, assignment_name,
+                                class_name))
+
+
+def write_run_action_sh(dest_path: str, tests_path: str, run_path=None):
     """
     Write run_action.sh before testing.
 
     The contents of the script depend on the type of action script used in the
     uploaded assignment.
 
-    :param dest_path: final path of run_action.sh
+    :param dest_path: directory in which to place run_action.sh
     :param tests_path: path to a directory containing the tests
+    :param run_path: the path containing the tests folder, which will be the
+      same as dest_path unless using firejail
     """
     temp_dir = TemporaryDirectory()
     temp_dir_path = temp_dir.name
 
     temp_run_action_sh_path = os.path.join(temp_dir_path, 'run_action.sh')
 
+    if run_path is None:
+        cd_command = ''
+    else:
+        cd_command = 'cd {}/tests'.format(run_path)
+
     template = '''#!/bin/bash
+{cd_command}
 GLOBAL_TIMEOUT={global_timeout}
 GLOBAL_MEM_LIMIT_MB={global_memory_limit}
 GLOBAL_MEM_LIMIT_KB=$(($GLOBAL_MEM_LIMIT_MB * 1024))
@@ -262,7 +301,8 @@ wait $pid
         raise GkeepException('No valid action script found')
 
     run_action_sh_contents = \
-        template.format(global_timeout=config.tests_timeout,
+        template.format(cd_command=cd_command,
+                        global_timeout=config.tests_timeout,
                         global_memory_limit=config.tests_memory_limit,
                         interpreter=interpreter,
                         script_name=script_name)

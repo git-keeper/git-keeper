@@ -34,32 +34,32 @@ Published Assignment For All Students
     [Tags]  happy_path
     Gkeep Publish Succeeds   faculty1   cs1    good_simple
     Gkeep Trigger Succeeds   faculty1   cs1    good_simple
-    Submission Test Results Email Exists   student1   cs1   good_simple   Done
-    Submission Test Results Email Exists   student2   cs1   good_simple   Done
-    Submission Test Results Email Does Not Exist  faculty1   cs1    good_simple  Done
+    Submission Test Results Email Exists   student1   cs1   good_simple   Unpushed
+    Submission Test Results Email Exists   student2   cs1   good_simple   Unpushed
+    Submission Test Results Email Does Not Exist  faculty1   cs1    good_simple  Unpushed
 
 Published Assignment For One Student
     [Tags]  happy_path
     Gkeep Publish Succeeds   faculty1   cs1    good_simple
     Gkeep Trigger Succeeds   faculty1   cs1    good_simple    student1
-    Submission Test Results Email Exists    student1    cs1    good_simple    Done
-    Submission Test Results Email Does Not Exist  student2   cs1    good_simple    Done
-    Submission Test Results Email Does Not Exist  faculty1   cs1    good_simple    Done
+    Submission Test Results Email Exists    student1    cs1    good_simple    Unpushed
+    Submission Test Results Email Does Not Exist  student2   cs1    good_simple    Unpushed
+    Submission Test Results Email Does Not Exist  faculty1   cs1    good_simple    Unpushed
 
 Published Assignment For Faculty
     [Tags]  happy_path
     Gkeep Publish Succeeds   faculty1   cs1    good_simple
     Gkeep Trigger Succeeds   faculty1   cs1    good_simple    faculty1
-    Submission Test Results Email Exists    faculty1    cs1    good_simple    Done
-    Submission Test Results Email Does Not Exist  student1   cs1    good_simple    Done
-    Submission Test Results Email Does Not Exist  student2   cs1    good_simple    Done
+    Submission Test Results Email Exists    faculty1    cs1    good_simple    Unpushed
+    Submission Test Results Email Does Not Exist  student1   cs1    good_simple    Unpushed
+    Submission Test Results Email Does Not Exist  student2   cs1    good_simple    Unpushed
 
 Unpublished Assignment For Faculty
     [Tags]  happy_path
     Gkeep Trigger Succeeds   faculty1   cs1    good_simple    faculty1
-    Submission Test Results Email Exists    faculty1    cs1    good_simple    Done
-    Submission Test Results Email Does Not Exist  student1   cs1    good_simple    Done
-    Submission Test Results Email Does Not Exist  student2   cs1    good_simple    Done
+    Submission Test Results Email Exists    faculty1    cs1    good_simple    Unpushed
+    Submission Test Results Email Does Not Exist  student1   cs1    good_simple    Unpushed
+    Submission Test Results Email Does Not Exist  student2   cs1    good_simple    Unpushed
 
 Unpublished Assignment For All Students
     [Tags]  error

@@ -18,7 +18,7 @@
 Resource    resources/setup.robot
 Test Setup    Setup Server and Client Accounts
 Suite Setup     Add Docker Images
-Force Tags    gkeepd_launch
+Force Tags    test_env
 
 *** Keywords ***
 
@@ -29,37 +29,59 @@ Setup Server and Client Accounts
     Create Accounts On Client    student1
     Create Git Config    student1
 
+Add Upload and Publish Assignment
+    [Arguments]    ${faculty}    ${class}    ${assignment}
+    Add Assignment To Client    ${faculty}    ${assignment}
+    Gkeep Upload Succeeds    ${faculty}    ${class}    ${assignment}
+    Gkeep Publish Succeeds    ${faculty}    ${class}    ${assignment}
+
 Add Docker Images
     Load Docker Image   gitkeeper/git-keeper-tester:python3.10
 
+
 *** Test Cases ***
+
+Student Submits to Firejail Assignment
+    [Tags]    happy_path
+    Add Upload and Publish Assignment  faculty1  cs1  good_firejail
+    Clone Assignment  student1  faculty1    cs1     good_firejail
+    Student Submits    student1    faculty1    cs1    good_firejail    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_firejail    "|/home/tester/tests|"
+
+Student Submits to Firejail Append Args Assignment
+    [Tags]    happy_path
+    Add Upload and Publish Assignment  faculty1  cs1  good_firejail_append_args
+    Clone Assignment  student1  faculty1    cs1     good_firejail_append_args
+    Student Submits    student1    faculty1    cs1    good_firejail_append_args    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_firejail_append_args    "|/home/tester/tests|"
+
+Firejail Prevents Writing Large File
+    [Tags]    happy_path
+    Add Upload and Publish Assignment  faculty1  cs1  good_firejail_large_file
+    Clone Assignment  student1  faculty1    cs1     good_firejail_large_file
+    Student Submits    student1    faculty1    cs1    good_firejail_large_file    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_firejail_large_file    "File too large"
 
 Student Submits to Docker Assignment
     [Tags]    happy_path
-    Add Assignment to Client  faculty1  good_docker
-    Gkeep Upload Succeeds   faculty1   cs1    good_docker
-    Gkeep Publish Succeeds  faculty1    cs1     good_docker
+    Add Upload and Publish Assignment  faculty1  cs1  good_docker
     Clone Assignment  student1  faculty1    cs1     good_docker
     Student Submits    student1    faculty1    cs1    good_docker    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_docker    "In Docker"
 
-Student Submits to NonDocker Assignment
+Student Submits to No Test Env Assignment
     [Tags]    happy_path
-    Add Assignment to Client  faculty1  good_not_docker
-    Gkeep Upload Succeeds   faculty1   cs1    good_not_docker
-    Gkeep Publish Succeeds  faculty1    cs1     good_not_docker
-    Clone Assignment  student1  faculty1    cs1     good_not_docker
-    Student Submits    student1    faculty1    cs1    good_not_docker    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_not_docker    "On Host"
+    Add Upload and Publish Assignment   faculty1    cs1     good_no_test_env
+    Clone Assignment  student1  faculty1    cs1     good_no_test_env
+    Student Submits    student1    faculty1    cs1    good_no_test_env    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_no_test_env    "On Host"
 
-Student Submits to NonDocker Assignment With On Host Specified
+Student Submits to Host Assignment
     [Tags]    happy_path
-    Add Assignment to Client  faculty1  good_not_docker_test_env
-    Gkeep Upload Succeeds   faculty1   cs1    good_not_docker_test_env
-    Gkeep Publish Succeeds  faculty1    cs1     good_not_docker_test_env
-    Clone Assignment  student1  faculty1    cs1     good_not_docker_test_env
-    Student Submits    student1    faculty1    cs1    good_not_docker_test_env    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_not_docker_test_env    "On Host"
+    Add Upload and Publish Assignment  faculty1    cs1     good_host
+    Clone Assignment  student1  faculty1    cs1     good_host
+    Student Submits    student1    faculty1    cs1    good_host    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_host    "On Host"
 
 Bad YAML Format
     [Tags]  Error
@@ -76,6 +98,16 @@ Bad YAML No Type
     Add Assignment to Client    faculty1    bad_docker_no_type
     Gkeep Upload Fails   faculty1   cs1    bad_docker_no_type
 
+Bad Docker Extra Field
+    [Tags]  Error
+    Add Assignment to Client    faculty1    bad_docker_extra_field
+    Gkeep Upload Fails   faculty1   cs1    bad_docker_extra field
+
+Bad Firejail Extra Field
+    [Tags]  Error
+    Add Assignment to Client    faculty1    bad_firejail_extra_field
+    Gkeep Upload Fails   faculty1   cs1    bad_firejail_extra field
+
 Docker Container Does Not Exist
     [Tags]  Error
     Add Assignment to Client    faculty1    bad_docker_container
@@ -88,25 +120,23 @@ Bad Type in Test Env
 
 Faculty Updates to Include Docker Before Publish
     [Tags]  happy_path
-    Add Assignment to Client  faculty1  good_not_docker
-    Gkeep Upload Succeeds   faculty1   cs1    good_not_docker
-    Add File to Client      faculty1    files/good_test_env.yaml    good_not_docker/test_env.yaml
-    Gkeep Update Succeeds   faculty1    cs1     good_not_docker     all
-    Gkeep Publish Succeeds  faculty1    cs1     good_not_docker
-    Clone Assignment  student1  faculty1    cs1     good_not_docker
-    Student Submits    student1    faculty1    cs1    good_not_docker    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_not_docker    "In Docker"
+    Add Assignment to Client  faculty1  good_host
+    Gkeep Upload Succeeds   faculty1   cs1    good_host
+    Add File to Client      faculty1    files/good_test_env.yaml    good_host/test_env.yaml
+    Gkeep Update Succeeds   faculty1    cs1     good_host     all
+    Gkeep Publish Succeeds  faculty1    cs1     good_host
+    Clone Assignment  student1  faculty1    cs1     good_host
+    Student Submits    student1    faculty1    cs1    good_host    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_host    "In Docker"
 
 Faculty Updates to Include Docker After Publish
     [Tags]  happy_path
-    Add Assignment to Client  faculty1  good_not_docker
-    Gkeep Upload Succeeds   faculty1   cs1    good_not_docker
-    Gkeep Publish Succeeds  faculty1    cs1     good_not_docker
-    Add File to Client      faculty1    files/good_test_env.yaml    good_not_docker/test_env.yaml
-    Gkeep Update Succeeds   faculty1    cs1     good_not_docker     test_env
-    Clone Assignment  student1  faculty1    cs1     good_not_docker
-    Student Submits    student1    faculty1    cs1    good_not_docker    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_not_docker    "In Docker"
+    Add Upload and Publish Assignment   faculty1    cs1     good_host
+    Add File to Client      faculty1    files/good_test_env.yaml    good_host/test_env.yaml
+    Gkeep Update Succeeds   faculty1    cs1     good_host     test_env
+    Clone Assignment  student1  faculty1    cs1     good_host
+    Student Submits    student1    faculty1    cs1    good_host    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_host    "In Docker"
 
 Faculty Updates to Remove Docker Before Publish
     [Tags]    happy_path
@@ -121,9 +151,7 @@ Faculty Updates to Remove Docker Before Publish
 
 Faculty Updates to Remove Docker After Publish
     [Tags]    happy_path
-    Add Assignment to Client  faculty1  good_docker
-    Gkeep Upload Succeeds   faculty1   cs1    good_docker
-    Gkeep Publish Succeeds  faculty1    cs1     good_docker
+    Add Upload and Publish Assignment   faculty1    cs1     good_docker
     Delete File on Client   faculty1    good_docker/test_env.yaml
     Gkeep Update Succeeds   faculty1    cs1     good_docker     test_env
     Clone Assignment  student1  faculty1    cs1     good_docker

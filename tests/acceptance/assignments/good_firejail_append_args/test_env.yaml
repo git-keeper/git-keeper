@@ -1,0 +1,2 @@
+type: firejail
+append_args: --net=none

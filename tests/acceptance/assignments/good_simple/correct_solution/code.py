@@ -1,3 +1,1 @@
-
-def go():
-    return
+print('Done')
