@@ -37,37 +37,19 @@ class FacultyAddHandler(EventHandler):
         Writes success or failure to the gkeepd to faculty log.
         """
 
-        # This will become True if the user exists as a student
-        user_exists = False
-
         try:
+            if not db.is_admin(self._adder_username):
+                error = 'User {} is not an admin'.format(self._adder_username)
+                raise HandlerException(error)
+
             try:
                 _, _ = self._email_address.split('@')
             except ValueError:
                 raise HandlerException('{} is not an email address'
                                        .format(self._email_address))
 
-            if db.email_exists(self._email_address):
-                username = db.get_username_from_email(self._email_address)
-                if db.faculty_username_exists(username):
-                    error = ('A faculty user with email {} already exists'
-                             .format(self._email_address))
-                    raise HandlerException(error)
-                elif db.student_username_exists(username):
-                    user_exists = True
-                else:
-                    error = ('Database inconsistency: a user exists with the '
-                             'email {}, but is not registered as faculty or '
-                             'student').format(self._email_address)
-                    raise HandlerException(error)
-
-            if not db.is_admin(self._adder_username):
-                error = 'User {} is not an admin'.format(self._adder_username)
-                raise HandlerException(error)
-
             faculty = add_faculty(self._last_name, self._first_name,
-                                  self._email_address, self._admin,
-                                  user_exists)
+                                  self._email_address, self._admin)
 
             info_updater.enqueue_full_scan(faculty.username)
 

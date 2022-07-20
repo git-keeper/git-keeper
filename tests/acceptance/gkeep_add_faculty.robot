@@ -63,3 +63,9 @@ Admin Promote And Demote
     Gkeep Admin Promote Succeeds    faculty1    faculty2
     Gkeep Admin Demote Succeeds    faculty2    faculty1
     Gkeep Add Faculty Fails    faculty1    faculty3
+    Gkeepd Is Running
+
+Add Faculty With Same Email Username
+    [Tags]    happy_path
+    Gkeep Add Faculty Succeeds    admin_prof    faculty1
+    Gkeep Add Faculty Succeeds    admin_prof    faculty1     email_domain='gitkeeper.edu'
