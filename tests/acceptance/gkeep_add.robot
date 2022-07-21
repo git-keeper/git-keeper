@@ -71,10 +71,11 @@ Missing CSV
     [Tags]    error
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
-Invalid Username
-    [Tags]    error
-    Add File To Client    faculty1    files/invalid_username.csv   invalid_username.csv
-    Gkeep add Fails    faculty=faculty1    class_name=invalid_username
+Non ASCII Characters
+    [Tags]    happy_path
+    Add File To Client    faculty1    files/non_ascii_characters.csv   non_ascii_characters.csv
+    Gkeep Add Succeeds    faculty=faculty1    class_name=non_ascii_characters
+    User Exists On Server    funny
 
 Existing Student
     [Tags]    error
@@ -133,5 +134,25 @@ Empty CSV
 
 No CSV
     [Tags]  happy_path
-    Make Empty File    faculty1    cs1.csv
     Gkeep Add No CSV Succeeds    faculty=faculty1    class_name=cs1
+
+Uppercase Email
+    [Tags]    happy_path
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=STUDENT1    email_domain=SCHOOL.EDU
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    Class Contains Student    faculty1    cs1    student1
+    User Exists On Server    student1
+
+Different Case Email Username
+    [Tags]    error
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=STUDENT1
+    Gkeep Add Fails    faculty=faculty1    class_name=cs1
+    Gkeepd Is Running
+
+Different Case Email Domain
+    [Tags]    error
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1    email_domain='SCHOOL.EDU'
+    Gkeep Add Fails    faculty=faculty1    class_name=cs1
+    Gkeepd Is Running

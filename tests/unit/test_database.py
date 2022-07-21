@@ -294,6 +294,39 @@ def test_change_student_name(db):
     assert unchanged_student.last_name == 'one'
 
 
+def test_email_case(db):
+    student_all_lower = Student('last', 'first', 'username', 'username@school.edu')
+    student_upper_username = Student('last', 'first', 'USERNAME', 'USERNAME@school.edu')
+
+    db.insert_student(student_all_lower)
+
+    assert db.email_exists('username@school.edu')
+    assert db.email_exists('USERNAME@school.edu')
+
+    with pytest.raises(DatabaseException):
+        db.insert_student(student_upper_username)
+
+    assert db.get_username_from_email('UsErNaMe@school.edu') == 'username'
+
+    assert db._student_id_from_email('username@school.edu') == \
+        db._student_id_from_email('UsErNaMe@school.edu')
+
+    faculty_all_lower = Faculty('last', 'first', 'fuser', 'fuser@school.edu',
+                                False)
+    faculty_upper_username = Faculty('last', 'first', 'FUSER',
+                                     'FUSER@school.edu', False)
+
+    db.insert_faculty(faculty_all_lower)
+
+    assert db.email_exists('fuser@school.edu')
+    assert db.email_exists('FUSER@school.edu')
+
+    with pytest.raises(DatabaseException):
+        db.insert_faculty(faculty_upper_username)
+
+    assert db.get_username_from_email('fUsEr@school.edu') == 'fuser'
+
+
 def test_byte_counts(db):
     byte_counts = {
         'first/path': 100,

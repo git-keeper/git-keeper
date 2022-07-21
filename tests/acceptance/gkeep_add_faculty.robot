@@ -47,6 +47,18 @@ Add Faculty As Non Admin
     Gkeep Add Faculty Fails    faculty1    prof3
     Gkeepd Is Running
 
+Different Case Email
+    [Tags]    error
+    Gkeep Add Faculty Succeeds    admin_prof    faculty1
+    Gkeep Add Faculty Fails    admin_prof    FaCuLtY1
+    Gkeep Add Faculty Fails    admin_prof    faculty1    email_domain='ScHoOl.EdU'
+
+Uppercase Email
+    [Tags]    happy_path
+    Gkeep Add Faculty Succeeds    admin_prof    FACULTY1    email_domain='SCHOOL.EDU'
+    New Account Email Exists    FACULTY1
+    User Exists On Server    faculty1
+
 Admin Promote And Demote
     [Tags]    happy_path
     Gkeep Add Faculty Succeeds    admin_prof    faculty1
