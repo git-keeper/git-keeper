@@ -104,6 +104,7 @@ Student Becomes Faculty
     Student Submits    student1    faculty1    cs1    good_simple    correct_solution
     # student1 now becomes faculty
     Gkeep Add Faculty Succeeds    admin_prof    student1
+    Faculty Role Email Exists    student1
     Add To Class CSV    faculty=student1    class_name=cs2    username=student2
     Gkeep Add Succeeds    faculty=student1    class_name=cs2
     Add Assignment To Client    student1    good_simple

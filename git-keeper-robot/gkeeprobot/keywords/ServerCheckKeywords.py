@@ -58,6 +58,13 @@ class ServerCheckKeywords:
         if result != 'True':
             raise GkeepRobotException('No new account email for {}'.format(username))
 
+    def faculty_role_email_exists(self, username):
+        result = control.run_vm_python_script('keeper', 'email_to.py',
+                                              username, '"git-keeper faculty account"',
+                                              'faculty account')
+        if result != 'True':
+            raise GkeepRobotException('No faculty role email for {}'.format(username))
+
     def gkeepd_check_email_exists(self, username):
         result = control.run_vm_python_script('keeper', 'email_to.py',
                                               username, '"git-keeper test email"',

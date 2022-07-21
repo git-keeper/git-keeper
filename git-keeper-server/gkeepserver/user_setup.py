@@ -264,8 +264,10 @@ def setup_user(username, user_type, first_name, last_name, action,
 
     if user_type == UserType.faculty:
         initialize_gkeepd_to_faculty_log(username)
-
         create_faculty_dirs(username)
+
+        if action == NewUserAction.NEW_DB_ROLE and email_address is not None:
+            email_about_faculty_role(email_address, first_name, username)
 
     if user_type == UserType.student:
         setup_git_shell_commands_directory(username, ['passwd'])
@@ -275,6 +277,24 @@ def setup_user(username, user_type, first_name, last_name, action,
     if email_address is not None and password is not None:
         email_new_user(email_address, first_name, username, password,
                        user_type)
+
+
+def email_about_faculty_role(email_address, first_name, username):
+    """
+    Send an email to a user that was a student and is now faculty.
+
+    :param email_address: email address of the user
+    :param first_name: first name of the user
+    """
+
+    subject = 'git-keeper faculty account'
+    body = ('Hello {},\n\n'
+            'Your git-keeper account "{}" on {} is now a faculty account and '
+            'you may now create classes and assignments. Your credentials are '
+            'unchanged.\n\n'
+            'Enjoy!\n'.format(first_name, username, config.hostname))
+
+    email_sender.enqueue(Email(email_address, subject, body))
 
 
 def email_new_user(email_address, first_name, username, password, user_type):
@@ -301,7 +321,7 @@ def email_new_user(email_address, first_name, username, password, user_type):
                  'instructor rather than responding to this email '
                  'directly.\n\n')
 
-    body += 'Enjoy!'
+    body += 'Enjoy!\n'
 
     if user_type == UserType.student:
         email_priority = EmailPriority.LOW
