@@ -39,9 +39,9 @@ def run_gkeep_json_query(faculty, query):
     try:
         parsed_result = json.loads(result)
     except json.decoder.JSONDecodeError as e:
-        raise GkeepRobotException('Running the following query as {} produced '
-                                  'invalid JSON:\n'
-                                  '{}'.format(faculty, query))
+        raise GkeepRobotException('Running the query "{}" as {} produced '
+                                  'invalid JSON:\n{}'.format(query, faculty,
+                                                             result))
 
     return parsed_result
 
