@@ -138,6 +138,11 @@ class Submission:
         try:
             test_env = TestEnv(self.test_env_path)
             if test_env.type == TestEnvType.DOCKER:
+                # Run a docker pull on the image here so that the output
+                # is not captured in the email.  If the container image is
+                # already on the server, this will return quickly
+                pull_cmd = ['docker', 'pull', test_env.image]
+                run_command(pull_cmd)
                 cmd = self._make_docker_command(temp_path, assignment_name,
                                                 test_env.image)
             elif test_env.type == TestEnvType.FIREJAIL:
