@@ -21,6 +21,7 @@ Event type: UPDATE
 
 import os
 
+from gkeepserver.directory_locks import directory_locks
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_from_log_path, \
     faculty_assignment_dir_path, user_gitkeeper_path
@@ -65,6 +66,10 @@ class UpdateHandler(EventHandler):
                      .format(self._assignment_name, self._class_name))
             raise HandlerException(error)
 
+        with directory_locks.get_lock(assignment_path):
+            self._perform_update(assignment_path)
+
+    def _perform_update(self, assignment_path):
         assignment_dir = None
 
         try:
@@ -76,8 +81,9 @@ class UpdateHandler(EventHandler):
 
             upload_dir = UploadDirectory(self._upload_path, check=False)
 
-            # validate the fields in test_env.yaml file (including whether the
-            # required components that support the environment are in place)
+            # validate the fields in test_env.yaml file (including whether
+            # the required components that support the environment are in
+            # place)
             if os.path.isfile(upload_dir.test_env_path):
                 test_env = TestEnv(os.path.join(self._upload_path,
                                                 'test_env.yaml'))
@@ -85,6 +91,7 @@ class UpdateHandler(EventHandler):
 
             self._update_items(assignment_dir, upload_dir)
             self._replace_faculty_test_assignment(assignment_dir)
+
             log_gkeepd_to_faculty(self._faculty_username, 'UPDATE_SUCCESS',
                                   self._upload_path)
             info = '{0} updated {1} in {2}'.format(self._faculty_username,
