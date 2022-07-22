@@ -332,7 +332,7 @@ def email_new_user(email_address, first_name, username, password, user_type):
                                priority=email_priority))
 
 
-def setup_student_user(student: Student, user_existence: NewUserAction):
+def setup_student_user(student: Student, action: NewUserAction):
     """
     Wrapper that calls setup_user() to add a new student user.
 
@@ -340,13 +340,13 @@ def setup_student_user(student: Student, user_existence: NewUserAction):
     configuration, and their shell is set to git-shell.
 
     :param student: Student object representing the new student
-    :param user_existence: a UserExistance instance indicating the status of
+    :param action: a NewUserAction instance indicating the status of
      the username on the host and in the db
     """
 
     groups = [config.student_group]
     setup_user(student.username, UserType.student,
-               student.first_name, student.last_name, user_existence,
+               student.first_name, student.last_name, action,
                email_address=student.email_address,
                additional_groups=groups, shell='git-shell')
 
