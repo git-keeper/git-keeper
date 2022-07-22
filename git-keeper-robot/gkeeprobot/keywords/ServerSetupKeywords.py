@@ -37,6 +37,9 @@ class ServerSetupKeywords:
         cmd = 'sudo useradd -ms /bin/bash {}'.format(faculty_name)
         control.run('keeper', cmd)
 
+    def make_empty_dot_gitkeeper_directory(self, username):
+        control.run('keeper', 'sudo -u {} mkdir /home/{}/.gitkeeper'.format(username, username))
+
     def reset_server(self):
         control.run_vm_python_script('keeper', 'reset_server.py')
 

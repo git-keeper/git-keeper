@@ -40,7 +40,7 @@ Valid Class
     Class Contains Student    faculty1    cs1    student1
     Class Contains Student    faculty1    cs1    student2
 
-Same Email Username
+Add Students With Same Email Username
     [Tags]    happy_path
     Add To Class CSV    faculty=faculty1    class_name=cs1    username=user    email_domain=one.edu
     Add To Class CSV    faculty=faculty1    class_name=cs1    username=user    email_domain=two.edu
