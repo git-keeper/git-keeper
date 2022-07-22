@@ -26,7 +26,8 @@ from gkeepcore.student import students_from_csv, Student
 from gkeepcore.system_commands import user_exists, mkdir, sudo_chown
 from gkeepserver.assignments import get_class_assignment_dirs, \
     setup_student_assignment, student_assignment_exists, StudentAssignmentError
-from gkeepserver.user_setup import create_student_user
+from gkeepserver.user_setup import setup_student_user, \
+    validate_home_directory_for_new_user, NewUserAction
 from gkeepserver.database import db, DatabaseException
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
@@ -79,40 +80,61 @@ class StudentsAddHandler(EventHandler):
         # Add class directory in students' home directories. Add student
         # accounts if necessary.
 
-        # students we need to add accounts for
-        new_users = []
-        # students who are already faculty users
-        faculty_users = []
+        # will be a list of (student, action) tuples, associating new student
+        # users with the appropriate action to take
+        student_actions = []
 
-        # determine if students are new users or faculty users
+        # associate each new student user with an action
         for student in students:
-            if not db.email_exists(student.email_address):
-                new_users.append(student)
-            else:
+            if db.email_exists(student.email_address):
+                # email is in the database, but the username may not match
+                # the email username
                 student.username = \
                     db.get_username_from_email(student.email_address)
-                if db.faculty_username_exists(student.username):
-                    faculty_users.append(student)
+                if (db.faculty_username_exists(student.username) and
+                        not db.student_username_exists(student.username)):
+                    # email is associated with a faculty account, but not yet
+                    # a student account
+                    student_actions.append((student,
+                                            NewUserAction.NEW_DB_ROLE))
+            elif db.student_username_exists(student.username):
+                # student's email is not in the database but the email username
+                # is, so we need to make a new account with a modified username
+                # and add a new user to the database
+                student_actions.append((student,
+                                        NewUserAction.NEW_USER_NEW_DB))
+            elif user_exists(student.username):
+                # student email is not in the db and their email username is
+                # not in the db, but their email username exists as an account
+                # on the server so use that account
+                student_actions.append((student,
+                                        NewUserAction.SETUP_EXISTING_USER))
+            else:
+                # the student's email is not in the db, nor is there a user
+                # on the server with the email username, so we'll add
+                # everything
+                student_actions.append((student,
+                                        NewUserAction.NEW_USER_NEW_DB))
 
-        # create new student accounts
-        for student in new_users:
-            try:
-                db.insert_student(student)
-                if not user_exists(student.username):
-                    create_student_user(student)
-            except Exception as e:
-                error = ('Error adding student with email {0}: {1}'
-                         .format(student.email_address, e))
-                raise HandlerException(error)
-
-        # update the database for students that are already faculty users
-        for student in faculty_users:
-            try:
-                db.insert_student(student, user_exists=True)
-            except Exception as e:
-                error = ('Error adding faculty user with email {} '
-                         'as a student: {}'.format(student.email_address, e))
-                raise HandlerException(error)
+        # take actions as determined in the loop above
+        for student, action in student_actions:
+            if action == NewUserAction.NEW_DB_ROLE:
+                try:
+                    db.insert_student(student, user_exists=True)
+                except Exception as e:
+                    error = ('Error adding faculty user with email {} '
+                             'as a student: {}'.format(student.email_address, e))
+                    raise HandlerException(error)
+            else:
+                try:
+                    if action == NewUserAction.SETUP_EXISTING_USER:
+                        validate_home_directory_for_new_user(student.username)
+                    db.insert_student(student)
+                    setup_student_user(student, action)
+                except Exception as e:
+                    error = ('Error adding student with email {0}: {1}'
+                             .format(student.email_address, e))
+                    raise HandlerException(error)
 
         for student in students:
             home_dir = user_home_dir(student.username)
@@ -236,7 +258,6 @@ class StudentsAddHandler(EventHandler):
         """
 
         self._log_to_faculty('STUDENTS_ADD_ERROR', error)
-
 
     def _log_warning_to_faculty(self, warning):
         """

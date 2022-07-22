@@ -134,11 +134,6 @@ class AssignmentDirectory:
             if self.action_script is None:
                 raise AssignmentDirectoryError('action script')
 
-            # ensure there is a test_env.yaml.  It is optional on the
-            # client, but a default version is made on upload/update
-            if not os.path.isfile(self.test_env_path):
-                raise AssignmentDirectoryError('test_env.yaml')
-
 
 def get_assignment_dir(faculty_username: str, class_name: str,
                        assignment_name: str) -> AssignmentDirectory:

@@ -39,9 +39,9 @@ def run_gkeep_json_query(faculty, query):
     try:
         parsed_result = json.loads(result)
     except json.decoder.JSONDecodeError as e:
-        raise GkeepRobotException('Running the following query as {} produced '
-                                  'invalid JSON:\n'
-                                  '{}'.format(faculty, query))
+        raise GkeepRobotException('Running the query "{}" as {} produced '
+                                  'invalid JSON:\n{}'.format(query, faculty,
+                                                             result))
 
     return parsed_result
 
@@ -183,25 +183,29 @@ class ClientCheckKeywords:
                     .format(last_name, first_name, username, class_name))
             raise GkeepRobotException(error)
 
-    def gkeep_add_faculty_succeeds(self, admin, new_faculty):
+    def gkeep_add_faculty_succeeds(self, admin, new_faculty,
+                                   email_domain='school.edu'):
         last_name = 'Professor'
         first_name = 'Doctor'
-        email_address = '{}@school.edu'.format(new_faculty)
+        email_address = '{}@{}'.format(new_faculty, email_domain)
 
         client_control.run(admin, 'gkeep add_faculty {} {} {}'
                                    .format(last_name, first_name,
                                            email_address))
 
-    def gkeep_add_faculty_fails(self, admin, new_faculty):
+    def gkeep_add_faculty_fails(self, admin, new_faculty,
+                                email_domain='school.edu'):
         last_name = 'Professor'
         first_name = 'Doctor'
-        email_address = '{}@school.edu'.format(new_faculty)
+        email_address = '{}@{}'.format(new_faculty, email_domain)
+
+        gkeep_command = ('gkeep add_faculty {} {} {}'
+                         .format(last_name, first_name, email_address))
 
         try:
-            client_control.run(admin, 'gkeep add_faculty {} {} {}'
-                                       .format(last_name, first_name,
-                                               email_address))
-            error = 'gkeep add_faculty should have non-zero return'
+            client_control.run(admin, gkeep_command)
+            error = ('Command "{}" should have non-zero return'
+                     .format(gkeep_command))
             raise GkeepRobotException(error)
         except ExitCodeException:
             pass

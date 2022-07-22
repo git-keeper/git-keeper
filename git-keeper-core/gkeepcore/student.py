@@ -81,8 +81,6 @@ class Student:
                      .format(email_address))
             raise StudentError(error)
 
-        validate_username(username)
-
         return cls(last_name, first_name, username, email_address)
 
     def __repr__(self) -> str:
