@@ -150,12 +150,14 @@ class Database:
     def email_exists(self, email_address):
         """
         Determines whether or not a user with the given email address exists
-        in the database.
+        in the database. Matching is case-insensitive.
 
         :param email_address: the email address to check
         :return: True if the email address exists, False if not
         """
-        query = DBUser.select().where(DBUser.email_address == email_address)
+
+        lower_email = pw.fn.LOWER(DBUser.email_address)
+        query = DBUser.select().where(lower_email == email_address.lower())
         return query.exists()
 
     def get_username_from_email(self, email_address):
@@ -168,7 +170,8 @@ class Database:
         :return: username of the user
         """
         try:
-            return DBUser.get(DBUser.email_address == email_address).username
+            lower_email = pw.fn.LOWER(DBUser.email_address)
+            return DBUser.get(lower_email == email_address.lower()).username
         except DBUser.DoesNotExist:
             error = 'No user with email address {}'.format(email_address)
             raise DatabaseException(error)
@@ -315,12 +318,13 @@ class Database:
         """
 
         try:
+            lower_email = pw.fn.LOWER(DBUser.email_address)
             user = (DBUser
                     .select(DBUser.username, DBUser.email_address,
                             DBFacultyUser.first_name, DBFacultyUser.last_name,
                             DBFacultyUser.admin)
                     .join(DBFacultyUser)
-                    .where(DBUser.email_address == email_address)).get()
+                    .where(lower_email == email_address.lower())).get()
             return Faculty(user.dbfacultyuser.last_name,
                            user.dbfacultyuser.first_name,
                            user.username, user.email_address,
@@ -1072,8 +1076,9 @@ class Database:
 
     def _student_id_from_email(self, email_address):
         try:
+            lower_email = pw.fn.LOWER(DBUser.email_address)
             student = DBUser.select().join(DBStudentUser).where(
-                (DBUser.email_address == email_address)
+                (lower_email == email_address.lower())
             ).get()
             return student.id
         except DBUser.DoesNotExist:

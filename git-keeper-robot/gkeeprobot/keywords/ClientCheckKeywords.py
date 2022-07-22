@@ -193,16 +193,19 @@ class ClientCheckKeywords:
                                    .format(last_name, first_name,
                                            email_address))
 
-    def gkeep_add_faculty_fails(self, admin, new_faculty):
+    def gkeep_add_faculty_fails(self, admin, new_faculty,
+                                email_domain='school.edu'):
         last_name = 'Professor'
         first_name = 'Doctor'
-        email_address = '{}@school.edu'.format(new_faculty)
+        email_address = '{}@{}'.format(new_faculty, email_domain)
+
+        gkeep_command = ('gkeep add_faculty {} {} {}'
+                         .format(last_name, first_name, email_address))
 
         try:
-            client_control.run(admin, 'gkeep add_faculty {} {} {}'
-                                       .format(last_name, first_name,
-                                               email_address))
-            error = 'gkeep add_faculty should have non-zero return'
+            client_control.run(admin, gkeep_command)
+            error = ('Command "{}" should have non-zero return'
+                     .format(gkeep_command))
             raise GkeepRobotException(error)
         except ExitCodeException:
             pass
