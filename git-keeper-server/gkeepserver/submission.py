@@ -35,6 +35,7 @@ from gkeepcore.test_env_yaml import TestEnv, TestEnvType
 from gkeepcore.system_commands import cp, sudo_chown, rm, chmod, mv
 from gkeepcore.shell_command import run_command
 from gkeepserver.email_sender_thread import email_sender
+from gkeepserver.info_update_thread import info_updater
 from gkeepserver.reports import reports_clone
 from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email
@@ -165,6 +166,10 @@ class Submission:
 
             if self.student.username != faculty_username:
                 self._add_report(body)
+                info_updater.enqueue_submission_scan(self.faculty_username,
+                                                     self.class_name,
+                                                     self.assignment_name,
+                                                     self.student.username)
 
         except Exception as e:
             report_failure(assignment_name, self.student,
