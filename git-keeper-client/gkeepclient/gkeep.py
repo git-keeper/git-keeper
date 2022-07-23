@@ -546,8 +546,7 @@ def take_action(parsed_args):
     elif action_name == 'admin_demote':
         admin_demote(parsed_args.email_address)
     elif action_name == 'test':
-        test_solution(class_name, parsed_args.assignment_name,
-                      parsed_args.solution_path)
+        test_solution(class_name, assignment_name, parsed_args.solution_path)
 
 
 if __name__ == '__main__':
