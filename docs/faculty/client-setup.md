@@ -1,8 +1,9 @@
 # Client Setup
 
 This guide details how to setup a faculty machine to use the git-keeper
-client. The client has been used successfully in OS X and Linux. It may work
-in Windows using Cygwin or the Windows Subsystem for Linux but that has not been tested.
+client. The client has been used successfully in OS X and Linux. It may work in
+Windows using Cygwin or the Windows Subsystem for Linux but that has not been
+tested.
 
 ## Requirements
 
@@ -13,19 +14,12 @@ The client requires Git and Python3.
 If you run `git` in a terminal it will prompt you to install the Xcode tools
 (which contain Git) if they are not already installed.
 
-Download and install Python3.
-
-The `cryptography` package is required to use SSH through Python. Once Python3
-is installed, install the `cryptography` package using `pip3`:
-
-```
-pip3 install cryptography
-```
+Download and install Python3 from [python.org](https://www.python.org/).
 
 ### Linux
 
-These dependencies should be straightforward to install on a Linux system
-through your distribution's package manager.
+Git and Python3 should be straightforward to install on a Linux system through
+your distribution's package manager.
 
 ## Installing the Client
 
@@ -35,18 +29,23 @@ To install the client system-wide, run the following command:
 sudo python3 -m pip install git-keeper-client
 ```
 
-Alternatively, you may want to install the client in a Python virtual environment if you do not like to clutter your system's Python packages.
+Alternatively, you may want to install the client in a
+[Python virtual environment](https://docs.python.org/3/tutorial/venv.html) if
+you do not want to clutter your system's Python packages.
 
 ## Configuration
 
-There must be a configuration file at `~/.config/git-keeper/client.cfg`.
+There must be a configuration file at `~/.config/git-keeper/client.cfg`. You
+may create this file manually, or use the `gkeep config` command to generate it
+for you.
 
 `client.cfg` requires a section called `[server]` which defines the hostname of
 the server, your faculty username on the server, and optionally the SSH
 server's port number which defaults to 22.
 
 There is also an optional section `[local]` in which you can define a directory
-into which `gkeep` will fetch submissions.  If present, this *must* be an absolute path.
+into which `gkeep` will fetch submissions.  If present, this *must* be an
+absolute path.
 
 Here is an example `client.cfg`:
 
