@@ -290,15 +290,15 @@ class ClientCheckKeywords:
 
     def gkeep_trigger_succeeds(self, faculty, course_name, assignment_name, student_name=None):
         if student_name is None:
-            client_control.run(faculty, 'gkeep trigger {} {}'.format(course_name, assignment_name))
+            client_control.run(faculty, 'gkeep -y trigger {} {}'.format(course_name, assignment_name))
         else:
-            client_control.run(faculty, 'gkeep trigger {} {} {}'.format(course_name, assignment_name, student_name))
+            client_control.run(faculty, 'gkeep -y trigger {} {} {}'.format(course_name, assignment_name, student_name))
 
     def gkeep_trigger_fails(self, faculty, course_name, assignment_name, student_name=None):
         if student_name is None:
-            cmd = 'gkeep trigger {} {}'.format(course_name, assignment_name)
+            cmd = 'gkeep -y trigger {} {}'.format(course_name, assignment_name)
         else:
-            cmd = 'gkeep trigger {} {} {}'.format(course_name, assignment_name, student_name)
+            cmd = 'gkeep -y trigger {} {} {}'.format(course_name, assignment_name, student_name)
 
         try:
             client_control.run(faculty, cmd)
