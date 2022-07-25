@@ -73,7 +73,7 @@ def class_add(class_name: str, csv_file_path: str, yes: bool):
 
     communicate_event('CLASS_ADD', class_name,
                       success_message='Class added successfully',
-                      error_message='Error adding class:',
+                      error_message='Error adding class: ',
                       timeout_message='Server response timeout. '
                                       'Class add status unknown')
 
@@ -95,7 +95,7 @@ def class_add(class_name: str, csv_file_path: str, yes: bool):
 
     communicate_event('STUDENTS_ADD', payload,
                       success_message='Students added successfully',
-                      error_message='Error adding students:',
+                      error_message='Error adding students: ',
                       timeout_message='Server response timeout. '
                                       'Students add status unknown')
 
@@ -285,7 +285,7 @@ def update_status(class_name: str, status: str):
 
     communicate_event('CLASS_STATUS', payload,
                       success_message='Status updated successfully',
-                      error_message='Error updating status:',
+                      error_message='Error updating status: ',
                       timeout_message='Server response timeout. '
                                       'Status of status update unknown')
 
@@ -314,7 +314,7 @@ def add_faculty(last_name: str, first_name: str, email_address: str,
 
     communicate_event('FACULTY_ADD', payload,
                       success_message='Faculty added successfully',
-                      error_message='Error adding faculty:',
+                      error_message='Error adding faculty: ',
                       timeout_message='Server response timeout. '
                                       'Status of adding faculty unknown')
 
@@ -388,7 +388,7 @@ def delete_assignment(class_name: str, assignment_name: str,
 
     communicate_event('DELETE', payload,
                       success_message='Assignment deleted successfully',
-                      error_message='Error deleting response:',
+                      error_message='Error deleting response: ',
                       timeout_message='Server response timeout. '
                                       'Delete status unknown')
 
@@ -457,7 +457,7 @@ def publish_assignment(class_name: str, assignment_name: str):
 
     communicate_event('PUBLISH', payload,
                       success_message='Assignment successfully published',
-                      error_message='Error publishing assignment:',
+                      error_message='Error publishing assignment: ',
                       timeout_message='Server response timeout. '
                                       'Publish status unknown.')
 
@@ -515,7 +515,7 @@ def trigger_tests(class_name: str, assignment_name: str,
 
     communicate_event('TRIGGER', payload, response_timeout=response_timeout,
                       success_message='Tests triggered successfully',
-                      error_message='Error triggering tests:',
+                      error_message='Error triggering tests: ',
                       timeout_message='Server response timeout. '
                                       'Triggering status unknown')
 
@@ -605,7 +605,7 @@ def update_assignment(class_name: str, upload_dir_path: str,
 
     communicate_event('UPDATE', payload, response_timeout=response_timeout,
                       success_message='Assignment updated successfully',
-                      error_message='Error updating assignment:',
+                      error_message='Error updating assignment: ',
                       timeout_message='Server response timeout. '
                                       'Update status unknown')
 
@@ -680,7 +680,7 @@ def upload_assignment(class_name: str, upload_dir_path: str):
 
     communicate_event('UPLOAD', payload,
                       success_message='Assignment uploaded successfully',
-                      error_message='Error uploading assignment:',
+                      error_message='Error uploading assignment: ',
                       timeout_message='Server response timeout. '
                                       'Upload status unknown')
 
