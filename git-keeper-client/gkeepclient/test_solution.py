@@ -94,5 +94,5 @@ def test_solution(class_name: str, assignment_name: str, solution_path: str):
     else:
         print('Solution is up to date with remote, using gkeep trigger to '
               'trigger tests')
-        trigger_tests(class_name, assignment_name, [server_username])
+        trigger_tests(class_name, assignment_name, [server_username], yes=True)
         print('You should receive a report via email')
