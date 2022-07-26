@@ -64,7 +64,6 @@ Attributes:
     faculty_json_path - path to file containing faculty members
     faculty_log_dir_path - path to directory containing faculty event logs
 
-    DO NOT USE UNTIL FIXED
     test_thread_count - maximum number of threads for testing student code
 
     from_name - the name that emails are from
