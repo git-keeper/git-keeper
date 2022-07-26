@@ -469,7 +469,7 @@ def publish_assignment(class_name: str, assignment_name: str):
 @assignment_exists
 @assignment_not_disabled
 def trigger_tests(class_name: str, assignment_name: str,
-                  student_usernames: list, response_timeout=20):
+                  student_usernames: list, yes: bool, response_timeout=20):
     """
     Trigger tests to be run on the server.
 
@@ -480,6 +480,7 @@ def trigger_tests(class_name: str, assignment_name: str,
     :param assignment_name: name of the assignment
     :param student_usernames: list of student usernames for whom tests should
     be run, or an empty list for all students
+    :param yes: if True, will automatically answer yes to confirmation prompts
     :param response_timeout: seconds to wait for server response
     """
 
@@ -506,7 +507,14 @@ def trigger_tests(class_name: str, assignment_name: str,
                 error = ('No student {0} in {1}'.format(username, class_name))
                 raise GkeepException(error)
 
-    print('Triggering tests for', assignment_name, 'in class', class_name)
+    print('Triggering tests for', assignment_name, 'in class', class_name,
+          'for the following students:')
+
+    for username in student_usernames:
+        print(username)
+
+    if not yes and not confirmation('Proceed?', 'y'):
+        raise GkeepException('Aborting')
 
     payload = '{0} {1}'.format(class_name, assignment_name)
 

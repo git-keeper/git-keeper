@@ -531,7 +531,7 @@ def take_action(parsed_args):
                   parsed_args.json)
     elif action_name == 'trigger':
         trigger_tests(class_name, assignment_name,
-                      parsed_args.student_usernames)
+                      parsed_args.student_usernames, parsed_args.yes)
     elif action_name == 'passwd':
         reset_password(parsed_args.username)
     elif action_name == 'config':
