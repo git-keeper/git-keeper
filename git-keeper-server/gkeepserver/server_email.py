@@ -152,7 +152,8 @@ class Email:
 
         # attach the body
         if html_pre_body and config.use_html:
-            html_body = '<pre>{}</pre>\r\n'.format(html.escape(self._body))
+            template = '<html><head></head><body><pre>{}</pre></body></html>'
+            html_body = template.format(html.escape(self._body))
             message.attach(MIMEText(self._body, 'plain', _charset='utf-8'))
             message.attach(MIMEText(html_body, 'html', _charset='utf-8'))
         else:
