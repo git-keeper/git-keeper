@@ -201,7 +201,7 @@ def verify_docker_image(image):
           this should only be run on the server.
     """
     # This command taken from https://github.com/distribution/distribution/issues/2412
-    cmd = ['docker', 'buildx', 'imagetools', 'inspect', image]
+    cmd = ['docker', 'manifest', 'inspect', image]
     try:
         run_command(cmd)
     except CommandError:
