@@ -202,7 +202,7 @@ class ServerConfiguration:
         self.email_username = None
         self.email_password = None
         self.email_interval = 2
-        self.use_html = False
+        self.use_html = True
 
         # admin
         self.admin_email = None
