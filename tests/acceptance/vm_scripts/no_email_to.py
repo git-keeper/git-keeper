@@ -20,7 +20,7 @@ import sys
 
 @polling
 def no_email_to(to):
-    if len(glob.glob('/email/{}_*.txt'.format(to))) is 0:
+    if len(glob.glob('/email/{}_*.txt'.format(to))) == 0:
         return True
     return False
 

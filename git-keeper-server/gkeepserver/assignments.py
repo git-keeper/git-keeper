@@ -34,6 +34,7 @@ from gkeepcore.path_utils import parse_faculty_assignment_path, \
 from gkeepcore.shell_command import CommandError
 from gkeepcore.system_commands import cp, chmod, mkdir, sudo_chown, rm
 from gkeepserver.database import db
+from gkeepserver.directory_locks import directory_locks
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email, EmailException, EmailPriority
@@ -112,25 +113,26 @@ class AssignmentDirectory:
         Raise AssignmentDirectoryError if check fails.
         """
 
-        if self.class_name is None or self.assignment_name is None:
-            error = '{0} is not a valid assignment path'.format(self.path)
-            raise AssignmentDirectoryError(error)
+        with directory_locks.get_lock(self.path):
+            if self.class_name is None or self.assignment_name is None:
+                error = '{0} is not a valid assignment path'.format(self.path)
+                raise AssignmentDirectoryError(error)
 
-        # ensure all required directories exist
-        for dir_path in (self.path, self.base_code_repo_path,
-                         self.reports_repo_path, self.tests_path):
-            if not os.path.isdir(dir_path):
-                raise AssignmentDirectoryError(dir_path)
+            # ensure all required directories exist
+            for dir_path in (self.path, self.base_code_repo_path,
+                             self.reports_repo_path, self.tests_path):
+                if not os.path.isdir(dir_path):
+                    raise AssignmentDirectoryError(dir_path)
 
-        # ensure email.txt exists
-        if not os.path.isfile(self.email_path):
-            raise AssignmentDirectoryError(self.email_path)
+            # ensure email.txt exists
+            if not os.path.isfile(self.email_path):
+                raise AssignmentDirectoryError(self.email_path)
 
-        # ensure there is an action script
-        self.action_script, self.action_script_interpreter = \
-            get_action_script_and_interpreter(self.tests_path)
-        if self.action_script is None:
-            raise AssignmentDirectoryError('action script')
+            # ensure there is an action script
+            self.action_script, self.action_script_interpreter = \
+                get_action_script_and_interpreter(self.tests_path)
+            if self.action_script is None:
+                raise AssignmentDirectoryError('action script')
 
 
 def get_assignment_dir(faculty_username: str, class_name: str,
@@ -150,6 +152,32 @@ def get_assignment_dir(faculty_username: str, class_name: str,
                                     user_gitkeeper_path(faculty_username))
 
     return AssignmentDirectory(assignment_path)
+
+
+def get_class_assignment_paths(faculty_username: str, class_name: str,
+                               include_inactive=False) -> list:
+    """
+    Get a list of all the paths for all the assignment directories for a class.
+
+    :param faculty_username: faculty who owns the class
+    :param class_name: name of the class
+    :param include_inactive: if True, inactive assignments will be included
+    :return: list of AssignmentDirectory objects
+    """
+    class_path = faculty_class_dir_path(class_name,
+                                        user_gitkeeper_path(faculty_username))
+
+    assignment_paths = []
+
+    if not os.path.isdir(class_path):
+        return assignment_paths
+
+    for assignment in db.get_class_assignments(class_name, faculty_username,
+                                               include_inactive):
+        path = os.path.join(class_path, assignment.name)
+        assignment_paths.append(path)
+
+    return assignment_paths
 
 
 def get_class_assignment_dirs(faculty_username: str, class_name: str,

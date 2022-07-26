@@ -23,6 +23,7 @@ import os
 from time import strftime, time
 from tempfile import TemporaryDirectory, mkdtemp
 
+from gkeepserver.directory_locks import directory_locks
 from gkeepcore.action_scripts import get_action_script_and_interpreter
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.student import Student
@@ -110,14 +111,15 @@ class Submission:
         git_checkout(temp_assignment_path, self.commit_hash)
 
         # copy the tests - this creates a tests folder inside the temp dir
-        cp(self.tests_path, temp_path, recursive=True)
-        # copy the test_env.yaml file (if present)
-        if os.path.exists(self.test_env_path):
-            cp(self.test_env_path, temp_path)
+        with directory_locks.get_lock(self.assignment_dir.path):
+            cp(self.tests_path, temp_path, recursive=True)
+            # copy the test_env.yaml file (if present)
+            if os.path.exists(self.test_env_path):
+                cp(self.test_env_path, temp_path)
 
         temp_run_action_sh_path = os.path.join(temp_path, 'run_action.sh')
 
-        test_env = TestEnv(self.test_env_path)
+        test_env = TestEnv(os.path.join(temp_path, 'test_env.yaml'))
         if test_env.type == TestEnvType.FIREJAIL:
             # firejail makes the temp directory look like /home/tester from
             # the tests point of view
@@ -165,7 +167,8 @@ class Submission:
                                        body, html_pre_body=True))
 
             if self.student.username != faculty_username:
-                self._add_report(body)
+                with directory_locks.get_lock(self.assignment_dir.path):
+                    self._add_report(body)
                 info_updater.enqueue_submission_scan(self.faculty_username,
                                                      self.class_name,
                                                      self.assignment_name,
