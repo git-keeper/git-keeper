@@ -39,6 +39,7 @@ from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, \
     upload_assignment, trigger_tests, update_status, add_faculty, \
     reset_password, admin_promote, admin_demote, disable_assignment
+from gkeepclient.new_assignment import new_assignment
 from gkeepclient.test_solution import test_solution
 from gkeepclient.queries import list_classes, list_assignments, \
     list_students, list_recent
@@ -371,6 +372,19 @@ def add_admin_demote_subparser(subparsers):
                            help='email address of the faculty member')
 
 
+def add_new_assignment_subparser(subparsers):
+    """
+    Add a subparser for action 'new_assignment', which creates the directories
+    and files for a new assignment.
+
+    :param subparsers: subparsers to add to
+    """
+    subparser = subparsers.add_parser('new_assignment',
+                                      help='create a directory containing base files for a new assignment')
+    subparser.add_argument('assignment_path', metavar='<path to assignment folder>',
+                           help='path to base folder holding the files for the assignment')
+
+
 def initialize_action_parser() -> GraderParser:
     """
     Initialize a GraderParser object.
@@ -395,6 +409,7 @@ def initialize_action_parser() -> GraderParser:
     # add subparsers
     add_add_subparser(subparsers)
     add_modify_subparser(subparsers)
+    add_new_assignment_subparser(subparsers)
     add_upload_subparser(subparsers)
     add_update_subparser(subparsers)
     add_publish_subparser(subparsers)
@@ -507,6 +522,8 @@ def take_action(parsed_args):
         class_add(class_name, parsed_args.csv_file_path, parsed_args.yes)
     elif action_name == 'modify':
         class_modify(class_name, parsed_args.csv_file_path, parsed_args.yes)
+    elif action_name == 'new_assignment':
+        new_assignment(parsed_args.assignment_path)
     elif action_name == 'upload':
         upload_assignment(class_name, parsed_args.assignment_path)
     elif action_name == 'update':
