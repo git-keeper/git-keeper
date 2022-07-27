@@ -14,10 +14,26 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-from gkeepcore.system_commands import mkdir, touch
+from gkeepcore.system_commands import mkdir, touch, cp
+from gkeepcore.gkeep_exception import GkeepException
+import os
 
 
-def new_assignment(assignment_path):
+def new_assignment(assignment_path, assignment_template=None):
+    """
+    Create the files and folders for a new assignment
+
+    :param assignment_path: path where the assignment should be created
+    :param assignment_template: the base files to use to create the assignment
+    """
+
+    if assignment_template is None:
+        new_default_assignment(assignment_path)
+    else:
+        new_assignment_from_template(assignment_path, assignment_template)
+
+
+def new_default_assignment(assignment_path):
     mkdir(assignment_path)
     mkdir('{}/base_code'.format(assignment_path))
     touch('{}/email.txt'.format(assignment_path))
@@ -38,3 +54,10 @@ def new_assignment(assignment_path):
 '''
     with open('{}/assignment.cfg'.format(assignment_path), 'w') as f:
         f.write(template)
+
+
+def new_assignment_from_template(assignment_path, assignment_template):
+    template_path = os.path.expanduser('~/.config/git-keeper/templates/{}'.format(assignment_template))
+    if not os.path.exists(template_path):
+        raise GkeepException('Unknown template: {}'.format(template_path))
+    cp(template_path, assignment_path, recursive=True)

@@ -383,6 +383,9 @@ def add_new_assignment_subparser(subparsers):
                                       help='create a directory containing base files for a new assignment')
     subparser.add_argument('assignment_path', metavar='<path to assignment folder>',
                            help='path to base folder holding the files for the assignment')
+    subparser.add_argument('template_name', type=str, metavar='<template name>',
+                           help='name of the template to use for the assignment (optional)',
+                           default=None, nargs='?')
 
 
 def initialize_action_parser() -> GraderParser:
@@ -523,7 +526,7 @@ def take_action(parsed_args):
     elif action_name == 'modify':
         class_modify(class_name, parsed_args.csv_file_path, parsed_args.yes)
     elif action_name == 'new_assignment':
-        new_assignment(parsed_args.assignment_path)
+        new_assignment(parsed_args.assignment_path, parsed_args.template_name)
     elif action_name == 'upload':
         upload_assignment(class_name, parsed_args.assignment_path)
     elif action_name == 'update':
