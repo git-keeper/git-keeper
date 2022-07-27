@@ -27,14 +27,13 @@ from gkeepcore.path_utils import user_from_log_path, \
     faculty_assignment_dir_path, user_gitkeeper_path
 from gkeepcore.shell_command import CommandError
 from gkeepcore.system_commands import chmod, sudo_chown, rm, mkdir
-from gkeepcore.test_env_yaml import TestEnv, TestEnvType, verify_docker_installed, verify_docker_image, \
-    verify_firejail_installed
+from gkeepcore.assignment_config import TestEnv, AssignmentConfig
 from gkeepcore.upload_directory import UploadDirectory, UploadDirectoryError
 from gkeepcore.valid_names import validate_assignment_name
 from gkeepserver.assignments import AssignmentDirectory, \
     AssignmentDirectoryError, create_base_code_repo, copy_email_txt_file, \
     copy_tests_dir, setup_student_assignment, StudentAssignmentError, \
-    copy_test_env_yaml_file
+    copy_config_file
 from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
@@ -50,7 +49,7 @@ class UploadHandler(EventHandler):
         """
         Take action after a faculty member uploads a new assignment.
 
-        If a Docker image is specified in test_env.yaml, verifies that the
+        If a Docker image is specified in assignment.cfg, verifies that the
         image exists
 
         Copies uploaded files into the proper directory, creates bare
@@ -68,11 +67,12 @@ class UploadHandler(EventHandler):
         assignment_dir = AssignmentDirectory(assignment_path, check=False)
 
         try:
-            # validate the fields in test_env.yaml file (including whether the
+            # validate the fields in assignment.cfg file (including whether the
             # required components that support the environment are in place)
-            test_env = TestEnv(os.path.join(self._upload_path,
-                                            'test_env.yaml'))
-            test_env.verify_env()
+            assignment_config = \
+                AssignmentConfig(os.path.join(self._upload_path,
+                                              'assignment.cfg'))
+            assignment_config.verify_env()
 
             if not db.class_is_open(self._class_name, self._faculty_username):
                 raise HandlerException('{} is not open'
@@ -162,11 +162,12 @@ class UploadHandler(EventHandler):
         except GkeepException as e:
             raise HandlerException(e)
 
-        # copy email.txt, test_env.yaml, and tests directory to assignment directory
+        # copy email.txt, assignment.cfg, and tests directory to assignment
+        # directory
         try:
             copy_email_txt_file(assignment_dir, upload_dir.email_path)
             copy_tests_dir(assignment_dir, upload_dir.tests_path)
-            copy_test_env_yaml_file(assignment_dir, upload_dir.test_env_path)
+            copy_config_file(assignment_dir, upload_dir.config_path)
         except GkeepException as e:
             error = ('error copying assignment files: {0}'.format(str(e)))
             raise HandlerException(error)

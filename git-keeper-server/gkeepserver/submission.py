@@ -32,7 +32,7 @@ from gkeepserver.database import db
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepcore.git_commands import git_clone, git_add_all, git_commit, \
     git_checkout
-from gkeepcore.test_env_yaml import TestEnv, TestEnvType
+from gkeepcore.assignment_config import AssignmentConfig, TestEnv
 from gkeepcore.system_commands import cp, sudo_chown, rm, chmod, mv
 from gkeepcore.shell_command import run_command
 from gkeepserver.email_sender_thread import email_sender
@@ -71,7 +71,7 @@ class Submission:
         self.faculty_email = faculty_email
         self.class_name = assignment_dir.class_name
         self.assignment_name = assignment_dir.assignment_name
-        self.test_env_path = assignment_dir.test_env_path
+        self.config_path = assignment_dir.config_path
 
     def run_tests(self):
         """
@@ -113,23 +113,27 @@ class Submission:
         # copy the tests - this creates a tests folder inside the temp dir
         with directory_locks.get_lock(self.assignment_dir.path):
             cp(self.tests_path, temp_path, recursive=True)
-            # copy the test_env.yaml file (if present)
-            if os.path.exists(self.test_env_path):
-                cp(self.test_env_path, temp_path)
+            # copy the assignment.cfg file (if present)
+            if os.path.exists(self.config_path):
+                cp(self.config_path, temp_path)
 
         temp_run_action_sh_path = os.path.join(temp_path, 'run_action.sh')
 
-        test_env = TestEnv(os.path.join(temp_path, 'test_env.yaml'))
-        if test_env.type == TestEnvType.FIREJAIL:
+        assignment_config = AssignmentConfig(os.path.join(temp_path,
+                                                          'assignment.cfg'))
+
+        if assignment_config.env == TestEnv.FIREJAIL:
             # firejail makes the temp directory look like /home/tester from
             # the tests point of view
             write_run_action_sh(temp_run_action_sh_path, self.tests_path,
+                                assignment_config,
                                 user_home_dir(config.tester_user))
-        elif test_env.type == TestEnvType.DOCKER:
-            write_run_action_sh(temp_run_action_sh_path, self.tests_path)
+        elif assignment_config.env == TestEnv.DOCKER:
+            write_run_action_sh(temp_run_action_sh_path, self.tests_path,
+                                assignment_config)
         else:
             write_run_action_sh(temp_run_action_sh_path, self.tests_path,
-                                temp_path)
+                                assignment_config, temp_path)
 
         temp_assignment_path = os.path.join(temp_path, assignment_name)
 
@@ -139,32 +143,37 @@ class Submission:
 
         # execute action.sh and capture the output
         try:
-            test_env = TestEnv(self.test_env_path)
-            if test_env.type == TestEnvType.DOCKER:
+            assignment_config = AssignmentConfig(self.config_path)
+            if assignment_config.env == TestEnv.DOCKER:
                 # Run a docker pull on the image here so that the output
                 # is not captured in the email.  If the container image is
                 # already on the server, this will return quickly
-                pull_cmd = ['docker', 'pull', test_env.image]
+                pull_cmd = ['docker', 'pull', assignment_config.image]
                 run_command(pull_cmd)
                 cmd = self._make_docker_command(temp_path, assignment_name,
-                                                test_env.image)
-            elif test_env.type == TestEnvType.FIREJAIL:
+                                                assignment_config.image)
+            elif assignment_config.env == TestEnv.FIREJAIL:
                 cmd = self._make_firejail_command(temp_path, assignment_name,
-                                                  test_env.append_args)
-            elif test_env.type == TestEnvType.HOST:
+                                                  assignment_config.append_args)
+            elif assignment_config.env == TestEnv.HOST:
                 cmd = self._make_host_command(temp_run_action_sh_path,
                                               temp_assignment_path)
             else:
                 raise GkeepException('Unknown test env type {}'
-                                     .format(test_env.type))
+                                     .format(assignment_config.env))
 
             body = run_command(cmd)
 
             # send output as email
-            subject = ('[{0}] {1} submission test results'
-                       .format(class_name, assignment_name))
+            html_pre_body = assignment_config.use_html
+            if html_pre_body is None:
+                html_pre_body = config.use_html
+
+            subject = (assignment_config.results_subject
+                       .format(class_name=class_name,
+                               assignment_name=assignment_name))
             email_sender.enqueue(Email(self.student.email_address, subject,
-                                       body, html_pre_body=True))
+                                       body, html_pre_body=html_pre_body))
 
             if self.student.username != faculty_username:
                 with directory_locks.get_lock(self.assignment_dir.path):
@@ -274,7 +283,8 @@ class Submission:
                                 class_name))
 
 
-def write_run_action_sh(dest_path: str, tests_path: str, run_path=None):
+def write_run_action_sh(dest_path: str, tests_path: str,
+                        assignment_config: AssignmentConfig, run_path=None):
     """
     Write run_action.sh before testing.
 
@@ -283,6 +293,7 @@ def write_run_action_sh(dest_path: str, tests_path: str, run_path=None):
 
     :param dest_path: directory in which to place run_action.sh
     :param tests_path: path to a directory containing the tests
+    :param assignment_config: assignment.cfg data
     :param run_path: the path containing the tests folder, which will be the
       same as dest_path unless using firejail
     """
@@ -308,6 +319,16 @@ pid=$!
 wait $pid
 '''
 
+    if assignment_config.timeout is not None:
+        global_timeout = assignment_config.timeout
+    else:
+        global_timeout = config.tests_timeout
+
+    if assignment_config.memory_limit is not None:
+        global_memory_limit = assignment_config.memory_limit
+    else:
+        global_memory_limit = config.tests_memory_limit
+
     script_name, interpreter = get_action_script_and_interpreter(tests_path)
 
     if script_name is None or interpreter is None:
@@ -315,8 +336,8 @@ wait $pid
 
     run_action_sh_contents = \
         template.format(cd_command=cd_command,
-                        global_timeout=config.tests_timeout,
-                        global_memory_limit=config.tests_memory_limit,
+                        global_timeout=global_timeout,
+                        global_memory_limit=global_memory_limit,
                         interpreter=interpreter,
                         script_name=script_name)
 

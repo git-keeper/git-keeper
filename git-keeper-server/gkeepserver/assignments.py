@@ -21,6 +21,7 @@ import os
 from tempfile import TemporaryDirectory
 
 from gkeepcore.action_scripts import get_action_script_and_interpreter
+from gkeepcore.assignment_config import AssignmentConfig
 from gkeepcore.student import Student
 from pkg_resources import resource_exists, resource_string, ResolutionError, \
     ExtractionError
@@ -70,7 +71,7 @@ class AssignmentDirectory:
         base_code_repo_path - path to the base code repository
         reports_repo_path - path to the reports repository
         tests_path - path to the tests directory
-        test_env_path - path to test_env.yaml (if present)
+        config_path - path to assignment.cfg (if present)
     """
 
     def __init__(self, path, check=True):
@@ -88,7 +89,7 @@ class AssignmentDirectory:
         self.base_code_repo_path = os.path.join(self.path, 'base_code.git')
         self.reports_repo_path = os.path.join(self.path, 'reports.git')
         self.tests_path = os.path.join(self.path, 'tests')
-        self.test_env_path = os.path.join(self.path, 'test_env.yaml')
+        self.config_path = os.path.join(self.path, 'assignment.cfg')
 
         self.action_script, self.action_script_interpreter = \
             get_action_script_and_interpreter(self.tests_path)
@@ -133,6 +134,16 @@ class AssignmentDirectory:
                 get_action_script_and_interpreter(self.tests_path)
             if self.action_script is None:
                 raise AssignmentDirectoryError('action script')
+
+    def get_config(self):
+        """
+        Returns an AssignmentConfig object representing the data from
+        assignment.cfg.
+
+        :return: AssignmentConfig object for the assignment
+        """
+
+        return AssignmentConfig(self.config_path)
 
 
 def get_assignment_dir(faculty_username: str, class_name: str,
@@ -286,15 +297,14 @@ def copy_email_txt_file(assignment_dir: AssignmentDirectory,
     cp(email_txt_path, assignment_dir.path, sudo=True)
 
 
-def copy_test_env_yaml_file(assignment_dir: AssignmentDirectory,
-                            test_env_yaml_path: str):
+def copy_config_file(assignment_dir: AssignmentDirectory, config_path: str):
     """
-    Copy test_env.yaml into an assignment directory
+    Copy assignment.cfg into an assignment directory
 
     :param assignment_dir: AssignmentDirectory to copy into
-    :param test_env_yaml_path: path to test_env.yaml
+    :param config_path: path to assignment.cfg
     """
-    cp(test_env_yaml_path, assignment_dir.path, sudo=True)
+    cp(config_path, assignment_dir.path, sudo=True)
 
 
 def copy_tests_dir(assignment_dir: AssignmentDirectory, tests_path: str):
@@ -422,9 +432,11 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
                  .format(assignment_repo_path, str(e)))
         raise StudentAssignmentError(error)
 
-    email_subject = ('[{0}] New assignment: {1}'
-                     .format(assignment_dir.class_name,
-                             assignment_dir.assignment_name))
+    assignment_config = assignment_dir.get_config()
+
+    email_subject = (assignment_config.announcement_subject
+                     .format(class_name=assignment_dir.class_name,
+                             assignment_name=assignment_dir.assignment_name))
 
     # build the clone URL for the assignment
     clone_url = '{0}@{1}:{2}'.format(student.username,
