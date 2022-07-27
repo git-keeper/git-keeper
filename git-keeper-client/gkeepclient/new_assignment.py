@@ -25,7 +25,7 @@ def new_assignment(assignment_path):
     touch('{}/tests/action.sh'.format(assignment_path))
 
     template = '''# All values are optional
-# See https://github.com/git-keeper/git-keeper/blob/develop/docs/faculty/assignment-workflow.md 
+# See https://git-keeper.readthedocs.io/en/latest/
 [tests]
 # env: filejail
 # timeout: 60
