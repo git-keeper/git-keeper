@@ -174,8 +174,9 @@ class Submission:
                     raise e
 
             # send output as email
-            html_pre_body = assignment_config.use_html
-            if html_pre_body is None:
+            if assignment_config.use_html is not None:
+                html_pre_body = assignment_config.use_html
+            else:
                 html_pre_body = config.use_html
 
             subject = (assignment_config.results_subject
