@@ -34,7 +34,7 @@ from gkeepcore.git_commands import git_clone, git_add_all, git_commit, \
     git_checkout
 from gkeepcore.assignment_config import AssignmentConfig, TestEnv
 from gkeepcore.system_commands import cp, sudo_chown, rm, chmod, mv
-from gkeepcore.shell_command import run_command
+from gkeepcore.shell_command import run_command, CommandError, CommandExitCodeError
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.info_update_thread import info_updater
 from gkeepserver.reports import reports_clone
@@ -162,7 +162,16 @@ class Submission:
                 raise GkeepException('Unknown test env type {}'
                                      .format(assignment_config.env))
 
-            body = run_command(cmd)
+            try:
+                body = run_command(cmd)
+            except CommandExitCodeError as e:
+                # Exit code 124 is raised on a timeout
+                if e.exit_code == 124:
+                    body = ('Tests timed out. Either the submitted code '
+                            'took too long to run or there is an issue '
+                            'with the tests themselves.')
+                else:
+                    raise e
 
             # send output as email
             html_pre_body = assignment_config.use_html
