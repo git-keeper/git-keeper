@@ -103,5 +103,4 @@ Global Timeout Catches Infinite Loop
     Gkeep Publish Succeeds  faculty1    cs1     run_py
     Clone Assignment  student1  faculty1    cs1     run_py
     Student Submits    student1    faculty1    cs1    run_py    infinite_loop_submission
-    Email Exists    student1    subject_contains="run_py: Failed to process submission - contact instructor"    body_contains="instructor"
-    Email Exists    faculty1    subject_contains="git-keeper run_tests failure"    body_contains="further information"
+    Submission Test Results Email Exists    student1   cs1   run_py   "Tests timed out"

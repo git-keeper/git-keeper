@@ -1,3 +1,0 @@
-type docker
-image : gitkeeper/git-keeper-tester:python3.10
-

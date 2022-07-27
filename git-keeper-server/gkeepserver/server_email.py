@@ -139,7 +139,7 @@ class Email:
         subject_header = Header('{0}'.format(self._subject), 'utf-8')
         reply_to_header = Header('{0}'.format(config.from_address), 'utf-8')
 
-        if html_pre_body and config.use_html:
+        if html_pre_body:
             message = MIMEMultipart('alternative')
         else:
             message = MIMEMultipart()
@@ -151,7 +151,7 @@ class Email:
         message['reply-to'] = reply_to_header
 
         # attach the body
-        if html_pre_body and config.use_html:
+        if html_pre_body:
             template = '<html><head></head><body><pre>{}</pre></body></html>'
             html_body = template.format(html.escape(self._body))
             message.attach(MIMEText(self._body, 'plain', _charset='utf-8'))

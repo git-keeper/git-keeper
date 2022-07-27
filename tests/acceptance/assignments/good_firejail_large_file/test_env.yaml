@@ -1,2 +1,0 @@
-type: firejail
-append_args: --rlimit-fsize=10000

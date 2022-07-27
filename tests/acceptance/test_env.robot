@@ -69,12 +69,12 @@ Student Submits to Docker Assignment
     Student Submits    student1    faculty1    cs1    good_docker    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_docker    "In Docker"
 
-Student Submits to No Test Env Assignment
+Student Submits to No Config Assignment
     [Tags]    happy_path
-    Add Upload and Publish Assignment   faculty1    cs1     good_no_test_env
-    Clone Assignment  student1  faculty1    cs1     good_no_test_env
-    Student Submits    student1    faculty1    cs1    good_no_test_env    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_no_test_env    "On Host"
+    Add Upload and Publish Assignment   faculty1    cs1     good_no_config
+    Clone Assignment  student1  faculty1    cs1     good_no_config
+    Student Submits    student1    faculty1    cs1    good_no_config    correct_solution
+    Submission Test Results Email Exists    student1    cs1    good_no_config    "On Host"
 
 Student Submits to Host Assignment
     [Tags]    happy_path
@@ -83,20 +83,20 @@ Student Submits to Host Assignment
     Student Submits    student1    faculty1    cs1    good_host    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_host    "On Host"
 
-Bad YAML Format
+Bad Config Format
     [Tags]  Error
-    Add Assignment to Client    faculty1    bad_test_yaml
-    Gkeep Upload Fails      faculty1    cs1     bad_test_yaml
+    Add Assignment to Client    faculty1    bad_test_config
+    Gkeep Upload Fails      faculty1    cs1     bad_test_config
 
-Bad YAML No Image
+Bad Config No Image
     [Tags]  Error
     Add Assignment to Client    faculty1    bad_docker_no_image
     Gkeep Upload Fails   faculty1   cs1    bad_docker_no_image
 
-Bad YAML No Type
+Bad Config No Type
     [Tags]  Error
-    Add Assignment to Client    faculty1    bad_docker_no_type
-    Gkeep Upload Fails   faculty1   cs1    bad_docker_no_type
+    Add Assignment to Client    faculty1    bad_docker_no_env
+    Gkeep Upload Fails   faculty1   cs1    bad_docker_no_env
 
 Bad Docker Extra Field
     [Tags]  Error
@@ -122,7 +122,7 @@ Faculty Updates to Include Docker Before Publish
     [Tags]  happy_path
     Add Assignment to Client  faculty1  good_host
     Gkeep Upload Succeeds   faculty1   cs1    good_host
-    Add File to Client      faculty1    files/good_test_env.yaml    good_host/test_env.yaml
+    Add File to Client      faculty1    files/good_assignment.cfg    good_host/assignment.cfg
     Gkeep Update Succeeds   faculty1    cs1     good_host     all
     Gkeep Publish Succeeds  faculty1    cs1     good_host
     Clone Assignment  student1  faculty1    cs1     good_host
@@ -132,8 +132,8 @@ Faculty Updates to Include Docker Before Publish
 Faculty Updates to Include Docker After Publish
     [Tags]  happy_path
     Add Upload and Publish Assignment   faculty1    cs1     good_host
-    Add File to Client      faculty1    files/good_test_env.yaml    good_host/test_env.yaml
-    Gkeep Update Succeeds   faculty1    cs1     good_host     test_env
+    Add File to Client      faculty1    files/good_assignment.cfg    good_host/assignment.cfg
+    Gkeep Update Succeeds   faculty1    cs1     good_host     config
     Clone Assignment  student1  faculty1    cs1     good_host
     Student Submits    student1    faculty1    cs1    good_host    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_host    "In Docker"
@@ -142,8 +142,8 @@ Faculty Updates to Remove Docker Before Publish
     [Tags]    happy_path
     Add Assignment to Client  faculty1  good_docker
     Gkeep Upload Succeeds   faculty1   cs1    good_docker
-    Delete File on Client   faculty1    good_docker/test_env.yaml
-    Gkeep Update Succeeds   faculty1    cs1     good_docker     test_env
+    Delete File on Client   faculty1    good_docker/assignment.cfg
+    Gkeep Update Succeeds   faculty1    cs1     good_docker     config
     Gkeep Publish Succeeds  faculty1    cs1     good_docker
     Clone Assignment  student1  faculty1    cs1     good_docker
     Student Submits    student1    faculty1    cs1    good_docker    correct_solution
@@ -152,32 +152,32 @@ Faculty Updates to Remove Docker Before Publish
 Faculty Updates to Remove Docker After Publish
     [Tags]    happy_path
     Add Upload and Publish Assignment   faculty1    cs1     good_docker
-    Delete File on Client   faculty1    good_docker/test_env.yaml
-    Gkeep Update Succeeds   faculty1    cs1     good_docker     test_env
+    Delete File on Client   faculty1    good_docker/assignment.cfg
+    Gkeep Update Succeeds   faculty1    cs1     good_docker     config
     Clone Assignment  student1  faculty1    cs1     good_docker
     Student Submits    student1    faculty1    cs1    good_docker    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_docker    "On Host"
 
-Update to Bad YAML No Image
+Update to Bad Config No Image
     [Tags]  Error
     Add Assignment to Client  faculty1  good_docker
     Gkeep Upload Succeeds   faculty1   cs1    good_docker
-    Add File to Client      faculty1    files/bad_no_image_test_env.yaml    good_docker/test_env.yaml
-    Gkeep Update Fails   faculty1   cs1    good_docker  test_env
+    Add File to Client      faculty1    files/bad_no_image_assignment.cfg    good_docker/assignment.cfg
+    Gkeep Update Fails   faculty1   cs1    good_docker  config
 
-Update to Bad YAML No Type
+Update to Bad Config No Env
     [Tags]  Error
     Add Assignment to Client  faculty1  good_docker
     Gkeep Upload Succeeds   faculty1   cs1    good_docker
-    Add File to Client      faculty1    files/bad_no_type_test_env.yaml    good_docker/test_env.yaml
-    Gkeep Update Fails   faculty1   cs1    good_docker  test_env
+    Add File to Client      faculty1    files/bad_no_env_assignment.cfg    good_docker/assignment.cfg
+    Gkeep Update Fails   faculty1   cs1    good_docker  config
 
 Update to Docker Container Does Not Exist
     [Tags]  Error
     Add Assignment to Client  faculty1  good_docker
     Gkeep Upload Succeeds   faculty1   cs1    good_docker
-    Add File to Client      faculty1    files/bad_container_test_env.yaml    good_docker/test_env.yaml
-    Gkeep Update Fails   faculty1   cs1    good_docker  test_env
+    Add File to Client      faculty1    files/bad_container_assignment.cfg    good_docker/assignment.cfg
+    Gkeep Update Fails   faculty1   cs1    good_docker  config
 
 Test Produces Email to Faculty in Docker
     [Tags]  happy_path

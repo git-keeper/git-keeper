@@ -34,9 +34,10 @@ Add Faculty and Configure Accounts on Client
     END
 
 Launch Gkeepd And Configure Admin Account on Client
+    [Arguments]    ${server_cfg}=files/valid_server.cfg
     Reset Server
     Reset Client
-    Add File To Server    keeper    files/valid_server.cfg    server.cfg
+    Add File To Server    keeper    ${server_cfg}    server.cfg
     Start gkeepd
     Wait For Gkeepd
     Wait For Email    to_user=admin_prof    subject_contains="New git-keeper account"    body_contains=Password
