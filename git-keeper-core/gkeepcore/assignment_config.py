@@ -31,7 +31,7 @@ from gkeepcore.shell_command import run_command, CommandError
 class TestEnv(Enum):
     """
     Enum for test environment types. The value for each type matches the name
-    of the type that is used in test_env.yaml
+    of the type that is used in assignment.cfg
     """
     HOST = 'host'
     DOCKER = 'docker'
