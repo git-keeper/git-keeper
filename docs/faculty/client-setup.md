@@ -31,9 +31,7 @@ through your distribution's package manager.
 
 To install the client system-wide, run the following command:
 
-```
-sudo python3 -m pip install git-keeper-client
-```
+    sudo python3 -m pip install git-keeper-client
 
 Alternatively, you may want to install the client in a Python virtual environment if you do not like to clutter your system's Python packages.
 
