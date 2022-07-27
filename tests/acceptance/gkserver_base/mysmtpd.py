@@ -90,9 +90,11 @@ class MySMTPD(smtpd.DebuggingServer):
 
             if msg.is_multipart():
                 for payload in msg.get_payload():
-                    f.write(payload.get_payload(decode=True).decode('utf-8'))
+                    text = payload.get_payload(decode=True).decode('utf-8')
+                    f.write(text.rstrip() + '\n\n')
             else:
-                f.write(msg.get_payload(decode=True).decode('utf-8'))
+                text = msg.get_payload(decode=True).decode('utf-8')
+                f.write(text.rstrip() + '\n\n')
 
 
 def main():
