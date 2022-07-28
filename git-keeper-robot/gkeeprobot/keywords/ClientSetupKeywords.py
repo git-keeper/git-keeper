@@ -71,6 +71,9 @@ class ClientSetupKeywords:
     def make_empty_file(self, username, filename):
         client_control.run(username, 'touch {}'.format(filename))
 
+    def make_empty_directory(self, username, directory_name):
+        client_control.run(username, 'mkdir -p {}'.format(directory_name))
+
     def create_gkeep_config_file(self, faculty):
         client_control.run_vm_bash_script(faculty, 'make_gkeep_config.sh',
                                           faculty)
@@ -136,3 +139,16 @@ class ClientSetupKeywords:
     def add_submissions_folder_to_config(self, faculty, directory):
         client_control.run(faculty, 'echo [local] >> .config/git-keeper/client.cfg')
         client_control.run(faculty, 'echo submissions_path={} >> .config/git-keeper/client.cfg'.format(directory))
+
+    def add_templates_folder_to_config(self, faculty, directory):
+        client_control.run(faculty, 'echo [local] >> .config/git-keeper/client.cfg')
+        client_control.run(faculty, 'echo templates_path={} >> .config/git-keeper/client.cfg'.format(directory))
+
+    def add_assignment_template(self, faculty, source_name, destination_name, template_dir=None):
+        if template_dir is None:
+            template_dir = '~/.config/git-keeper/templates'
+
+        cmd = 'mkdir -p {}'.format(template_dir)
+        client_control.run(faculty, cmd)
+        cmd = 'cp -r /vagrant/templates/{} {}/{}'.format(source_name, template_dir, destination_name)
+        client_control.run(faculty, cmd)
