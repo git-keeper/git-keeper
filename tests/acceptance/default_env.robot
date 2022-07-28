@@ -59,6 +59,7 @@ Default Env Is Host When Defined
 
 Default Env Docker Fails
     [Tags]  error
+    Reset Server
     Add File To Server    keeper    files/default_env_docker_server.cfg    server.cfg
     Start gkeepd
     Gkeepd Is Not Running

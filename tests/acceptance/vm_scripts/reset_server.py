@@ -29,6 +29,10 @@ def server_running():
 def stop_gkeepd():
     if server_running():
         run_command('screen -S gkserver -X quit')
+    try:
+        run_command('killall gkeepd')
+    except Exception:
+        pass
 
 
 def remove(filename):
