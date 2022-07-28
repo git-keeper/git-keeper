@@ -134,8 +134,6 @@ class ClientConfiguration:
         May only be called once.
 
         Raises ClientConfigurationError
-
-        :param config_path: optional path to the config file
         """
 
         if self._parsed:
@@ -209,6 +207,7 @@ class ClientConfiguration:
     def _set_local_options(self):
         # Initialize all attributes related to the local client machine
         self.submissions_path = None
+        self.templates_path = os.path.expanduser('~/.config/git-keeper/templates')
 
         if 'local' not in self._parser.sections():
             return
@@ -221,6 +220,15 @@ class ClientConfiguration:
 
             if not os.path.isabs(self.submissions_path):
                 error = 'Submission path must be absolute: {}'.format(self.submissions_path)
+                raise ClientConfigurationError(error)
+
+        if self._parser.has_option('local', 'templates_path'):
+            self.templates_path = self._parser.get('local', 'templates_path')
+
+            self.templates_path = os.path.expanduser(self.templates_path)
+
+            if not os.path.isabs(self.templates_path):
+                error = 'Templates path must be absolute: {}'.format(self.templates_path)
                 raise ClientConfigurationError(error)
 
     def _set_class_aliases(self):

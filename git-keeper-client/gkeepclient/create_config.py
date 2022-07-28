@@ -37,6 +37,8 @@ def create_config():
     ssh_port = input("Server SSH port (press enter for port 22): ")
     submissions_path = \
         input("Submissions fetch path (optional, press enter to skip): ")
+    templates_path = \
+        input("Assignment templates path (optional, press enter to skip): ")
     file_text = ("[server]\n" +
                  "host = {}\n" +
                  "username = {}\n").format(host_name, username)
@@ -44,10 +46,13 @@ def create_config():
         file_text += ("# optional\n" +
                       "ssh_port = {}\n").format(ssh_port)
     file_text += "\n"
+    file_text += ("# optional section\n" +
+                  "[local]\n")
     if submissions_path != '':
-        file_text += ("# optional section\n" +
-                      "[local]\n" +
-                      "submissions_path = {}\n").format(submissions_path)
+        file_text += "submissions_path = {}\n".format(submissions_path)
+    if templates_path != '':
+        file_text += "templates_path = {}".format(templates_path)
+
     print("The following will be written to {}: ".format(filepath))
     print(file_text)
     if confirmation("Would you like to proceed?"):

@@ -373,3 +373,36 @@ class ClientCheckKeywords:
             raise GkeepRobotException(error)
         except ExitCodeException as e:
             pass
+
+    def folder_exists(self, faculty, folder):
+        cmd = 'test -d {}'.format(folder)
+        try:
+            client_control.run(faculty, cmd)
+        except ExitCodeException as e:
+            raise GkeepRobotException('Folder does not exist: {}'.format(folder))
+
+    def file_exists(self, faculty, filename):
+        cmd = 'test -f {}'.format(filename)
+        try:
+            client_control.run(faculty, cmd)
+        except ExitCodeException as e:
+            raise GkeepRobotException('File does not exist: {}'.format(filename))
+
+    def new_assignment_succeeds(self, faculty, assignment_name, template_name=None):
+        if template_name is None:
+            client_control.run(faculty, 'gkeep new {}'.format(assignment_name))
+        else:
+            client_control.run(faculty, 'gkeep new {} {}'.format(assignment_name, template_name))
+
+    def new_assignment_fails(self, faculty, assignment_name, template_name=None):
+        try:
+            if template_name is None:
+                cmd = 'gkeep new {}'.format(assignment_name)
+                client_control.run(faculty, cmd)
+            else:
+                cmd = 'gkeep new {} {}'.format(assignment_name, template_name)
+                client_control.run(faculty, cmd)
+            error = ('Command should have had non-zero exit code: {}'.format(cmd))
+            raise GkeepRobotException(error)
+        except ExitCodeException as e:
+            pass

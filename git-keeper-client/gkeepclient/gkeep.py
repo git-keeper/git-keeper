@@ -379,7 +379,7 @@ def add_new_assignment_subparser(subparsers):
 
     :param subparsers: subparsers to add to
     """
-    subparser = subparsers.add_parser('new_assignment',
+    subparser = subparsers.add_parser('new',
                                       help='create a directory containing base files for a new assignment')
     subparser.add_argument('assignment_path', metavar='<path to assignment folder>',
                            help='path to base folder holding the files for the assignment')
@@ -525,7 +525,7 @@ def take_action(parsed_args):
         class_add(class_name, parsed_args.csv_file_path, parsed_args.yes)
     elif action_name == 'modify':
         class_modify(class_name, parsed_args.csv_file_path, parsed_args.yes)
-    elif action_name == 'new_assignment':
+    elif action_name == 'new':
         new_assignment(parsed_args.assignment_path, parsed_args.template_name)
     elif action_name == 'upload':
         upload_assignment(class_name, parsed_args.assignment_path)
