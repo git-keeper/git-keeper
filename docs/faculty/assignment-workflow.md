@@ -6,6 +6,14 @@ then fetching the students' submissions.
 To create an assignment, first create a directory to contain the
 assignment. The name of the directory will be the name of the assignment.
 
+### `assignment.cfg` (optional)
+
+Optionally, a testing environment may be specified in the file
+`test_env.yaml`. Tests may be run directly on the server (the default), within
+a [Firejail](https://firejail.wordpress.com/) sandbox, or within a
+[Docker](https://www.docker.com/) container. See
+[Testing Environments](testing-environments.md) for more details.
+
 ### `base_code`
 
 Within the assignment directory there must be a directory named
@@ -54,15 +62,57 @@ python3 action.py ../solution
 The output of the action script (both stdout and stderr) are placed in the
 email that the student receives as feedback.
 
-### `test_env.yaml`
 
-Optionally, a testing environment may be specified in the file
-`test_env.yaml`. Tests may be run directly on the server (the default), within
-a [Firejail](https://firejail.wordpress.com/) sandbox, or within a
-[Docker](https://www.docker.com/) container. See
-[Testing Environments](testing-environments.md) for more details.
+## Assignment Templates
 
-## Creating an Action Script
+You can use the command `gkeep new` to create the files and directories required for
+an assignment.  For example,
+
+```
+gkeep new homework1
+```
+
+will create a folder `homework1` in the current directory with the following structure:
+
+```
+homework1
+├── assignment.cfg
+├── base_code
+├── email.txt
+└── tests
+    └── action.sh
+```
+
+where `homework1`, `base_code`, and `tests` are folders and `assignment.cfg`, 
+`email.txt`, and `action.sh` are empty files.
+
+You can create your own template assignment in `~/.config/git-keeper/templates`
+and then add a template name to `gkeep new` to create an assignment from that
+template.
+
+For example, 
+
+```
+gkeep new function_examples inclass 
+```
+
+Would create an assignment folder named `function_examples` using the template `inclass`.
+
+This feature is useful when you have a standard `assignment.cfg`, `email.txt`, `action.sh`, or
+other files.
+
+
+You can change the location of the templates in `client.cfg`.  In the `[local]` section, add
+`templates_path`, which must be an absolute path.  For example,
+
+```
+# ... other lines omitted
+[local]
+templates_path = ~/templates
+```
+
+## Creating `action.sh`
+
 
 For some assignments you can write all your tests in bash or Python and so the
 action script is the only file you need in the `tests` directory.
