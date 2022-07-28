@@ -256,7 +256,7 @@ class Submission:
 
         cmd = ['sudo', '--user', config.tester_user, '--set-home',
                'firejail', '--noprofile', '--quiet',
-               '--private={}'.format(temp_path)]
+               '--deterministic-exit-code', '--private={}'.format(temp_path)]
 
         if append_args is not None:
             cmd.extend(append_args.split())
