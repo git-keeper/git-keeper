@@ -65,6 +65,9 @@ Attributes:
     faculty_log_dir_path - path to directory containing faculty event logs
 
     test_thread_count - maximum number of threads for testing student code
+    tests_timeout - maximum number of seconds for tests to run
+    tests_memory_limit - maximum amount of memory per test, in MB
+    default_test_env - default TestEnv for running tests
 
     from_name - the name that emails are from
     from_address - the address that emails are from
@@ -79,6 +82,7 @@ import configparser
 import os
 from getpass import getuser
 
+from gkeepcore.assignment_config import TestEnv, AssignmentConfig
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_home_dir
 from gkeepserver.gkeepd_logger import LogLevel
@@ -188,6 +192,7 @@ class ServerConfiguration:
         self.test_thread_count = 1
         self.tests_timeout = 300
         self.tests_memory_limit = 1024
+        self.default_test_env = TestEnv.FIREJAIL
 
         # users and groups
         self.keeper_user = 'keeper'
@@ -340,6 +345,7 @@ class ServerConfiguration:
             'test_thread_count',
             'tests_timeout',
             'tests_memory_limit',
+            'default_test_env',
         ]
 
         for name in optional_options:
@@ -361,7 +367,43 @@ class ServerConfiguration:
         for name in positive_integer_options:
             self._ensure_positive_integer(name)
 
+        self._validate_default_test_env()
+
         self._ensure_options_are_valid('gkeepd')
+
+    def _validate_default_test_env(self):
+
+        valid_default_envs = [
+            TestEnv.HOST,
+            TestEnv.FIREJAIL,
+        ]
+
+        valid_default_env_names = [
+            'host',
+            'firejail',
+        ]
+
+        if type(self.default_test_env) == str:
+            try:
+                self.default_test_env = TestEnv[self.default_test_env.upper()]
+            except KeyError:
+                error = ('{} is not a valid default_test_env, it must be one '
+                         'of: {}'.format(self.default_test_env,
+                                     ','.join(valid_default_env_names)))
+                raise ServerConfigurationError(error)
+
+        if self.default_test_env not in valid_default_envs:
+            error = ('{} is not a valid default_test_env, it must be one of: '
+                     '{}'.format(self.default_test_env.value,
+                                 ','.join(valid_default_env_names)))
+            raise ServerConfigurationError(error)
+
+        try:
+            AssignmentConfig(config_path='',
+                             default_env=self.default_test_env).verify_env()
+        except GkeepException as e:
+            error = ('Error in default_test_env: {}'.format(e))
+            raise ServerConfigurationError(error)
 
     def _ensure_options_are_valid(self, section):
         # all section's options must exist as attributes

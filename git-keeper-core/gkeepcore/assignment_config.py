@@ -60,7 +60,7 @@ class AssignmentConfig:
     Represents the data in an assignment.cfg file.
     """
 
-    def __init__(self, config_path):
+    def __init__(self, config_path, default_env=None):
         """
         If config_path is a valid file path, the file is opened and attributes
         are set according to the contents. If the path does not exist, default
@@ -72,11 +72,12 @@ class AssignmentConfig:
 
         :param config_path: path to the config file, which may or may not
          exist
+        :param default_env: TestEnv to use if none is specified
         """
 
         self.config_path = config_path
 
-        self._initialize_default_attributes()
+        self._initialize_default_attributes(default_env)
 
         self._parse_config_file()
 
@@ -100,11 +101,11 @@ class AssignmentConfig:
         elif self.env == TestEnv.FIREJAIL:
             verify_firejail_installed()
 
-    def _initialize_default_attributes(self):
+    def _initialize_default_attributes(self, default_env):
         # Initialize attributes to their defaults
 
         # [tests]
-        self.env = TestEnv.FIREJAIL
+        self.env = default_env
         self.append_args = None
         self.image = None
         self.timeout = None

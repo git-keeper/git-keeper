@@ -120,7 +120,8 @@ class Submission:
         temp_run_action_sh_path = os.path.join(temp_path, 'run_action.sh')
 
         assignment_config = AssignmentConfig(os.path.join(temp_path,
-                                                          'assignment.cfg'))
+                                                          'assignment.cfg'),
+                                             config.default_test_env)
 
         if assignment_config.env == TestEnv.FIREJAIL:
             # firejail makes the temp directory look like /home/tester from
@@ -143,7 +144,8 @@ class Submission:
 
         # execute action.sh and capture the output
         try:
-            assignment_config = AssignmentConfig(self.config_path)
+            assignment_config = AssignmentConfig(self.config_path,
+                                                 config.default_test_env)
             if assignment_config.env == TestEnv.DOCKER:
                 # Run a docker pull on the image here so that the output
                 # is not captured in the email.  If the container image is
