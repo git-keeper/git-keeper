@@ -9,7 +9,7 @@ assignment. The name of the directory will be the name of the assignment.
 ### `base_code`
 
 Within the assignment directory there must be a directory named
-`base_code`. The contents of this directory will be the intial contents of the
+`base_code`. The contents of this directory will be the initial contents of the
 student's repository for the assignment. Put skeleton code, data files,
 instructions, etc. in this directory.
 
@@ -18,37 +18,54 @@ instructions, etc. in this directory.
 There must also be a file named `email.txt`. The email that students receive
 when a new assignment is published will always contain a clone URL, and the
 contents of `email.txt` will be appended to the email after the
-URL. `email.txt` can be blank.
+URL. `email.txt` may be empty.
 
 ### `tests`
 
-Lastly there must be a directory called `tests` which must contain a shell
-script named `action.sh`. The `tests` directory also contains any other code
-and data files that you will use to test student code.
+A directory named `tests` is also required, which must contain either a shell
+script named `action.sh` or a Python script named `action.py`. The `tests`
+directory also contains any other code and data files that you will use to test
+student code.
 
 When a student submits an assignment to the server it creates a temporary clone
-of the student's repository and and temporary copy of the tests directory. The
-server then enters the temporary `tests` directory and runs `action.sh` using
-`bash`, passing it the path to the temporary clone of the student's directory.
+of the student's repository and and a temporary copy of the tests
+directory. With the temporary `tests` directory as its working directory, the
+testing environment then runs `action.sh` using `bash` or `action.py` using
+`python3`, passing the action script the path to the temporary clone of the
+student's directory.
 
 This means that before you upload the assignment you can test your tests
 locally by entering the `tests` directory in the terminal and running
-`action.sh` on the path to a solution. It is convenient to also store a
-`solution` directory in the assignment directory for testing. This way you can
-run the following from inside the `tests` directory to test your tests against
-your solution:
+`action.sh` or `action.py`, giving it the path to a solution as a command line
+argument. It is convenient to also store a `solution` directory in the
+assignment directory for testing. This way you can run the following from
+inside the `tests` directory to test your tests against your solution:
 
 ```
 bash action.sh ../solution
 ```
 
-The output of `action.sh` (both stdout and stderr) are placed in the email that
-the student receives as feedback.
+or
 
-## Creating `action.sh`
+```
+python3 action.py ../solution
+```
 
-For some assignments you can write all your tests in bash and so `action.sh` is
-the only file you need in the `tests` directory.
+The output of the action script (both stdout and stderr) are placed in the
+email that the student receives as feedback.
+
+### `test_env.yaml`
+
+Optionally, a testing environment may be specified in the file
+`test_env.yaml`. Tests may be run directly on the server (the default), within
+a [Firejail](https://firejail.wordpress.com/) sandbox, or within a
+[Docker](https://www.docker.com/) container. See
+[Testing Environments](testing-environments.md) for more details.
+
+## Creating an Action Script
+
+For some assignments you can write all your tests in bash or Python and so the
+action script is the only file you need in the `tests` directory.
 
 For other assignments you may wish to write your tests in another language or
 to use a testing framework such as JUnit to test the student code. In that case
@@ -56,7 +73,8 @@ you can simply call your tests from `action.sh`.
 
 ## Example
 
-Here is an example where the tests are written entirely in `action.sh`.
+Here is an example where the tests are written entirely in `action.sh` and
+tests are run directly on the server.
 
 Let's say you want to create an assignment for which students will write a
 Python program to print `"Hello, world!"`. You want them to write this program
