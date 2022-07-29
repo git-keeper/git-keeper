@@ -186,3 +186,9 @@ Test Produces Email to Faculty in Docker
     Gkeep Test Succeeds    faculty1    cs1    good_docker    good_docker/correct_solution
     Submission Test Results Email Exists    faculty1    cs1    good_docker    "In Docker"
 
+Assignment Timeout Overrides Server Timeout
+    [Tags]  happy_path
+    Add Assignment to Client  faculty1  one_second_timeout
+    Gkeep Upload Succeeds  faculty1  cs1  one_second_timeout
+    Gkeep Test Succeeds  faculty1  cs1  one_second_timeout  one_second_timeout/correct_solution
+    Submission Test Results Email Exists  faculty1  cs1  one_second_timeout  "Tests timed out"
