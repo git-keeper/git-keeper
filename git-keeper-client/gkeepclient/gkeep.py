@@ -382,7 +382,7 @@ def add_new_assignment_subparser(subparsers):
     subparser = subparsers.add_parser('new',
                                       help='create a directory containing base files for a new assignment')
     subparser.add_argument('assignment_path', metavar='<path to assignment folder>',
-                           help='path to base folder holding the files for the assignment')
+                           help='path for the new assignment folder')
     subparser.add_argument('template_name', type=str, metavar='<template name>',
                            help='name of the template to use for the assignment (optional)',
                            default=None, nargs='?')
