@@ -33,7 +33,8 @@ class CommandError(GkeepException):
 
 class InvalidCommandError(CommandError):
     """
-    Raised if the given command is not a string or a list.
+    Raised if the given command is not a string or a list, or of the command
+    is a list and the program to run does not exist.
     """
     pass
 
@@ -95,6 +96,9 @@ def run_command(command, sudo=False, user=None, stderr=STDOUT) -> str:
         # the CommandError exception will contain the output as a string
         # and the exit code
         raise CommandExitCodeError(e.output.decode('utf-8'), e.returncode)
+    except FileNotFoundError:
+        error = 'Error running command, {} does not exist'.format(command[0])
+        raise InvalidCommandError(error)
 
     # convert the output from bytes to a string when returning, replacing any
     # byte sequences that are not valid utf-8 with the � character

@@ -123,7 +123,8 @@ def main():
     try:
         config.parse()
     except ServerConfigurationError as e:
-        sys.exit(e)
+        error = 'Configuration error:\n{}'.format(config.config_path, e)
+        sys.exit(error)
 
     # prevent multiple instances
     try:

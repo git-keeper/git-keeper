@@ -87,7 +87,8 @@ class UpdateHandler(EventHandler):
             if os.path.isfile(upload_dir.config_path):
                 assignment_config = \
                     AssignmentConfig(os.path.join(self._upload_path,
-                                                  'assignment.cfg'))
+                                                  'assignment.cfg'),
+                                     config.default_test_env)
                 assignment_config.verify_env()
 
             self._update_items(assignment_dir, upload_dir)

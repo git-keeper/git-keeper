@@ -143,7 +143,8 @@ class AssignmentDirectory:
         :return: AssignmentConfig object for the assignment
         """
 
-        return AssignmentConfig(self.config_path)
+        return AssignmentConfig(self.config_path,
+                                default_env=config.default_test_env)
 
 
 def get_assignment_dir(faculty_username: str, class_name: str,
