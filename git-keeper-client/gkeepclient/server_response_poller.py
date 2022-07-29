@@ -105,7 +105,8 @@ class ServerResponsePoller:
 
             for event in self._reader.get_new_events():
                 if event.event_type == self._success_type:
-                    yield ServerResponse(ServerResponseType.SUCCESS)
+                    yield ServerResponse(ServerResponseType.SUCCESS,
+                                         event.payload)
                     return
                 if event.event_type == self._error_type:
                     yield ServerResponse(ServerResponseType.ERROR,

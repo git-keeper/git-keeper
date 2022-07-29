@@ -81,6 +81,7 @@ Attributes:
 import configparser
 import os
 from getpass import getuser
+from time import time
 
 from gkeepcore.assignment_config import TestEnv, AssignmentConfig
 from gkeepcore.gkeep_exception import GkeepException
@@ -115,6 +116,8 @@ class ServerConfiguration:
         parse() must be called before any configuration attributes are
         accessed.
         """
+
+        self._init_time = time()
 
         self.home_dir = os.path.expanduser('~')
         self.username = getuser()
@@ -156,6 +159,15 @@ class ServerConfiguration:
         self._set_admin_options()
 
         self._parsed = True
+
+    def uptime(self):
+        """
+        gkeepd uptime, in seconds
+
+        :return: number of seconds since the config object was initialized
+        """
+
+        return time() - self._init_time
 
     @property
     def run_action_sh_file_path(self):

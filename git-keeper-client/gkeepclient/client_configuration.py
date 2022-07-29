@@ -48,6 +48,8 @@ Example usage:
 
 Attributes:
 
+    config_path - path to the configuration file
+
     local_username - the user that is running gkeep
     local_home_dir - the local user's home directory on the client machine
 
@@ -97,7 +99,7 @@ class ClientConfiguration:
         self.local_home_dir = os.path.expanduser('~')
         self.local_username = getuser()
 
-        self._config_path = None
+        self.config_path = None
 
         self._parsed = False
 
@@ -117,7 +119,7 @@ class ClientConfiguration:
                                            'before the configuration file is '
                                            'parsed')
 
-        self._config_path = config_path
+        self.config_path = config_path
 
     def is_parsed(self):
         """
@@ -139,13 +141,13 @@ class ClientConfiguration:
         if self._parsed:
             raise ClientConfigurationError('parse() may only be called once')
 
-        if self._config_path is None:
+        if self.config_path is None:
             relative_path = '.config/git-keeper/client.cfg'
-            self._config_path = os.path.join(self.local_home_dir,
-                                             relative_path)
+            self.config_path = os.path.join(self.local_home_dir,
+                                            relative_path)
 
-        if not os.path.isfile(self._config_path):
-            error = '{0} does not exist'.format(self._config_path)
+        if not os.path.isfile(self.config_path):
+            error = '{0} does not exist'.format(self.config_path)
             raise ClientConfigurationError(error)
 
         self._parse_config_file()
@@ -162,9 +164,9 @@ class ClientConfiguration:
         self._parser = configparser.ConfigParser()
 
         try:
-            self._parser.read(self._config_path)
+            self._parser.read(self.config_path)
         except configparser.ParsingError as e:
-            error = 'Error reading {0}: {1}'.format(self._config_path,
+            error = 'Error reading {0}: {1}'.format(self.config_path,
                                                     e.message)
             raise ClientConfigurationError(error)
         except (configparser.DuplicateOptionError,
@@ -176,7 +178,7 @@ class ClientConfiguration:
 
         if section not in self._parser.sections():
             error = ('Section [{0}] is not present in {1}'
-                     .format(section, self._config_path))
+                     .format(section, self.config_path))
             raise ClientConfigurationError(error)
 
     def _set_server_options(self):
