@@ -50,21 +50,7 @@ def new_default_assignment(assignment_path):
     touch('{}/email.txt'.format(assignment_path))
     mkdir('{}/tests'.format(assignment_path))
     touch('{}/tests/action.sh'.format(assignment_path))
-
-    template = '''# All values are optional
-# See https://git-keeper.readthedocs.io/en/latest/
-[tests]
-# env: filejail
-# timeout: 60
-# memory_limit: 512
-
-[email]
-# use_html: false
-# announcement_subject: [{class_name}] New assignment: {assignment_name}
-# results_subject: [{class_name}] {assignment_name} test results
-'''
-    with open('{}/assignment.cfg'.format(assignment_path), 'w') as f:
-        f.write(template)
+    touch('{}/assignment.cfg'.format(assignment_path))
 
 
 def new_assignment_from_template(assignment_path, assignment_template):
