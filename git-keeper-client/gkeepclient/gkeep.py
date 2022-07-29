@@ -496,12 +496,11 @@ def main():
     if parsed_args.version:
         print('gkeep version', client_version)
 
-    # Every action except "config" requires that the configuration file be
-    # parsed
-    if parsed_args.subparser_name != 'config':
-        config.parse()
-
     try:
+        # Every action except "config" requires that the configuration file be
+        # parsed
+        if parsed_args.subparser_name != 'config':
+            config.parse()
         take_action(parsed_args)
     except GkeepException as e:
         sys.exit(e)
