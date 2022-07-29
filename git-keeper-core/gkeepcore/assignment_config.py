@@ -177,7 +177,8 @@ class AssignmentConfig:
             if getattr(self, name) is not None:
                 self._ensure_positive_integer(name)
 
-        self._validate_test_env()
+        if self.env is not None:
+            self._validate_test_env()
 
         self._ensure_options_are_valid('tests')
 
