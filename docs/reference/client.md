@@ -271,7 +271,7 @@ Students:
 }
 ```
 
-usage: `gkeep query [--json] <query type> [<number of days>]`
+Usage: `gkeep query [--json] <query type> [<number of days>]`
 
 * `--json`: Optional switch to output JSON rather than a human readable list
 * `<query type>`: One of the following:
@@ -293,7 +293,7 @@ re-run tests after updating them. Note that if you trigger tests for a student
 that has never submitted, tests will be run against the base code. Tests may be
 triggered for the faculty user that owns the class as well.
 
-usage: `gkeep trigger <class name> <assignment name> [<student username> ...]`
+Usage: `gkeep trigger <class name> <assignment name> [<student username> ...]`
 
 * `<class name>`: Name of the class containing the assignment
 * `<assignment name>`: The name of the assignment, or a path to a directory
@@ -306,7 +306,7 @@ usage: `gkeep trigger <class name> <assignment name> [<student username> ...]`
 Reset the password of a student user. A new password will be randomly generated
 and emailed to the student.
 
-usage: `gkeep passwd <username>`
+Usage: `gkeep passwd <username>`
 
 * `<username>`: Username of the user whose password will be reset
 
@@ -316,7 +316,7 @@ Submits a solution to the server to be tested in the same manner that student
 submissions are tested, and results are sent via email. This can be used to
 test the tests before publishing an assignment.
 
-usage: `gkeep test <class name> <assignment name> <solution path>`
+Usage: `gkeep test <class name> <assignment name> <solution path>`
 
 * `<class name>`: Name of the class containing the assignment
 * `<assignment name>`: The name of the assignment, or a path to a directory
@@ -329,7 +329,7 @@ usage: `gkeep test <class name> <assignment name> <solution path>`
 Writes a `gkeep` configuration file to `~/.config/git-keeper/config.cfg`. The
 user is prompted to enter values for the various fields.
 
-usage: `gkeep config`
+Usage: `gkeep config`
 
 ## status
 
@@ -338,7 +338,7 @@ tests will not be run if a student pushes a new submission, and the student
 will recieve an email that says the class is closed. Closed classes will be
 omitted when listing assignments and students using [`gkeep_query`]().
 
-usage: `gkeep status <class name> <class status>`
+Usage: `gkeep status <class name> <class status>`
 
 * `<class name>`: Name of the class to open or close
 * `<class status>`: New status for the class, either `open` or `closed`
@@ -350,7 +350,7 @@ user. An account will be created for the user, and the username will be based
 on the user's email address. See [Account Usernames]() for more information on
 usernames.
 
-usage: `gkeep add_faculty <last name> <first name> <email address>`
+Usage: `gkeep add_faculty <last name> <first name> <email address>`
 
 * `<last name>`: Last name of the new faculty user
 * `<first name>`: First name of the new faculty user
@@ -362,7 +362,7 @@ Promotes an existing faculty user to an admin user. The user running this
 command must be an admin user. The first admin user must be specified in the
 [Server Configuration]().
 
-usage: `gkeep admin_promote <email address>`
+Usage: `gkeep admin_promote <email address>`
 
 * `<email address>`: Email address of the facutly user to promote
 
@@ -370,6 +370,6 @@ usage: `gkeep admin_promote <email address>`
 
 Remove admin privileges for a user.
 
-usage: `gkeep admin_demote <email address>`
+Usage: `gkeep admin_demote <email address>`
 
 * `<email address>`: Email address of the facutly user to demote
