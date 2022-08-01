@@ -71,7 +71,9 @@ Usage: `gkeep add <class name> [<csv filename>]`
 
 ## modify
 
-Modifies an existing class on the server.
+Modifies an existing class on the server. If students are added after
+assignments have been published, the new students will receive new assignment
+emails for each published assignment.
 
 Usage: `gkeep modify <class name> <csv filename>`
 
