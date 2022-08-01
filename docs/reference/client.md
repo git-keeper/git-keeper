@@ -45,7 +45,7 @@ class `cs100f22`, allowing `100` to be used in place of `cs100f22` whenever
 
 Multiple aliases may be defined in this section.
 
-# Actions
+# gkeep Commands
 
 `gkeep` has numerous sub-commands to carry out various actions for faculty
 users.
@@ -373,3 +373,86 @@ Remove admin privileges for a user.
 Usage: `gkeep admin_demote <email address>`
 
 * `<email address>`: Email address of the facutly user to demote
+
+# New Assignment Templates
+
+The [`gkeep new`]() command can create a directory structure with empty files
+as a skeleton for a new assignment, or it can copy a custom template directory
+for you. By default, `gkeep new` looks for templates in
+`~/.config/git-keeper/templates`, but this location can be overridden by
+setting the `templates_path` option in the [Client Configuration]().
+
+Note that `gkeep new` does not perform any checks on the template to ensure the
+proper structure, it simply performs a copy of the template directory.
+
+# Fetched Submissions
+
+The [`gkeep fetch`]() command can fetch student submission data to a specified
+location. If the location is omitted, then submission data is fetched either
+into the current working directory, or into a specified submissions location
+specified by the `submissions_path` setting in the [Client Configuration]().
+
+Submission data for an assignment includes 2 folders: `reports` and
+`submissions`. Each of these contains one subdirectory for each student, named
+as `last_first_username`. In the reports directory, each student's subdirectory
+contains one text file for each submission, containing the test results that
+the student received by email. The reports directory is a clone of a Git
+repository from the server. In the submissions directory, each student's
+subdirectory is a clone of the student's submission repository.
+
+Performing the same fetch command multiple times will not do anything if
+nothing has changed since the last fetch, or will pull in updated items if a
+student has submitted since the last fetch.
+
+Here is an example structure for feched data in an assignment named
+`hello_world` for a class with 2 students that have each submitted once:
+
+```
+hello_world
+├── reports
+│   ├── hamilton_margaret_mhamilton
+│   │   └── report-2022-07-30_14-19-36-UTC.txt
+│   └── hopper_grace_ghopper
+│       └── report-2022-07-30_13-25-44-UTC.txt
+└── submissions
+    ├── hamilton_margaret_mhamilton
+    │   └── hello_world.py
+    └── hopper_grace_ghopper
+        └── hello_world.py
+```
+
+There are additional hidden files and directories within this
+structure. The `reports` directory and each student subdirectory within
+`reports` each contain a `.placeholder` file since these are managed by a Git
+repository and may be empty, and Git cannot track empty directories. There are
+also `.git` folders within each Git repository in the structure. To make
+subsequent fetches run quickly if no data has changed, a `.hash_cache` file is
+stored at the assignment directory level which contains the Git hashes of the
+`HEAD` commits of each repository.
+
+The full structure including hidden files and directories is below:
+
+```
+hello_world
+├── .hash_cache
+├── reports
+│   ├── .git
+│   │   └── (.git contents omitted for brevety)
+│   ├── .placeholder
+│   ├── hamilton_margaret_mhamilton
+│   │   ├── .placeholder
+│   │   └── report-2022-07-30_14-19-36-UTC.txt
+│   ├-─ hopper_grace_ghopper
+│   │   ├── .placeholder
+│   │   └── report-2022-07-30_13-25-44-UTC.txt
+└── submissions
+    ├── hamilton_margaret_mhamilton
+    │   ├── .git
+    │   │   └── (.git contents omitted for brevety)
+    │   └── hello_world.py
+    └── hopper_grace_ghopper
+        ├── .git
+        │   └── (.git contents omitted for brevety)
+        └── hello_world.py
+```
+
