@@ -10,6 +10,12 @@ fully tested.
 The client requires [Git](https://git-scm.com/downloads) and [
 Python 3.8 or greater](https://www.python.org/downloads/).
 
+In addition, you need the username and password sent to you by the 
+`git-keeper` server.  This account must be created by the `git-keeper`
+server.  For the faculty admin, your account is created the first time
+you run `gkeepd`.  For other faculty, the faculty admin must use
+`gkeep add_faculty` to create the account.
+
 ## Installing the Client
 
 To install the client system-wide, run the following command:
