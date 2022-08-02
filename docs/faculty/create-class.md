@@ -21,3 +21,6 @@ have an account on the server. The account name will be the username portion of
 the student's email address. In the case of a duplicate, a number will be added 
 after the username to create a unique account.  Passwords are randomly generated. An email
 containing the student's username and password will be sent to the student.
+
+NOTE: Faculty should save the CSV file in case they need to make changes to
+the enrollment of the class on the `git-keeper` server.
