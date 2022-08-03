@@ -48,6 +48,8 @@ Example usage:
 
 Attributes:
 
+    config_path - path to the configuration file
+
     local_username - the user that is running gkeep
     local_home_dir - the local user's home directory on the client machine
 
@@ -97,7 +99,7 @@ class ClientConfiguration:
         self.local_home_dir = os.path.expanduser('~')
         self.local_username = getuser()
 
-        self._config_path = None
+        self.config_path = None
 
         self._parsed = False
 
@@ -117,7 +119,7 @@ class ClientConfiguration:
                                            'before the configuration file is '
                                            'parsed')
 
-        self._config_path = config_path
+        self.config_path = config_path
 
     def is_parsed(self):
         """
@@ -139,19 +141,21 @@ class ClientConfiguration:
         if self._parsed:
             raise ClientConfigurationError('parse() may only be called once')
 
-        if self._config_path is None:
+        if self.config_path is None:
             relative_path = '.config/git-keeper/client.cfg'
-            self._config_path = os.path.join(self.local_home_dir,
-                                             relative_path)
+            self.config_path = os.path.join(self.local_home_dir,
+                                            relative_path)
 
-        if not os.path.isfile(self._config_path):
-            error = '{0} does not exist'.format(self._config_path)
+        if not os.path.isfile(self.config_path):
+            error = '{0} does not exist'.format(self.config_path)
             raise ClientConfigurationError(error)
 
         self._parse_config_file()
         self._set_server_options()
         self._set_local_options()
         self._set_class_aliases()
+
+        self._verify_sections(['server', 'local', 'class_aliases'])
 
         self._parsed = True
 
@@ -162,9 +166,9 @@ class ClientConfiguration:
         self._parser = configparser.ConfigParser()
 
         try:
-            self._parser.read(self._config_path)
+            self._parser.read(self.config_path)
         except configparser.ParsingError as e:
-            error = 'Error reading {0}: {1}'.format(self._config_path,
+            error = 'Error reading {0}: {1}'.format(self.config_path,
                                                     e.message)
             raise ClientConfigurationError(error)
         except (configparser.DuplicateOptionError,
@@ -176,7 +180,7 @@ class ClientConfiguration:
 
         if section not in self._parser.sections():
             error = ('Section [{0}] is not present in {1}'
-                     .format(section, self._config_path))
+                     .format(section, self.config_path))
             raise ClientConfigurationError(error)
 
     def _set_server_options(self):
@@ -203,6 +207,13 @@ class ClientConfiguration:
 
         except configparser.NoOptionError as e:
             raise ClientConfigurationError(e.message)
+
+        allowed_options = [
+            'host',
+            'username',
+            'ssh_port',
+        ]
+        self._ensure_options_are_valid('server', allowed_options)
 
     def _set_local_options(self):
         # Initialize all attributes related to the local client machine
@@ -231,6 +242,9 @@ class ClientConfiguration:
                 error = 'Templates path must be absolute: {}'.format(self.templates_path)
                 raise ClientConfigurationError(error)
 
+        allowed_options = ['submissions_path', 'templates_path']
+        self._ensure_options_are_valid('local', allowed_options)
+
     def _set_class_aliases(self):
         # Initialize class aliases dictionary and fill it with any aliases
         # that are in the configuration file
@@ -242,6 +256,23 @@ class ClientConfiguration:
 
         for alias, class_name in self._parser['class_aliases'].items():
             self.class_aliases[alias] = class_name
+
+    def _ensure_options_are_valid(self, section, allowed_fields):
+        # all of a section's options must be from a list of allowed options
+
+        for name in self._parser.options(section):
+            if name not in allowed_fields:
+                error = ('{0} is not a valid option in config section [{1}]'
+                         .format(name, section))
+                raise ClientConfigurationError(error)
+
+    def _verify_sections(self, allowed_sections):
+        # check for extra sections
+
+        for section in self._parser.sections():
+            if section not in allowed_sections:
+                error = ('[{}] is not a valid section'.format(section))
+                raise ClientConfigurationError(error)
 
 
 # Module-level configuration instance. Someone must call parse() on this

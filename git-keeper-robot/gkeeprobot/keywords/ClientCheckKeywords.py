@@ -48,6 +48,18 @@ def run_gkeep_json_query(faculty, query):
 
 class ClientCheckKeywords:
 
+    def gkeep_check_succeeds(self, faculty):
+        cmd = 'gkeep check'
+        client_control.run(faculty, cmd)
+
+    def gkeep_check_fails(self, faculty):
+        try:
+            cmd = 'gkeep check'
+            client_control.run(faculty, cmd)
+            raise GkeepRobotException('gkeep check should have non-zero return')
+        except ExitCodeException:
+            pass
+
     def gkeep_add_succeeds(self, faculty, class_name):
         cmd = 'gkeep --yes add {} {}.csv'.format(class_name, class_name)
         client_control.run(faculty, cmd)

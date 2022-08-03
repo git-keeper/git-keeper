@@ -38,7 +38,7 @@ from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
 from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, \
     upload_assignment, trigger_tests, update_status, add_faculty, \
-    reset_password, admin_promote, admin_demote, disable_assignment
+    reset_password, admin_promote, admin_demote, disable_assignment, check
 from gkeepclient.new_assignment import new_assignment
 from gkeepclient.test_solution import test_solution
 from gkeepclient.queries import list_classes, list_assignments, \
@@ -119,6 +119,17 @@ def add_optional_csv_file_path_argument(subparser):
     subparser.add_argument('csv_file_path', type=str, metavar='<csv filename>',
                            help='name of the CSV file containing students',
                            default=None, nargs='?')
+
+
+def add_check_subparser(subparsers):
+    """
+    Add a subparser for action 'check', which checks that the client can
+    connect to the server and prints server info.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparsers.add_parser('check', help='check client config and server status')
 
 
 def add_add_subparser(subparsers):
@@ -410,6 +421,7 @@ def initialize_action_parser() -> GraderParser:
     subparsers = parser.add_subparsers(dest='subparser_name', title="Actions")
 
     # add subparsers
+    add_check_subparser(subparsers)
     add_add_subparser(subparsers)
     add_modify_subparser(subparsers)
     add_new_assignment_subparser(subparsers)
@@ -500,7 +512,13 @@ def main():
         # Every action except "config" requires that the configuration file be
         # parsed
         if parsed_args.subparser_name != 'config':
-            config.parse()
+            try:
+                config.parse()
+            except GkeepException as e:
+                error = 'Error in {}:\n{}'.format(config.config_path, e)
+                raise GkeepException(error)
+        if parsed_args.subparser_name == 'check':
+            print('{} parsed without errors'.format(config.config_path))
         take_action(parsed_args)
     except GkeepException as e:
         sys.exit(e)
@@ -520,6 +538,8 @@ def take_action(parsed_args):
         assignment_name = path_to_assignment_name(assignment_name)
 
     # call the appropriate function for the action
+    if action_name == 'check':
+        check()
     if action_name == 'add':
         class_add(class_name, parsed_args.csv_file_path, parsed_args.yes)
     elif action_name == 'modify':

@@ -20,6 +20,7 @@ import os
 from tempfile import TemporaryDirectory
 
 from gkeepclient.client_configuration import config
+from gkeepclient.duration_to_string import duration_to_string
 from gkeepclient.text_ui import confirmation
 from gkeepcore.valid_names import validate_class_name, validate_assignment_name
 from gkeepclient.assignment_uploader import AssignmentUploader
@@ -28,7 +29,9 @@ from gkeepclient.client_function_decorators import config_parsed, \
     assignment_exists, assignment_not_published, assignment_not_disabled, \
     class_is_open
 from gkeepclient.server_interface import server_interface
-from gkeepclient.server_response_poller import communicate_event
+from gkeepclient.server_response_poller import communicate_event, ServerResponsePoller, ServerResponseType, \
+    ServerResponseWarning, ServerResponseError
+from gkeepclient.version import __version__
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader, LocalCSVWriter
 from gkeepcore.student import students_from_csv
@@ -707,3 +710,100 @@ def reset_password(username: str):
                       error_message='Error resetting password: ',
                       timeout_message='Server response timeout. '
                                       'Password reset status unknown')
+
+
+@config_parsed
+@server_interface_connected
+def check():
+    """
+    Check the connection to the server and print server information.
+    """
+
+    event_type = 'CHECK'
+    response_timeout = 10
+
+    # requests need a payload, but we have nothing to pass
+    payload = 'dummy'
+
+    poller = ServerResponsePoller(event_type, response_timeout)
+
+    server_interface.log_event(event_type, payload)
+
+    success_messages = []
+
+    for response in poller.response_generator():
+        if response.response_type == ServerResponseType.SUCCESS:
+            success_messages.append(response.message)
+        elif response.response_type == ServerResponseType.ERROR:
+            message = ('Connection to the server via SSH was successful '
+                       'but gkeepd responded with an error:\n{}'
+                       .format(response.message))
+            raise ServerResponseError(message)
+        elif response.response_type == ServerResponseType.WARNING:
+            message = ('Connection to the server via SSH was successful '
+                       'but gkeepd responded with a warning:\n{}'
+                       .format(response.message))
+            raise ServerResponseWarning(message)
+        elif response.response_type == ServerResponseType.TIMEOUT:
+            error = ('Connection to the server via SSH was successful but '
+                     'the response from gkeepd\ntimed out. gkeepd may not '
+                     'be running on the server.')
+            raise GkeepException(error)
+
+    # These should never happen if the code is functioning correctly
+    if len(success_messages) == 0:
+        raise GkeepException('ERROR: check did not produce a proper response')
+    elif len(success_messages) > 1:
+        raise GkeepException('ERROR: server unexpectedly produced a stream '
+                             'of responses: {}'.format(success_messages))
+
+    payload = success_messages[0]
+
+    try:
+        data = json.loads(payload)
+    except json.JSONDecodeError as e:
+        error = ('ERROR: {}\nServer produced invalid JSON:\n{}'
+                 .format(e, payload))
+        raise GkeepException(error)
+
+    print()
+    print('Successfully communicated with', config.server_host)
+
+    if 'is_admin' in data and data['is_admin']:
+        print('You are an admin user')
+
+    print()
+    print('Server information:')
+
+    if 'version' in data:
+        print('  Version:', data['version'])
+        if __version__ != data['version']:
+            print('NOTE: client version {} does not match server version {}'
+                  .format(__version__, data['version']))
+            print('This could potentially cause problems')
+    else:
+        print('  Version unknown')
+
+    if 'uptime' in data:
+        print('  gkeepd uptime:', duration_to_string(data['uptime']))
+
+    if 'firejail_installed' in data:
+        print('  Firejail installed:', data['firejail_installed'])
+
+    if 'docker_installed' in data:
+        print('  Docker installed:', data['docker_installed'])
+
+    print()
+    print('Server default assignment settings that can be overridden:')
+
+    if 'default_test_env' in data:
+        print('  env:', data['default_test_env'])
+
+    if 'use_html' in data:
+        print('  use_html:', data['use_html'])
+
+    if 'tests_timeout' in data:
+        print('  timeout:', data['tests_timeout'])
+
+    if 'tests_memory_limit' in data:
+        print('  memory_limit', data['tests_memory_limit'])
