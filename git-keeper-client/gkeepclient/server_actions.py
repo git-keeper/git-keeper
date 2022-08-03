@@ -769,6 +769,9 @@ def check():
     print()
     print('Successfully communicated with', config.server_host)
 
+    if 'is_admin' in data and data['is_admin']:
+        print('You are an admin user')
+
     print()
     print('Server information:')
 
@@ -789,3 +792,18 @@ def check():
 
     if 'docker_installed' in data:
         print('  Docker installed:', data['docker_installed'])
+
+    print()
+    print('Server default assignment settings that can be overridden:')
+
+    if 'default_test_env' in data:
+        print('  env:', data['default_test_env'])
+
+    if 'use_html' in data:
+        print('  use_html:', data['use_html'])
+
+    if 'tests_timeout' in data:
+        print('  timeout:', data['tests_timeout'])
+
+    if 'tests_memory_limit' in data:
+        print('  memory_limit', data['tests_memory_limit'])

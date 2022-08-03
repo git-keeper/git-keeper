@@ -155,6 +155,8 @@ class ClientConfiguration:
         self._set_local_options()
         self._set_class_aliases()
 
+        self._verify_sections(['server', 'local', 'class_aliases'])
+
         self._parsed = True
 
     def _parse_config_file(self):
@@ -206,6 +208,13 @@ class ClientConfiguration:
         except configparser.NoOptionError as e:
             raise ClientConfigurationError(e.message)
 
+        allowed_options = [
+            'host',
+            'username',
+            'ssh_port',
+        ]
+        self._ensure_options_are_valid('server', allowed_options)
+
     def _set_local_options(self):
         # Initialize all attributes related to the local client machine
         self.submissions_path = None
@@ -233,6 +242,9 @@ class ClientConfiguration:
                 error = 'Templates path must be absolute: {}'.format(self.templates_path)
                 raise ClientConfigurationError(error)
 
+        allowed_options = ['submissions_path', 'templates_path']
+        self._ensure_options_are_valid('local', allowed_options)
+
     def _set_class_aliases(self):
         # Initialize class aliases dictionary and fill it with any aliases
         # that are in the configuration file
@@ -244,6 +256,23 @@ class ClientConfiguration:
 
         for alias, class_name in self._parser['class_aliases'].items():
             self.class_aliases[alias] = class_name
+
+    def _ensure_options_are_valid(self, section, allowed_fields):
+        # all section's options must exist as attributes
+
+        for name in self._parser.options(section):
+            if name not in allowed_fields:
+                error = ('{0} is not a valid option in config section [{1}]'
+                         .format(name, section))
+                raise ClientConfigurationError(error)
+
+    def _verify_sections(self, allowed_sections):
+        # check for extra sections
+
+        for section in self._parser.sections():
+            if section not in allowed_sections:
+                error = ('[{}] is not a valid section'.format(section))
+                raise ClientConfigurationError(error)
 
 
 # Module-level configuration instance. Someone must call parse() on this

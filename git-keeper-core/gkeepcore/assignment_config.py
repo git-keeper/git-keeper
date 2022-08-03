@@ -180,7 +180,7 @@ class AssignmentConfig:
         if self.env is not None:
             self._validate_test_env()
 
-        self._ensure_options_are_valid('tests')
+        self._ensure_options_are_valid('tests', optional_options)
 
     def _validate_test_env(self):
         # Validate that the test env type is valid, and that any options used
@@ -253,13 +253,13 @@ class AssignmentConfig:
                     error = '{} must be true or false'.format(attr)
                     raise GkeepException(error)
 
-        self._ensure_options_are_valid('email')
+        self._ensure_options_are_valid('email', optional_options)
 
-    def _ensure_options_are_valid(self, section):
-        # all section's options must exist as attributes
+    def _ensure_options_are_valid(self, section, allowed_fields):
+        # all section's options must be allowed
 
         for name in self._parser.options(section):
-            if not hasattr(self, name):
+            if name not in allowed_fields:
                 error = ('{0} is not a valid option in config section [{1}]'
                          .format(name, section))
                 raise GkeepException(error)

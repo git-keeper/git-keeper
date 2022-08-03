@@ -7,7 +7,7 @@ from gkeepcore.gkeep_exception import GkeepException
 
 
 def test_non_existent_file():
-    config = AssignmentConfig('not/a/path')
+    config = AssignmentConfig('not/a/path', default_env=TestEnv.FIREJAIL)
 
     assert config.env == TestEnv.FIREJAIL
     assert config.append_args is None
@@ -17,7 +17,7 @@ def test_non_existent_file():
 
     assert config.use_html is None
     assert config.announcement_subject == '[{class_name}] New assignment: {assignment_name}'
-    assert config.results_subject == '[{class_name}] {assignment_name} test results'
+    assert config.results_subject == '[{class_name}] {assignment_name} submission test results'
 
 
 def test_good_firejail_no_args():
@@ -34,7 +34,7 @@ def test_good_firejail_no_args():
 
     assert config.use_html is None
     assert config.announcement_subject == '[{class_name}] New assignment: {assignment_name}'
-    assert config.results_subject == '[{class_name}] {assignment_name} test results'
+    assert config.results_subject == '[{class_name}] {assignment_name} submission test results'
 
 
 def test_good_firejail_append_args():
@@ -51,14 +51,14 @@ def test_good_firejail_append_args():
 
     assert config.use_html is None
     assert config.announcement_subject == '[{class_name}] New assignment: {assignment_name}'
-    assert config.results_subject == '[{class_name}] {assignment_name} test results'
+    assert config.results_subject == '[{class_name}] {assignment_name} submission test results'
 
 
 def test_good_default_firejail_all_other_options():
     path = 'assignment_configs/good_default_firejail_all_other_options.cfg'
     assert os.path.isfile(path)
 
-    config = AssignmentConfig(path)
+    config = AssignmentConfig(path, default_env=TestEnv.FIREJAIL)
 
     assert config.env == TestEnv.FIREJAIL
     assert config.append_args is None
@@ -85,7 +85,7 @@ def test_good_docker():
 
     assert config.use_html is None
     assert config.announcement_subject == '[{class_name}] New assignment: {assignment_name}'
-    assert config.results_subject == '[{class_name}] {assignment_name} test results'
+    assert config.results_subject == '[{class_name}] {assignment_name} submission test results'
 
 
 def test_bad_firejail_has_image():
@@ -130,6 +130,14 @@ def test_bad_email_section_invalid_option():
 
 def test_bad_invalid_section():
     path = 'assignment_configs/bad_invalid_section.cfg'
+    assert os.path.isfile(path)
+
+    with pytest.raises(GkeepException):
+        AssignmentConfig(path)
+
+
+def test_good_option_bad_section():
+    path = 'assignment_configs/good_option_bad_section.cfg'
     assert os.path.isfile(path)
 
     with pytest.raises(GkeepException):

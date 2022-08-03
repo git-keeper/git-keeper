@@ -512,7 +512,11 @@ def main():
         # Every action except "config" requires that the configuration file be
         # parsed
         if parsed_args.subparser_name != 'config':
-            config.parse()
+            try:
+                config.parse()
+            except GkeepException as e:
+                error = 'Error in {}:\n{}'.format(config.config_path, e)
+                raise GkeepException(error)
         if parsed_args.subparser_name == 'check':
             print('{} parsed without errors'.format(config.config_path))
         take_action(parsed_args)

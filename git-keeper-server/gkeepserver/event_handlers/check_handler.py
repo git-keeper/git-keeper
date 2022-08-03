@@ -21,6 +21,7 @@ import json
 from gkeepcore.assignment_config import verify_firejail_installed, verify_docker_installed
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_from_log_path
+from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler
 from gkeepserver.server_configuration import config
 from gkeepserver.version import __version__
@@ -48,6 +49,11 @@ class CheckHandler(EventHandler):
                 'uptime': config.uptime(),
                 'firejail_installed': firejail_installed,
                 'docker_installed': docker_installed,
+                'is_admin': db.is_admin(self._faculty_username),
+                'default_test_env': config.default_test_env.value,
+                'use_html': config.use_html,
+                'tests_timeout': config.tests_timeout,
+                'tests_memory_limit': config.tests_memory_limit,
             }
 
             self._report_success(json.dumps(data))

@@ -158,6 +158,8 @@ class ServerConfiguration:
         self._set_server_options()
         self._set_admin_options()
 
+        self._verify_sections(['email', 'gkeepd', 'server', 'admin'])
+
         self._parsed = True
 
     def uptime(self):
@@ -253,12 +255,16 @@ class ServerConfiguration:
 
         self._ensure_section_is_present('email')
 
+        required_options = [
+            'from_name',
+            'from_address',
+            'smtp_server',
+            'smtp_port',
+        ]
+
         try:
-            # Required fields
-            self.from_name = self._parser.get('email', 'from_name')
-            self.from_address = self._parser.get('email', 'from_address')
-            self.smtp_server = self._parser.get('email', 'smtp_server')
-            self.smtp_port = self._parser.get('email', 'smtp_port')
+            for option in required_options:
+                setattr(self, option, self._parser.get('email', option))
 
         except configparser.NoOptionError as e:
             raise ServerConfigurationError(e.message)
@@ -300,7 +306,8 @@ class ServerConfiguration:
                 error = 'email_interval must be a non-negative number'
                 raise ServerConfigurationError(error)
 
-        self._ensure_options_are_valid('email')
+        self._ensure_options_are_valid('email',
+                                       required_options + optional_options)
 
     def _set_server_options(self):
         self._ensure_section_is_present('server')
@@ -315,12 +322,15 @@ class ServerConfiguration:
 
         self._ensure_section_is_present('admin')
 
+        required_options = [
+            'admin_email',
+            'admin_first_name',
+            'admin_last_name',
+        ]
+
         try:
-            # Required fields
-            self.admin_email = self._parser.get('admin', 'admin_email')
-            self.admin_first_name = self._parser.get('admin',
-                                                     'admin_first_name')
-            self.admin_last_name = self._parser.get('admin', 'admin_last_name')
+            for option in required_options:
+                setattr(self, option, self._parser.get('admin', option))
         except configparser.NoOptionError as e:
             raise ServerConfigurationError(e.message)
 
@@ -330,7 +340,7 @@ class ServerConfiguration:
             raise ServerConfigurationError('{} is not a valid email address'
                                            .format(self.admin_email))
 
-        self._ensure_options_are_valid('admin')
+        self._ensure_options_are_valid('admin', required_options)
 
     def _ensure_positive_integer(self, name):
         # raises an exception if the attribute specified by name is not a
@@ -381,7 +391,7 @@ class ServerConfiguration:
 
         self._validate_default_test_env()
 
-        self._ensure_options_are_valid('gkeepd')
+        self._ensure_options_are_valid('gkeepd', optional_options)
 
     def _validate_default_test_env(self):
 
@@ -417,13 +427,21 @@ class ServerConfiguration:
             error = ('Error in default_test_env: {}'.format(e))
             raise ServerConfigurationError(error)
 
-    def _ensure_options_are_valid(self, section):
-        # all section's options must exist as attributes
+    def _ensure_options_are_valid(self, section, allowed_fields):
+        # all section's options must exist be allowed
 
         for name in self._parser.options(section):
-            if not hasattr(self, name):
+            if not hasattr(self, name) or name not in allowed_fields:
                 error = ('{0} is not a valid option in config section [{1}]'
                          .format(name, section))
+                raise ServerConfigurationError(error)
+
+    def _verify_sections(self, allowed_sections):
+        # check for extra sections
+
+        for section in self._parser.sections():
+            if section not in allowed_sections:
+                error = ('[{}] is not a valid section'.format(section))
                 raise ServerConfigurationError(error)
 
 
