@@ -14,4 +14,6 @@ nav:
         - 'JSON Structure': 'develop/info-json-structure.md'
         - 'Log Structure': 'develop/log-events.md'
         - 'Server File Structure': 'develop/server_filesystem_structure.md'
+    - Reference:
+        - 'Client': 'reference/client.md'
 theme: readthedocs
