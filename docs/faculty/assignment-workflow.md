@@ -8,11 +8,22 @@ assignment. The name of the directory will be the name of the assignment.
 
 ### `assignment.cfg` (optional)
 
-Optionally, a testing environment may be specified in the file
-`test_env.yaml`. Tests may be run directly on the server (the default), within
-a [Firejail](https://firejail.wordpress.com/) sandbox, or within a
-[Docker](https://www.docker.com/) container. See
-[Testing Environments](testing-environments.md) for more details.
+The `assignment.cfg` is an optional file that allows a faculty member to
+change various behaviors of the test environment.  
+
+* Test environment: in a [Firejail](https://firejail.wordpress.com/) sandbox
+  (default), in a [Docker](https://www.docker.com/) container, or
+  (not recommended) direcdtly on the host.
+* Timeout: the number of seconds before tests are automatically terminated
+* Memory Limit: the maximum number of megabytes the testing process can use
+* HTML Email: whether the response email should be formatted in a variable-width font
+    or a fixed-width font
+* Announcement Subject: Format string for the email subject line announcing the assignment
+* Results Subject: Format string for the email subject line responding to a submission
+
+If this file is not present, the default values of the server are used.
+
+See [Testing Environments](testing-environments.md) for more details.
 
 ### `base_code`
 
@@ -36,7 +47,7 @@ directory also contains any other code and data files that you will use to test
 student code.
 
 When a student submits an assignment to the server it creates a temporary clone
-of the student's repository and and a temporary copy of the tests
+of the student's repository and a temporary copy of the `tests`
 directory. With the temporary `tests` directory as its working directory, the
 testing environment then runs `action.sh` using `bash` or `action.py` using
 `python3`, passing the action script the path to the temporary clone of the
