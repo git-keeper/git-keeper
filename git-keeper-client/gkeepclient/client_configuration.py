@@ -258,7 +258,7 @@ class ClientConfiguration:
             self.class_aliases[alias] = class_name
 
     def _ensure_options_are_valid(self, section, allowed_fields):
-        # all section's options must exist as attributes
+        # all of a section's options must be from a list of allowed options
 
         for name in self._parser.options(section):
             if name not in allowed_fields:
