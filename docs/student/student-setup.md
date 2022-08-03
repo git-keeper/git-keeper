@@ -36,9 +36,10 @@ Enjoy!
 
 ## Student Server Access
 
-In general, students should **NOT** connect to the `git-keeper` server using interactive
-SSH.  If they do, their account is configured to use the [git-shell](https://git-scm.com/docs/git-shell),
-which will only allow them to use a subset of the `git` commands.
+Student acounts on the `git-keeper` server are not intended to support normal interactive 
+sessions. If a student connects to the server using SSH, their account is configured to use the 
+[git-shell](https://git-scm.com/docs/git-shell), 
+which will only allow them use `passwd` to change their password.
 
 ### Student SSH Keys
 
