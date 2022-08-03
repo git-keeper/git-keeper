@@ -1,6 +1,17 @@
 
 Each class in `git-keeper` has a status, "open" or "closed."  When created a class it is open,
-and it remains open until the faculty explicitly closes it.
+and it remains open until the faculty explicitly closes it.  To change the status of a class run
+the command
+
+```
+gkeep status <class_name> <status>
+```
+
+where `<status>` is `open` or `closed`.  The system will respond with
+
+```
+Status updated successfully
+```
 
 When a class is open, the faculty member can publish assignments and the students can
 receive results.
