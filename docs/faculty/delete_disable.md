@@ -89,9 +89,11 @@ gkeep disable cs100f22 project1
 The output asks for confirmation:
 
 ```
-Disabling assignment project1 in class cs100f22. This cannot be undone.
+Disabling assignment projet1 in class cs100f22. This cannot be undone.
 Students will be notified that the assignment has been disabled.
-Tests will no longer be run on submissions to this assignment.
+The action.sh/action.py script will no longer be run on submissions
+to this assignment.  Instead, students will receive an email stating
+that the assignment is disabled.
 Proceed? (Y/n) y
 Assignment disabled successfully
 ```
@@ -99,7 +101,11 @@ Assignment disabled successfully
 The students in the class receive an email:
 
 ```
-Assignment project3 in class cs100f22 has been disabled. No tests will be run if you push to your repository for this assignment.
+Assignment project1 in class cs100f22 has been disabled. No tests will be run if you push to your repository for this assignment.
 ```
 
-If the student pushes to the repo... FIXME this is a bug.
+If the student pushes to the repo, they will receive an email:
+
+```
+Assignment project1 in class cs100f22 has been disabled.
+```
