@@ -8,6 +8,12 @@ password using
 gkeep reset <username> 
 ```
 
+The output should be:
+
+```
+Password reset successfully
+```
+
 ## Sample Password Reset Email
 
 ```
