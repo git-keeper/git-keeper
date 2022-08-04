@@ -9,6 +9,7 @@ In this tutorial, you will update an existing assignment.
 * A faculty account on the server
 * The `gkeep` client setup on your computer
 * A class named `cs100f22` added to the server
+* The [`project1` example assignment](new_assignment.md) created and uploaded (but not published)
 
 ## Overview
 
@@ -18,57 +19,6 @@ tests, configuration).  Once an assignment is published, each student has a copy
 repo and has received the announcement email, and therefore only the tests and configuration
 may be changed with `gkeep update`.
 
-## Setup: Create an Assignment
-
-Use the `gkeep new` command to create an assignment named `project1`.
-
-```
-gkeep new project1
-```
-
-Edit `project1/base_code/proj1.py`:
-
-```
-def is_valid(username):
-    return False
-```
-
-Edit `project1/email.txt`:
-
-```
-Your first project.  See Canvas for details.
-```
-
-Edit `project1/tests/action.sh`:
-
-```
-echo "Your submission was received"
-exit 0
-```
-
-Upload the assignment:
-
-```
-gkeep upload cs100f22 project1
-```
-
-The output should be:
-
-```
-uploading project1 in cs100f22
-Assignment uploaded successfully
-```
-
-And you should have an email containing:
-
-```
-Clone URL:
-prof1@gkserver:/home/prof1/prof1/cs100f22/project1.git
-
-Your first project.  See Canvas for details.
-```
-
-(where `prof1` is your username on the git-keeper server).
 
 ## Example: Update the Email Before Publish
 
