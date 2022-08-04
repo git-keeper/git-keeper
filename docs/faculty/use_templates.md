@@ -11,7 +11,7 @@ In this tutorial you will create a template and then use it to create a new assi
 
 ## Overview
 
-The `git new` command is used to create a new assignment.  By default, the command creates
+The `gkeep new` command is used to create a new assignment.  By default, the command creates
 the required directories and files for a valid assignment, and then the faculty member modifies
 things to create the assignment.  But `gkeep new` can also create an assignment from a template.
 This is useful, for example, when you have a common test mechanism for a course.
