@@ -21,8 +21,8 @@ def test_insert_student(db):
     student1 = Student('one', 'student', 'student1', 'student1@school.edu')
     student2 = Student('two', 'student', 'student2', 'student2@school.edu')
 
-    assert db.insert_student(student1) == student1
-    assert db.insert_student(student2) == student2
+    assert db.insert_student(student1, []) == student1
+    assert db.insert_student(student2, []) == student2
 
     assert db.username_exists('student1')
     assert db.username_exists('student2')
@@ -33,7 +33,7 @@ def test_insert_student(db):
     assert not db.email_exists('student3@school.edu')
 
     with pytest.raises(DatabaseException):
-        db.insert_student(student1)
+        db.insert_student(student1, [])
 
 
 def test_insert_faculty(db):
@@ -42,8 +42,8 @@ def test_insert_faculty(db):
     faculty2 = Faculty('two', 'faculty', 'faculty2', 'faculty2@school.edu',
                        True)
 
-    assert db.insert_faculty(faculty1) == faculty1
-    assert db.insert_faculty(faculty2) == faculty2
+    assert db.insert_faculty(faculty1, []) == faculty1
+    assert db.insert_faculty(faculty2, []) == faculty2
 
     assert db.username_exists('faculty1')
     assert db.username_exists('faculty2')
@@ -64,7 +64,7 @@ def test_insert_faculty(db):
         db.get_faculty_by_email('faculty3@school.edu')
 
     with pytest.raises(DatabaseException):
-        db.insert_faculty(faculty1)
+        db.insert_faculty(faculty1, [])
 
 
 def test_student_username_exists(db):
@@ -72,8 +72,8 @@ def test_student_username_exists(db):
                       False)
     student = Student('last', 'first', 'student1', 'student1@school.edu')
 
-    db.insert_faculty(faculty)
-    db.insert_student(student)
+    db.insert_faculty(faculty, [])
+    db.insert_student(student, [])
 
     assert db.student_username_exists('student1')
     assert not db.student_username_exists('student2')
@@ -82,18 +82,18 @@ def test_student_username_exists(db):
 
 def test_duplicate_email_usernames(db):
     student0 = db.insert_student(Student('last', 'first', 'user',
-                                         'user@schoolzero.edu'))
+                                         'user@schoolzero.edu'), [])
     student1 = db.insert_student(Student('last', 'first', 'user',
-                                         'user@schoolone.edu'))
+                                         'user@schoolone.edu'), [])
     student2 = db.insert_student(Student('last', 'first', 'user',
-                                         'user@schooltwo.edu'))
+                                         'user@schooltwo.edu'), [])
 
     faculty3 = db.insert_faculty(Faculty('last', 'first', 'user',
-                                         'user@schoolthree.edu', False))
+                                         'user@schoolthree.edu', False), [])
     faculty4 = db.insert_faculty(Faculty('last', 'first', 'user',
-                                         'user@schoolfour.edu', False))
+                                         'user@schoolfour.edu', False), [])
     faculty5 = db.insert_faculty(Faculty('last', 'first', 'user',
-                                         'user@schoolfive.edu', False))
+                                         'user@schoolfive.edu', False), [])
 
     for username in ('user', 'user1', 'user2', 'user3', 'user4', 'user5'):
         assert db.username_exists(username)
@@ -120,8 +120,8 @@ def test_get_all_faculty(db):
     faculty2 = Faculty('two', 'faculty', 'faculty2', 'faculty2@school.edu',
                        True)
 
-    db.insert_faculty(faculty1)
-    db.insert_faculty(faculty2)
+    db.insert_faculty(faculty1, [])
+    db.insert_faculty(faculty2, [])
 
     all_faculty = db.get_all_faculty()
 
@@ -149,8 +149,8 @@ def test_admin(db):
     faculty2 = Faculty('last2', 'first2', 'faculty2', 'faculty2@school.edu',
                        False)
 
-    faculty1 = db.insert_faculty(faculty1)
-    faculty2 = db.insert_faculty(faculty2)
+    faculty1 = db.insert_faculty(faculty1, [])
+    faculty2 = db.insert_faculty(faculty2, [])
 
     assert db.is_admin(faculty1.username)
     assert not db.is_admin(faculty2.username)
@@ -179,7 +179,7 @@ def test_admin(db):
 
 def test_classes(db):
     db.insert_faculty(Faculty('one', 'faculty', 'faculty1',
-                              'faculty1@school.edu', False))
+                              'faculty1@school.edu', False), [])
     assert not db.class_exists('class', 'faculty1')
     db.insert_class('class', 'faculty1')
     assert db.class_exists('class', 'faculty1')
@@ -190,7 +190,7 @@ def test_classes(db):
 
     # ensure a second faculty member can create a class with the same name
     db.insert_faculty(Faculty('two', 'faculty', 'faculty2',
-                              'faculty2@school.edu', False))
+                              'faculty2@school.edu', False), [])
     db.insert_class('class', 'faculty2')
     assert db.class_exists('class', 'faculty2')
 
@@ -211,11 +211,11 @@ def test_class_students(db):
     student2 = Student('two', 'student', 'student2', 'student2@school.edu')
 
     db.insert_faculty(Faculty('one', 'faculty', 'faculty1',
-                              'faculty1@school.edu', False))
+                              'faculty1@school.edu', False), [])
     db.insert_class('class', 'faculty1')
 
-    db.insert_student(student1)
-    db.insert_student(student2)
+    db.insert_student(student1, [])
+    db.insert_student(student2, [])
 
     db.add_student_to_class('class', student1, 'faculty1')
     db.add_student_to_class('class', student2, 'faculty1')
@@ -268,11 +268,11 @@ def test_change_student_name(db):
     student2 = Student('two', 'student', 'student2', 'student2@school.edu')
 
     db.insert_faculty(Faculty('one', 'faculty', 'faculty1',
-                              'faculty1@school.edu', False))
+                              'faculty1@school.edu', False), [])
     db.insert_class('class', 'faculty1')
 
-    db.insert_student(student1)
-    db.insert_student(student2)
+    db.insert_student(student1, [])
+    db.insert_student(student2, [])
 
     db.add_student_to_class('class', student1, 'faculty1')
     db.add_student_to_class('class', student2, 'faculty1')
@@ -298,13 +298,13 @@ def test_email_case(db):
     student_all_lower = Student('last', 'first', 'username', 'username@school.edu')
     student_upper_username = Student('last', 'first', 'USERNAME', 'USERNAME@school.edu')
 
-    db.insert_student(student_all_lower)
+    db.insert_student(student_all_lower, [])
 
     assert db.email_exists('username@school.edu')
     assert db.email_exists('USERNAME@school.edu')
 
     with pytest.raises(DatabaseException):
-        db.insert_student(student_upper_username)
+        db.insert_student(student_upper_username, [])
 
     assert db.get_username_from_email('UsErNaMe@school.edu') == 'username'
 
@@ -316,13 +316,13 @@ def test_email_case(db):
     faculty_upper_username = Faculty('last', 'first', 'FUSER',
                                      'FUSER@school.edu', False)
 
-    db.insert_faculty(faculty_all_lower)
+    db.insert_faculty(faculty_all_lower, [])
 
     assert db.email_exists('fuser@school.edu')
     assert db.email_exists('FUSER@school.edu')
 
     with pytest.raises(DatabaseException):
-        db.insert_faculty(faculty_upper_username)
+        db.insert_faculty(faculty_upper_username, [])
 
     assert db.get_username_from_email('fUsEr@school.edu') == 'fuser'
 
@@ -365,8 +365,8 @@ def test_assignment(db):
     faculty2 = Faculty('last2', 'first2', 'faculty2', 'faculty2@school.edu',
                        False)
 
-    db.insert_faculty(faculty1)
-    db.insert_faculty(faculty2)
+    db.insert_faculty(faculty1, [])
+    db.insert_faculty(faculty2, [])
 
     db.insert_class('class1', 'faculty1')
     db.insert_class('class2', 'faculty1')
@@ -427,7 +427,7 @@ def test_assignment(db):
 def test_disable_assignment(db):
     faculty = Faculty('last', 'first', 'faculty', 'faculty@school.edu',
                        False)
-    db.insert_faculty(faculty)
+    db.insert_faculty(faculty, [])
     db.insert_class('class', 'faculty')
 
     db.insert_assignment('class', 'assgn1', 'faculty')
@@ -456,7 +456,7 @@ def test_disable_assignment(db):
 def test_get_class_assignments(db):
     faculty = Faculty('last', 'first', 'faculty', 'faculty@school.edu',
                        False)
-    db.insert_faculty(faculty)
+    db.insert_faculty(faculty, [])
     db.insert_class('class', 'faculty')
 
     db.insert_assignment('class', 'assgn1', 'faculty')
@@ -489,3 +489,49 @@ def test_get_class_assignments(db):
     for assignment in (assgn1, assgn2):
         assert assignment in enabled_assignments
 
+
+def test_insert_dummy_user(db):
+    db.insert_dummy_user('keeper')
+    assert db.email_exists('keeper@DUMMY')
+
+    faculty = Faculty('last', 'first', 'keeper', 'keeper@school.edu', False)
+    faculty = db.insert_faculty(faculty, [])
+
+    assert faculty.username == 'keeper1'
+    assert db.email_exists('keeper@school.edu')
+    assert not db.email_exists('keeper1@school.edu')
+    assert db.get_username_from_email('keeper@school.edu') == 'keeper1'
+
+    faculty_copy = db.get_faculty_by_username('keeper1')
+    assert faculty_copy.email_address == 'keeper@school.edu'
+
+    db.insert_dummy_user('tester')
+    assert db.email_exists('tester@DUMMY')
+
+    student = Student('last', 'first', 'tester', 'tester@school.edu')
+    student = db.insert_student(student, [])
+
+    assert student.username == 'tester1'
+    assert db.email_exists('tester@school.edu')
+    assert not db.email_exists('tester1@school.edu')
+    assert db.get_username_from_email('tester@school.edu') == 'tester1'
+
+
+def test_insert_users_with_existing_users(db):
+    existing_users = ['user']
+
+    faculty = Faculty('last', 'first', 'user', 'user@school.edu', False)
+    faculty = db.insert_faculty(faculty, existing_users)
+
+    assert faculty.username == 'user1'
+
+    student = Student('last', 'first', 'user', 'user@another-school.edu')
+    student = db.insert_student(student, existing_users)
+
+    assert student.username == 'user2'
+
+    faculty_student = Student('last', 'first', 'user', 'user@school.edu')
+    faculty_student = db.insert_student(faculty_student, existing_users,
+                                        user_exists=True)
+
+    assert faculty_student.username == 'user1'

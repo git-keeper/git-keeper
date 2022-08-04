@@ -56,7 +56,7 @@ Different Case Email
 Uppercase Email
     [Tags]    happy_path
     Gkeep Add Faculty Succeeds    admin_prof    FACULTY1    email_domain='SCHOOL.EDU'
-    New Account Email Exists    FACULTY1
+    New Account Email Exists    faculty1
     User Exists On Server    faculty1
 
 Admin Promote And Demote
@@ -81,3 +81,15 @@ Add Faculty With Same Email Username
     [Tags]    happy_path
     Gkeep Add Faculty Succeeds    admin_prof    faculty1
     Gkeep Add Faculty Succeeds    admin_prof    faculty1     email_domain='gitkeeper.edu'
+
+Faculty Named Faculty
+    [Tags]    happy_path
+    Gkeep Add Faculty Succeeds     admin_prof    faculty
+    User Exists On Server    faculty1
+    New Account Email Exists    faculty1
+
+Faculty Named Keeper
+    [Tags]    happy_path
+    Gkeep Add Faculty Succeeds     admin_prof    keeper
+    User Exists On Server    keeper1
+    New Account Email Exists    keeper1

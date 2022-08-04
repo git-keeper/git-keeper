@@ -56,6 +56,7 @@ def check_system():
     """
 
     check_paths_and_permissions()
+    check_dummy_accounts()
     check_faculty()
 
 
@@ -176,3 +177,21 @@ def check_faculty():
 
     elif not db.is_admin(config.admin_username):
         db.set_admin(config.admin_username)
+
+
+def check_dummy_accounts():
+    """
+    If necessary, add dummy accounts in the database for disallowed usernames.
+    """
+
+    dummy_users = [
+        config.keeper_user,
+        config.keeper_group,
+        config.tester_user,
+        config.student_group,
+        config.faculty_group,
+    ]
+
+    for username in dummy_users:
+        if not db.username_exists(username):
+            db.insert_dummy_user(username)
