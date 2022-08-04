@@ -116,6 +116,17 @@ class ServerCheckKeywords:
             raise GkeepRobotException('Submission test result email exists for {}, {}, {}'.format(username, course_name,
                                                                                     assignment_name))
 
+    def submission_disabled_email_exists(self, username, course_name, assignment_name, body_contains):
+        subject = '"[{}] Assignment disabled: {}"'.format(course_name, assignment_name)
+        result = control.run_vm_python_script('keeper', 'email_to.py',
+                                              username, subject, body_contains)
+
+        if result != 'True':
+            raise GkeepRobotException('No submission disable email for {}, {}, {}'.format(username, course_name,
+                                                                                              assignment_name))
+
+
+
     def verify_submission_test_result_count(self, username, course_name, assignment_name, body_contains, count):
         subject = '"[{}] {} submission test results"'.format(course_name, assignment_name)
         result = control.run_vm_python_script('keeper', 'email_to_count.py',

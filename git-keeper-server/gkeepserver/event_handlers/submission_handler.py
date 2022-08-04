@@ -67,9 +67,8 @@ class SubmissionHandler(EventHandler):
                           self._faculty_username):
             email_subject = ('[{}] Assignment disabled: {}'
                              .format(self._class_name, self._assignment_name))
-            email_body = ('Assignment {} in class {} has been disabled. '
-                          'No tests will be run if you push to your '
-                          'repository for this assignment.')
+            email_body = ('Assignment {} in class {} has been disabled.'
+                          .format(self._assignment_name, self._class_name))
             email_sender.enqueue(Email(student.email_address,
                                        email_subject, email_body))
         else:

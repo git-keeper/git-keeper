@@ -34,6 +34,12 @@ Disable Assignment
     Gkeep Publish Succeeds    faculty1    cs1    good_simple
     Gkeep Disable Succeeds    faculty1    cs1    good_simple
     Gkeep Query JSON Produces Results    faculty1   assignments   {"cs1":[{"name":"good_simple","published":true,"disabled":true}]}
+    Gkeep Trigger Fails     faculty1    cs1     good_simple
+    Create Accounts On Client    student1
+    Create Git Config    student1
+    Clone Assignment  student1  faculty1    cs1     good_simple
+    Student Submits    student1    faculty1    cs1    good_simple    correct_solution
+    Submission Disabled Email Exists    student1    cs1    good_simple    disabled
 
 Disable Unpublished Assignment Fails
     [Tags]    error
