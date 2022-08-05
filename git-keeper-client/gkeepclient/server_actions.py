@@ -423,8 +423,8 @@ def disable_assignment(class_name: str, assignment_name: str,
     print('Disabling assignment {} in class {}. This cannot be undone.'
           .format(assignment_name, class_name))
     print('Students will be notified that the assignment has been disabled.')
-    print('The action.sh/action.py script will no longer be run on submissions.')
-    print('to this assignment.  Instead, students will receive an email stating')
+    print('The action script will no longer be run on submissions to this ')
+    print('assignment.  Instead, students will receive an email stating')
     print('that the assignment is disabled.')
 
     if not yes and not confirmation('Proceed?', 'y'):
