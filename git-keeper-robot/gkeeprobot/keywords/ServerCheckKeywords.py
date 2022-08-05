@@ -52,9 +52,9 @@ class ServerCheckKeywords:
             pass
 
     def new_account_email_exists(self, username):
-        result = control.run_vm_python_script('keeper', 'email_to.py',
-                                              username, '"New git-keeper account"',
-                                              'Password')
+        result = control.run_vm_python_script('keeper', 'email_any_contains.py',
+                                              '"New git-keeper account"',
+                                              "$'Username: {}\n'".format(username))
         if result != 'True':
             raise GkeepRobotException('No new account email for {}'.format(username))
 
@@ -141,9 +141,11 @@ class ServerCheckKeywords:
                                                                                       body_contains))
 
     def new_account_email_does_not_exist(self, username):
-        result = control.run_vm_python_script('keeper', 'no_email_to.py',
-                                              username)
-        if result != 'True':
+        result = control.run_vm_python_script('keeper', 'email_any_contains.py',
+                                              '"New git-keeper account"',
+                                              "$'Username: {}\n'".format(username))
+
+        if result == 'True':
             raise GkeepRobotException('Email exists to {}'.format(username))
 
     def user_exists_on_server(self, username):

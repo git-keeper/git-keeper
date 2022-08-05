@@ -21,7 +21,7 @@ Provides functions for system calls and command line filesystem operations.
 import os
 from getpass import getuser
 from grp import getgrgid, getgrnam
-from pwd import getpwuid, getpwnam
+from pwd import getpwuid, getpwnam, getpwall
 from shutil import which
 
 from gkeepcore.path_utils import user_home_dir
@@ -202,6 +202,16 @@ def sudo_set_password(username, password):
 
     cmd = 'echo {0}:{1} | sudo chpasswd'.format(username, password)
     run_command(cmd)
+
+
+def get_all_users():
+    """
+    Return a list of the usernames of all the users on the system.
+
+    :return: list of all usernames
+    """
+
+    return [user[0] for user in getpwall()]
 
 
 def user_exists(user):

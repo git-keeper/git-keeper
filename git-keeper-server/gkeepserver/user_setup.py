@@ -30,7 +30,7 @@ from gkeepcore.path_utils import user_home_dir, user_log_path, \
 from gkeepcore.student import Student
 from gkeepcore.system_commands import sudo_add_user, sudo_set_password, \
     chmod, sudo_chown, mkdir, make_symbolic_link, mv, sudo_set_shell, \
-    sudo_add_user_to_groups, user_exists
+    sudo_add_user_to_groups, get_all_users
 from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.faculty import Faculty
@@ -55,7 +55,6 @@ class NewUserAction(Enum):
     """
     NEW_USER_NEW_DB = 0
     NEW_DB_ROLE = 1
-    SETUP_EXISTING_USER = 2
 
 
 def initialize_user_log(username):
@@ -351,25 +350,6 @@ def setup_student_user(student: Student, action: NewUserAction):
                additional_groups=groups, shell='git-shell')
 
 
-def validate_home_directory_for_new_user(username):
-    """
-    Raises a GkeepException if an existing user's home directory contains
-    .gitkeeper. This should only be used when checking if an existing user
-    is suitable to be a new git-keeper user.
-
-    :param username: an existing user
-    """
-
-    gitkeeper_path = user_gitkeeper_path(username)
-    gkeepd_logger.log_debug('Checking that {} exists'.format(gitkeeper_path))
-    if os.path.exists(gitkeeper_path):
-        error = ('User {} exists on the server and {} exists, but the user '
-                 'is not registered as a git-keeper user. Remove {} from the '
-                 'server and try again.'.format(username, gitkeeper_path,
-                                                gitkeeper_path))
-        raise GkeepException(error)
-
-
 def add_faculty(last_name, first_name, email_address, admin=False):
     """
     Add a faculty user, or make an existing user a faculty user.
@@ -400,20 +380,14 @@ def add_faculty(last_name, first_name, email_address, admin=False):
                      'email {}, but is not registered as faculty or '
                      'student').format(email_address)
             raise GkeepException(error)
-    elif db.faculty_username_exists(email_username):
-        action = NewUserAction.NEW_USER_NEW_DB
-    elif user_exists(email_username):
-        action = NewUserAction.SETUP_EXISTING_USER
     else:
         action = NewUserAction.NEW_USER_NEW_DB
 
-    if action == NewUserAction.SETUP_EXISTING_USER:
-        validate_home_directory_for_new_user(email_username)
-
     exists_in_db = (action == NewUserAction.NEW_DB_ROLE)
 
+    existing_users = get_all_users()
     faculty = db.insert_faculty(Faculty(last_name, first_name, '',
-                                        email_address, admin),
+                                        email_address, admin), existing_users,
                                 user_exists=exists_in_db)
 
     gkeepd_logger.log_info('Setting up faculty user with email {}'

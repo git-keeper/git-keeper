@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from enum import Enum
+
 
 import peewee as pw
 
@@ -76,6 +76,10 @@ class DBStudentUser(BaseModel):
     user_id = pw.ForeignKeyField(DBUser, unique=True)
 
 
+class DBDummyUser(BaseModel):
+    user_id = pw.ForeignKeyField(DBUser, unique=True)
+
+
 class DBClass(BaseModel):
     name = pw.CharField()
     faculty_id = pw.ForeignKeyField(DBUser)
@@ -133,8 +137,9 @@ class Database:
         :param db_filename: name of the file to connect to
         """
         database.init(db_filename, pragmas={'foreign_keys': 1})
-        database.create_tables([DBUser, DBFacultyUser, DBStudentUser, DBClass,
-                                DBClassStudent, DBAssignment, DBByteCount])
+        database.create_tables([DBUser, DBFacultyUser, DBStudentUser,
+                                DBDummyUser, DBClass, DBClassStudent,
+                                DBAssignment, DBByteCount])
 
     def username_exists(self, username):
         """
@@ -206,19 +211,42 @@ class Database:
         )
         return query.exists()
 
-    def insert_student(self, student: Student, user_exists=False) -> Student:
+    def insert_dummy_user(self, username):
+        """
+        Inserts a user into the database that exists purely to prevent its
+        username from being used in the future.
+
+        :param username: dummy username to insert
+        """
+
+        if self.username_exists(username):
+            error = ('Cannot insert dummy user {} into the database, that '
+                     'username already exists in the database'
+                     .format(username))
+            raise DatabaseException(error)
+
+        email_address = '{}@DUMMY'.format(username)
+
+        DBUser.create(username=username, email_address=email_address)
+        user_id = self._user_id_from_username(username)
+        DBDummyUser.create(user_id=user_id)
+
+    def insert_student(self, student: Student, existing_users,
+                       user_exists=False) -> Student:
         """
         Inserts a student into the database. The username attribute of the
         provided Student object is ignored, and is updated with the username
         assigned by the database. The updated Student object is returned.
 
         :param student: a Student object representing the student to insert
+        :param existing_users: list of usernames that already exist on the
+         system, but are not necessarily in the db
         :param user_exists: True if the user already exists as faculty
         :return: the Student object, which may have an updated username field
         """
 
         if not user_exists:
-            username = self._insert_user(student.email_address)
+            username = self._insert_user(student.email_address, existing_users)
         else:
             username = self.get_username_from_email(student.email_address)
 
@@ -259,7 +287,8 @@ class Database:
         class_student.last_name = student.last_name
         class_student.save()
 
-    def insert_faculty(self, faculty: Faculty, user_exists=False) -> Faculty:
+    def insert_faculty(self, faculty: Faculty, existing_users,
+                       user_exists=False) -> Faculty:
         """
         Inserts a faculty member into the database. The username attribute of
         the provided Faculty object is ignored, and is updated with the
@@ -267,6 +296,8 @@ class Database:
         returned.
 
         :param faculty: a Faculty object representing the faculty to insert
+        :param existing_users: list of usernames that already exist on the
+         system, but are not necessarily in the db
         :param user_exists: True if the user exists as a student
         :return: the Faculty object, which may have an updated username field
         """
@@ -274,7 +305,7 @@ class Database:
         if user_exists:
             username = self.get_username_from_email(faculty.email_address)
         else:
-            username = self._insert_user(faculty.email_address)
+            username = self._insert_user(faculty.email_address, existing_users)
 
         user_id = self._user_id_from_username(username)
         DBFacultyUser.create(user_id=user_id,
@@ -1004,7 +1035,7 @@ class Database:
             raise DatabaseException('No byte count found for {}'
                                     .format(file_path))
 
-    def _insert_user(self, email_address: str):
+    def _insert_user(self, email_address: str, existing_users):
         """
         Inserts a user into the database. The user's username will the username
         from the user's email address unless the username already exists. If
@@ -1013,6 +1044,8 @@ class Database:
         user is returned.
 
         :param email_address: the email address of the user
+        :param existing_users: list of usernames that already exist on the
+         system, but are not necessarily in the db
         :return: the username of the user
         """
         if self.email_exists(email_address):
@@ -1028,7 +1061,7 @@ class Database:
         username = clean_username
 
         counter = 1
-        while self.username_exists(username):
+        while username in existing_users or self.username_exists(username):
             username = clean_username + str(counter)
             counter += 1
 

@@ -85,10 +85,12 @@ Existing Student
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
     User Exists On Server    student1
     User Exists On Server    student2
+    User Exists On Server    student21
     New Account Email Exists    student1
-    New Account Email Does Not Exist    to_user=student2
+    New Account Email Exists    student21
+    New Account Email Does Not Exist    student2
     Class Contains Student    faculty1    cs1    student1
-    Class Contains Student    faculty1    cs1    student2
+    Class Contains Student    faculty1    cs1    student21
 
 Call Add Twice
     [Tags]    error
@@ -109,9 +111,20 @@ Malformed CSV
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
 Student Named Student
-    [Tags]    error
+    [Tags]    happy_path
     Add To Class CSV    faculty=faculty1    class_name=cs1    username=student
-    Gkeep Add Fails    faculty=faculty1    class_name=cs1
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    Class Contains Student    faculty1    cs1    student1
+    User Exists On Server    student1
+    New Account Email Exists    student1
+
+Student Named Tester
+    [Tags]    happy_path
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=tester
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    Class Contains Student    faculty1    cs1    tester1
+    User Exists On Server    tester1
+    New Account Email Exists    tester1
 
 Same Class Name From Different Faculty
     [Tags]    happy_path

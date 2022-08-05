@@ -26,38 +26,20 @@ Adding Student Succeeds When Account Exists
     Add Account On Server    student1
     Add To Class CSV    faculty1    cs1    student1
     Gkeep Add Succeeds    faculty1    cs1
-    Class Contains Student    faculty1    cs1    student1
-    New Account Email Does Not Exist    student1
-
-Adding Student Fails When Dot Gitkeeper Exists
-    [Tags]    error
-    Launch Gkeepd And Configure Admin Account on Client
-    Add Faculty and Configure Accounts on Client    faculty1
-    Add Account On Server    student1
-    Make Empty Dot Gitkeeper Directory    student1
-    Add To Class CSV    faculty1    cs1    student1
-    Gkeep Add Fails    faculty1    cs1
-    Class Does Not Contain Student    faculty1    cs1    student1
-    New Account Email Does Not Exist    student1
+    Class Contains Student    faculty1    cs1    student11
+    New Account Email Exists    student11
 
 Adding Faculty Succeeds When Account Exists
     [Tags]    happy_path
     Launch Gkeepd And Configure Admin Account on Client
     Add Account On Server    faculty1
     Gkeep Add Faculty Succeeds    admin_prof    faculty1
-    New Account Email Does Not Exist    faculty1
-    Create Accounts On Client    faculty1
-    Create Git Config    faculty1
-    Add To Class CSV    faculty1    cs1    student1
-    Gkeep Add Succeeds    faculty1    cs1
-    Class Contains Student    faculty1    cs1    student1
-
-Adding Faculty Fails When Dot Gitkeeper Exists
-    [Tags]    error
-    Launch Gkeepd And Configure Admin Account on Client
-    Add Account On Server    faculty1
-    Make Empty Dot Gitkeeper Directory    faculty1
-    Gkeep Add Faculty Fails    admin_prof    faculty1
+    New Account Email Exists    faculty11
+    Create Accounts On Client    faculty11
+    Create Git Config    faculty11
+    Add To Class CSV    faculty11    cs1    student1
+    Gkeep Add Succeeds    faculty11    cs1
+    Class Contains Student    faculty11    cs1    student1
 
 Faculty Becomes Student
     [Tags]    happy_path
