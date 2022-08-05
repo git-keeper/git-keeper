@@ -42,9 +42,9 @@ Admin Named Faculty
     [Tags]    error
     Add File To Server    keeper    files/admin_named_faculty_server.cfg    server.cfg
     Start gkeepd
-    Gkeepd Is Not Running
-    User Does Not Exist On Server    faculty
-    New Account Email Does Not Exist    faculty
+    Gkeepd Is Running
+    User Exists On Server    faculty1
+    New Account Email Exists    faculty1
 
 Missing server cfg
     [Tags]    error

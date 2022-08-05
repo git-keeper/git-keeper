@@ -23,19 +23,16 @@ Be sure to parse the server configuration and start the system logger before
 calling check_system()
 
 """
-import json
 import os
 
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_home_dir
 from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
-                                       sudo_add_group, mode, chmod, touch,
+                                       sudo_add_group, mode, chmod,
                                        this_user, this_group, sudo_add_user,
-                                       group_owner, sudo_chown)
-from gkeepserver.create_user import create_user, UserType, add_faculty
+                                       group_owner, sudo_chown, sudo_add_user_to_group)
+from gkeepserver.user_setup import add_faculty
 from gkeepserver.database import db
-from gkeepserver.faculty import Faculty
 from gkeepserver.gkeepd_logger import gkeepd_logger as gkeepd_logger
 from gkeepserver.server_configuration import config
 
@@ -59,6 +56,7 @@ def check_system():
     """
 
     check_paths_and_permissions()
+    check_dummy_accounts()
     check_faculty()
 
 
@@ -109,6 +107,7 @@ def check_paths_and_permissions():
     # create the tester user if it does not exist
     if not user_exists(config.tester_user):
         sudo_add_user(config.tester_user)
+        sudo_add_user_to_group(config.tester_user, 'docker')
 
     tester_home_dir = user_home_dir(config.tester_user)
 
@@ -178,3 +177,21 @@ def check_faculty():
 
     elif not db.is_admin(config.admin_username):
         db.set_admin(config.admin_username)
+
+
+def check_dummy_accounts():
+    """
+    If necessary, add dummy accounts in the database for disallowed usernames.
+    """
+
+    dummy_users = [
+        config.keeper_user,
+        config.keeper_group,
+        config.tester_user,
+        config.student_group,
+        config.faculty_group,
+    ]
+
+    for username in dummy_users:
+        if not db.username_exists(username):
+            db.insert_dummy_user(username)

@@ -41,12 +41,36 @@ class ServerCheckKeywords:
         except ExitCodeException:
             pass
 
+    def gkeepd_check_succeeds(self):
+        control.run('keeper', 'gkeepd --check')
+
+    def gkeepd_check_fails(self):
+        try:
+            control.run('keeper', 'gkeepd --check')
+            raise GkeepRobotException('gkeepd --check should return non-zero')
+        except ExitCodeException:
+            pass
+
     def new_account_email_exists(self, username):
-        result = control.run_vm_python_script('keeper', 'email_to.py',
-                                              username, '"New git-keeper account"',
-                                              'Password')
+        result = control.run_vm_python_script('keeper', 'email_any_contains.py',
+                                              '"New git-keeper account"',
+                                              "$'Username: {}\n'".format(username))
         if result != 'True':
             raise GkeepRobotException('No new account email for {}'.format(username))
+
+    def faculty_role_email_exists(self, username):
+        result = control.run_vm_python_script('keeper', 'email_to.py',
+                                              username, '"git-keeper faculty account"',
+                                              'faculty account')
+        if result != 'True':
+            raise GkeepRobotException('No faculty role email for {}'.format(username))
+
+    def gkeepd_check_email_exists(self, username):
+        result = control.run_vm_python_script('keeper', 'email_to.py',
+                                              username, '"git-keeper test email"',
+                                              'This is a test email')
+        if result != 'True':
+            raise GkeepRobotException('No gkeepd check email for {}'.format(username))
 
     def password_reset_email_exists(self, username):
         result = control.run_vm_python_script('keeper', 'email_to.py',
@@ -92,6 +116,15 @@ class ServerCheckKeywords:
             raise GkeepRobotException('Submission test result email exists for {}, {}, {}'.format(username, course_name,
                                                                                     assignment_name))
 
+    def submission_disabled_email_exists(self, username, course_name, assignment_name, body_contains):
+        subject = '"[{}] Assignment disabled: {}"'.format(course_name, assignment_name)
+        result = control.run_vm_python_script('keeper', 'email_to.py',
+                                              username, subject, body_contains)
+
+        if result != 'True':
+            raise GkeepRobotException('No submission disable email for {}, {}, {}'.format(username, course_name,
+                                                                                              assignment_name))
+
     def verify_submission_test_result_count(self, username, course_name, assignment_name, body_contains, count):
         subject = '"[{}] {} submission test results"'.format(course_name, assignment_name)
         result = control.run_vm_python_script('keeper', 'email_to_count.py',
@@ -108,9 +141,11 @@ class ServerCheckKeywords:
                                                                                       body_contains))
 
     def new_account_email_does_not_exist(self, username):
-        result = control.run_vm_python_script('keeper', 'no_email_to.py',
-                                              username)
-        if result != 'True':
+        result = control.run_vm_python_script('keeper', 'email_any_contains.py',
+                                              '"New git-keeper account"',
+                                              "$'Username: {}\n'".format(username))
+
+        if result == 'True':
             raise GkeepRobotException('Email exists to {}'.format(username))
 
     def user_exists_on_server(self, username):

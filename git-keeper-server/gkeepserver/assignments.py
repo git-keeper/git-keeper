@@ -21,6 +21,7 @@ import os
 from tempfile import TemporaryDirectory
 
 from gkeepcore.action_scripts import get_action_script_and_interpreter
+from gkeepcore.assignment_config import AssignmentConfig
 from gkeepcore.student import Student
 from pkg_resources import resource_exists, resource_string, ResolutionError, \
     ExtractionError
@@ -32,8 +33,9 @@ from gkeepcore.path_utils import parse_faculty_assignment_path, \
     user_home_dir, faculty_class_dir_path, student_assignment_repo_path, \
     student_class_dir_path, faculty_assignment_dir_path, user_gitkeeper_path
 from gkeepcore.shell_command import CommandError
-from gkeepcore.system_commands import cp, chmod, mkdir, sudo_chown, rm, mv
+from gkeepcore.system_commands import cp, chmod, mkdir, sudo_chown, rm
 from gkeepserver.database import db
+from gkeepserver.directory_locks import directory_locks
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email, EmailException, EmailPriority
@@ -69,6 +71,7 @@ class AssignmentDirectory:
         base_code_repo_path - path to the base code repository
         reports_repo_path - path to the reports repository
         tests_path - path to the tests directory
+        config_path - path to assignment.cfg (if present)
     """
 
     def __init__(self, path, check=True):
@@ -86,6 +89,7 @@ class AssignmentDirectory:
         self.base_code_repo_path = os.path.join(self.path, 'base_code.git')
         self.reports_repo_path = os.path.join(self.path, 'reports.git')
         self.tests_path = os.path.join(self.path, 'tests')
+        self.config_path = os.path.join(self.path, 'assignment.cfg')
 
         self.action_script, self.action_script_interpreter = \
             get_action_script_and_interpreter(self.tests_path)
@@ -110,25 +114,37 @@ class AssignmentDirectory:
         Raise AssignmentDirectoryError if check fails.
         """
 
-        if self.class_name is None or self.assignment_name is None:
-            error = '{0} is not a valid assignment path'.format(self.path)
-            raise AssignmentDirectoryError(error)
+        with directory_locks.get_lock(self.path):
+            if self.class_name is None or self.assignment_name is None:
+                error = '{0} is not a valid assignment path'.format(self.path)
+                raise AssignmentDirectoryError(error)
 
-        # ensure all required directories exist
-        for dir_path in (self.path, self.base_code_repo_path,
-                         self.reports_repo_path, self.tests_path):
-            if not os.path.isdir(dir_path):
-                raise AssignmentDirectoryError(dir_path)
+            # ensure all required directories exist
+            for dir_path in (self.path, self.base_code_repo_path,
+                             self.reports_repo_path, self.tests_path):
+                if not os.path.isdir(dir_path):
+                    raise AssignmentDirectoryError(dir_path)
 
-        # ensure email.txt exists
-        if not os.path.isfile(self.email_path):
-            raise AssignmentDirectoryError(self.email_path)
+            # ensure email.txt exists
+            if not os.path.isfile(self.email_path):
+                raise AssignmentDirectoryError(self.email_path)
 
-        # ensure there is an action script
-        self.action_script, self.action_script_interpreter = \
-            get_action_script_and_interpreter(self.tests_path)
-        if self.action_script is None:
-            raise AssignmentDirectoryError('action script')
+            # ensure there is an action script
+            self.action_script, self.action_script_interpreter = \
+                get_action_script_and_interpreter(self.tests_path)
+            if self.action_script is None:
+                raise AssignmentDirectoryError('action script')
+
+    def get_config(self):
+        """
+        Returns an AssignmentConfig object representing the data from
+        assignment.cfg.
+
+        :return: AssignmentConfig object for the assignment
+        """
+
+        return AssignmentConfig(self.config_path,
+                                default_env=config.default_test_env)
 
 
 def get_assignment_dir(faculty_username: str, class_name: str,
@@ -148,6 +164,32 @@ def get_assignment_dir(faculty_username: str, class_name: str,
                                     user_gitkeeper_path(faculty_username))
 
     return AssignmentDirectory(assignment_path)
+
+
+def get_class_assignment_paths(faculty_username: str, class_name: str,
+                               include_inactive=False) -> list:
+    """
+    Get a list of all the paths for all the assignment directories for a class.
+
+    :param faculty_username: faculty who owns the class
+    :param class_name: name of the class
+    :param include_inactive: if True, inactive assignments will be included
+    :return: list of AssignmentDirectory objects
+    """
+    class_path = faculty_class_dir_path(class_name,
+                                        user_gitkeeper_path(faculty_username))
+
+    assignment_paths = []
+
+    if not os.path.isdir(class_path):
+        return assignment_paths
+
+    for assignment in db.get_class_assignments(class_name, faculty_username,
+                                               include_inactive):
+        path = os.path.join(class_path, assignment.name)
+        assignment_paths.append(path)
+
+    return assignment_paths
 
 
 def get_class_assignment_dirs(faculty_username: str, class_name: str,
@@ -254,6 +296,16 @@ def copy_email_txt_file(assignment_dir: AssignmentDirectory,
     :param email_txt_path: path to email.txt
     """
     cp(email_txt_path, assignment_dir.path, sudo=True)
+
+
+def copy_config_file(assignment_dir: AssignmentDirectory, config_path: str):
+    """
+    Copy assignment.cfg into an assignment directory
+
+    :param assignment_dir: AssignmentDirectory to copy into
+    :param config_path: path to assignment.cfg
+    """
+    cp(config_path, assignment_dir.path, sudo=True)
 
 
 def copy_tests_dir(assignment_dir: AssignmentDirectory, tests_path: str):
@@ -381,9 +433,11 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
                  .format(assignment_repo_path, str(e)))
         raise StudentAssignmentError(error)
 
-    email_subject = ('[{0}] New assignment: {1}'
-                     .format(assignment_dir.class_name,
-                             assignment_dir.assignment_name))
+    assignment_config = assignment_dir.get_config()
+
+    email_subject = (assignment_config.announcement_subject
+                     .format(class_name=assignment_dir.class_name,
+                             assignment_name=assignment_dir.assignment_name))
 
     # build the clone URL for the assignment
     clone_url = '{0}@{1}:{2}'.format(student.username,

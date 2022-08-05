@@ -22,6 +22,7 @@ client.
 import os
 
 from gkeepcore.action_scripts import get_action_script_and_interpreter
+from gkeepcore.assignment_config import AssignmentConfig
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import path_to_assignment_name
 
@@ -58,13 +59,16 @@ class UploadDirectory:
         tests_path = path to the tests directory
         action_script_path - path to action script
         action_script_interpreter - name of interpreter to run action script
+        assignment_config_path - path to assignment.cfg (if present)
     """
 
     def __init__(self, path, check=True):
         """
         Assign attributes based on path.
 
-        Raise ConfigDirectoryError if any required paths do not exist.
+        Raise ConfigDirectoryError if any required paths do not exist.  Also
+        if assignment.cfg is present, this exception is raised if there
+        is an error in the file.
 
         :param path: path to the assignment directory
         :param check: if True, raise an exception if any files or directories
@@ -74,6 +78,7 @@ class UploadDirectory:
         self.email_path = os.path.join(self.path, 'email.txt')
         self.base_code_path = os.path.join(self.path, 'base_code')
         self.tests_path = os.path.join(self.path, 'tests')
+        self.config_path = os.path.join(self.path, 'assignment.cfg')
 
         self.assignment_name = path_to_assignment_name(self.path)
 
@@ -101,3 +106,8 @@ class UploadDirectory:
             # ensure email.txt exists
             if not os.path.isfile(self.email_path):
                 raise UploadDirectoryError(self.email_path)
+
+            # Verify that the appropriate fields are present in assignment.cfg
+            # if it exists.
+            if os.path.exists(self.config_path):
+                AssignmentConfig(self.config_path)

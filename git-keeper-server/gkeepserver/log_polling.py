@@ -53,7 +53,6 @@ Example usage::
 
 """
 
-import json
 import os
 from queue import Queue, Empty
 from threading import Thread
@@ -230,6 +229,12 @@ class LogPollingThread(Thread):
             self._logger.log_warning(warning)
             return
 
+        # bail if already watching file
+        if file_path in self._log_file_readers:
+            info = ('Already watching {}'.format(file_path))
+            self._logger.log_info(info)
+            return
+
         reader = self._reader_class(file_path, seek_position=seek_position)
         self._log_file_readers[file_path] = reader
 
@@ -263,22 +268,23 @@ class LogPollingThread(Thread):
                 self._stop_watching_log_file(reader)
 
         # consume all new log files until the queue is empty
-        try:
-            while True:
+        empty = False
+        while not empty:
+            try:
                 new_file_path = self._add_log_queue.get(block=False)
-                if isinstance(new_file_path, str):
-                    self._start_watching_log_file(new_file_path)
-                else:
+                if not isinstance(new_file_path, str):
                     self._logger.log_warning('Log poller: {0} is not a string'
                                              .format(new_file_path))
-        except Empty:
-            pass
+                else:
+                    self._start_watching_log_file(new_file_path)
+            except Empty:
+                empty = True
 
         # each file should be polled on average once per polling_interval
         next_poll_time = self._last_poll_time + self._polling_interval
         sleep_time = next_poll_time - time()
 
-        if sleep_time > 0:
+        if sleep_time > 0 and not self._shutdown_flag:
             sleep(sleep_time)
 
 

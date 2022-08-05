@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-from enum import Enum
+
 
 import peewee as pw
 
@@ -76,6 +76,10 @@ class DBStudentUser(BaseModel):
     user_id = pw.ForeignKeyField(DBUser, unique=True)
 
 
+class DBDummyUser(BaseModel):
+    user_id = pw.ForeignKeyField(DBUser, unique=True)
+
+
 class DBClass(BaseModel):
     name = pw.CharField()
     faculty_id = pw.ForeignKeyField(DBUser)
@@ -133,8 +137,9 @@ class Database:
         :param db_filename: name of the file to connect to
         """
         database.init(db_filename, pragmas={'foreign_keys': 1})
-        database.create_tables([DBUser, DBFacultyUser, DBStudentUser, DBClass,
-                                DBClassStudent, DBAssignment, DBByteCount])
+        database.create_tables([DBUser, DBFacultyUser, DBStudentUser,
+                                DBDummyUser, DBClass, DBClassStudent,
+                                DBAssignment, DBByteCount])
 
     def username_exists(self, username):
         """
@@ -150,12 +155,14 @@ class Database:
     def email_exists(self, email_address):
         """
         Determines whether or not a user with the given email address exists
-        in the database.
+        in the database. Matching is case-insensitive.
 
         :param email_address: the email address to check
         :return: True if the email address exists, False if not
         """
-        query = DBUser.select().where(DBUser.email_address == email_address)
+
+        lower_email = pw.fn.LOWER(DBUser.email_address)
+        query = DBUser.select().where(lower_email == email_address.lower())
         return query.exists()
 
     def get_username_from_email(self, email_address):
@@ -168,7 +175,8 @@ class Database:
         :return: username of the user
         """
         try:
-            return DBUser.get(DBUser.email_address == email_address).username
+            lower_email = pw.fn.LOWER(DBUser.email_address)
+            return DBUser.get(lower_email == email_address.lower()).username
         except DBUser.DoesNotExist:
             error = 'No user with email address {}'.format(email_address)
             raise DatabaseException(error)
@@ -203,16 +211,45 @@ class Database:
         )
         return query.exists()
 
-    def insert_student(self, student: Student) -> Student:
+    def insert_dummy_user(self, username):
+        """
+        Inserts a user into the database that exists purely to prevent its
+        username from being used in the future.
+
+        :param username: dummy username to insert
+        """
+
+        if self.username_exists(username):
+            error = ('Cannot insert dummy user {} into the database, that '
+                     'username already exists in the database'
+                     .format(username))
+            raise DatabaseException(error)
+
+        email_address = '{}@DUMMY'.format(username)
+
+        DBUser.create(username=username, email_address=email_address)
+        user_id = self._user_id_from_username(username)
+        DBDummyUser.create(user_id=user_id)
+
+    def insert_student(self, student: Student, existing_users,
+                       user_exists=False) -> Student:
         """
         Inserts a student into the database. The username attribute of the
         provided Student object is ignored, and is updated with the username
         assigned by the database. The updated Student object is returned.
 
         :param student: a Student object representing the student to insert
+        :param existing_users: list of usernames that already exist on the
+         system, but are not necessarily in the db
+        :param user_exists: True if the user already exists as faculty
         :return: the Student object, which may have an updated username field
         """
-        username = self._insert_user(student.email_address)
+
+        if not user_exists:
+            username = self._insert_user(student.email_address, existing_users)
+        else:
+            username = self.get_username_from_email(student.email_address)
+
         user_id = self._user_id_from_username(username)
         DBStudentUser.create(user_id=user_id)
         student.username = username
@@ -243,12 +280,15 @@ class Database:
             raise DatabaseException(error)
 
         student_id = self._user_id_from_username(student.username)
-        class_student = DBClassStudent.get(DBClassStudent.user_id == student_id)
+        class_id = self._get_class_id(class_name, faculty_username)
+        class_student = DBClassStudent.get(DBClassStudent.user_id == student_id,
+                                           DBClassStudent.class_id == class_id)
         class_student.first_name = student.first_name
         class_student.last_name = student.last_name
         class_student.save()
 
-    def insert_faculty(self, faculty: Faculty) -> Faculty:
+    def insert_faculty(self, faculty: Faculty, existing_users,
+                       user_exists=False) -> Faculty:
         """
         Inserts a faculty member into the database. The username attribute of
         the provided Faculty object is ignored, and is updated with the
@@ -256,9 +296,17 @@ class Database:
         returned.
 
         :param faculty: a Faculty object representing the faculty to insert
+        :param existing_users: list of usernames that already exist on the
+         system, but are not necessarily in the db
+        :param user_exists: True if the user exists as a student
         :return: the Faculty object, which may have an updated username field
         """
-        username = self._insert_user(faculty.email_address)
+
+        if user_exists:
+            username = self.get_username_from_email(faculty.email_address)
+        else:
+            username = self._insert_user(faculty.email_address, existing_users)
+
         user_id = self._user_id_from_username(username)
         DBFacultyUser.create(user_id=user_id,
                              first_name=faculty.first_name,
@@ -301,12 +349,13 @@ class Database:
         """
 
         try:
+            lower_email = pw.fn.LOWER(DBUser.email_address)
             user = (DBUser
                     .select(DBUser.username, DBUser.email_address,
                             DBFacultyUser.first_name, DBFacultyUser.last_name,
                             DBFacultyUser.admin)
                     .join(DBFacultyUser)
-                    .where(DBUser.email_address == email_address)).get()
+                    .where(lower_email == email_address.lower())).get()
             return Faculty(user.dbfacultyuser.last_name,
                            user.dbfacultyuser.first_name,
                            user.username, user.email_address,
@@ -365,6 +414,23 @@ class Database:
             self.get_faculty_by_username(username)
             return True
         except DatabaseException:
+            return False
+
+    def student_username_exists(self, username: str):
+        """
+        Determines if a student user exists with the given username.
+
+        :param username: username of the student user
+        :return: True if the username exists, False if not
+        """
+
+        try:
+            user = (DBUser
+                    .select()
+                    .join(DBStudentUser)
+                    .where(DBUser.username == username)).get()
+            return True
+        except DBUser.DoesNotExist:
             return False
 
     def is_admin(self, username: str):
@@ -969,7 +1035,7 @@ class Database:
             raise DatabaseException('No byte count found for {}'
                                     .format(file_path))
 
-    def _insert_user(self, email_address: str):
+    def _insert_user(self, email_address: str, existing_users):
         """
         Inserts a user into the database. The user's username will the username
         from the user's email address unless the username already exists. If
@@ -978,6 +1044,8 @@ class Database:
         user is returned.
 
         :param email_address: the email address of the user
+        :param existing_users: list of usernames that already exist on the
+         system, but are not necessarily in the db
         :return: the username of the user
         """
         if self.email_exists(email_address):
@@ -993,7 +1061,7 @@ class Database:
         username = clean_username
 
         counter = 1
-        while self.username_exists(username):
+        while username in existing_users or self.username_exists(username):
             username = clean_username + str(counter)
             counter += 1
 
@@ -1041,8 +1109,9 @@ class Database:
 
     def _student_id_from_email(self, email_address):
         try:
+            lower_email = pw.fn.LOWER(DBUser.email_address)
             student = DBUser.select().join(DBStudentUser).where(
-                (DBUser.email_address == email_address)
+                (lower_email == email_address.lower())
             ).get()
             return student.id
         except DBUser.DoesNotExist:

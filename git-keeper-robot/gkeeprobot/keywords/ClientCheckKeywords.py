@@ -39,14 +39,26 @@ def run_gkeep_json_query(faculty, query):
     try:
         parsed_result = json.loads(result)
     except json.decoder.JSONDecodeError as e:
-        raise GkeepRobotException('Running the following query as {} produced '
-                                  'invalid JSON:\n'
-                                  '{}'.format(faculty, query))
+        raise GkeepRobotException('Running the query "{}" as {} produced '
+                                  'invalid JSON:\n{}'.format(query, faculty,
+                                                             result))
 
     return parsed_result
 
 
 class ClientCheckKeywords:
+
+    def gkeep_check_succeeds(self, faculty):
+        cmd = 'gkeep check'
+        client_control.run(faculty, cmd)
+
+    def gkeep_check_fails(self, faculty):
+        try:
+            cmd = 'gkeep check'
+            client_control.run(faculty, cmd)
+            raise GkeepRobotException('gkeep check should have non-zero return')
+        except ExitCodeException:
+            pass
 
     def gkeep_add_succeeds(self, faculty, class_name):
         cmd = 'gkeep --yes add {} {}.csv'.format(class_name, class_name)
@@ -183,25 +195,29 @@ class ClientCheckKeywords:
                     .format(last_name, first_name, username, class_name))
             raise GkeepRobotException(error)
 
-    def gkeep_add_faculty_succeeds(self, admin, new_faculty):
+    def gkeep_add_faculty_succeeds(self, admin, new_faculty,
+                                   email_domain='school.edu'):
         last_name = 'Professor'
         first_name = 'Doctor'
-        email_address = '{}@school.edu'.format(new_faculty)
+        email_address = '{}@{}'.format(new_faculty, email_domain)
 
         client_control.run(admin, 'gkeep add_faculty {} {} {}'
                                    .format(last_name, first_name,
                                            email_address))
 
-    def gkeep_add_faculty_fails(self, admin, new_faculty):
+    def gkeep_add_faculty_fails(self, admin, new_faculty,
+                                email_domain='school.edu'):
         last_name = 'Professor'
         first_name = 'Doctor'
-        email_address = '{}@school.edu'.format(new_faculty)
+        email_address = '{}@{}'.format(new_faculty, email_domain)
+
+        gkeep_command = ('gkeep add_faculty {} {} {}'
+                         .format(last_name, first_name, email_address))
 
         try:
-            client_control.run(admin, 'gkeep add_faculty {} {} {}'
-                                       .format(last_name, first_name,
-                                               email_address))
-            error = 'gkeep add_faculty should have non-zero return'
+            client_control.run(admin, gkeep_command)
+            error = ('Command "{}" should have non-zero return'
+                     .format(gkeep_command))
             raise GkeepRobotException(error)
         except ExitCodeException:
             pass
@@ -286,15 +302,15 @@ class ClientCheckKeywords:
 
     def gkeep_trigger_succeeds(self, faculty, course_name, assignment_name, student_name=None):
         if student_name is None:
-            client_control.run(faculty, 'gkeep trigger {} {}'.format(course_name, assignment_name))
+            client_control.run(faculty, 'gkeep -y trigger {} {}'.format(course_name, assignment_name))
         else:
-            client_control.run(faculty, 'gkeep trigger {} {} {}'.format(course_name, assignment_name, student_name))
+            client_control.run(faculty, 'gkeep -y trigger {} {} {}'.format(course_name, assignment_name, student_name))
 
     def gkeep_trigger_fails(self, faculty, course_name, assignment_name, student_name=None):
         if student_name is None:
-            cmd = 'gkeep trigger {} {}'.format(course_name, assignment_name)
+            cmd = 'gkeep -y trigger {} {}'.format(course_name, assignment_name)
         else:
-            cmd = 'gkeep trigger {} {} {}'.format(course_name, assignment_name, student_name)
+            cmd = 'gkeep -y trigger {} {} {}'.format(course_name, assignment_name, student_name)
 
         try:
             client_control.run(faculty, cmd)
@@ -350,4 +366,55 @@ class ClientCheckKeywords:
                      .format(cmd))
             raise GkeepRobotException(error)
         except ExitCodeException:
+            pass
+
+    def gkeep_update_succeeds(self, faculty, class_name, assignment_name, update_type):
+        cmd = 'gkeep update {} {} {}'.format(class_name, assignment_name, update_type)
+        try:
+            client_control.run(faculty, cmd)
+        except ExitCodeException as e:
+            error = 'Command failed: {}\n{}'.format(cmd, e)
+            raise GkeepRobotException(error)
+
+    def gkeep_update_fails(self, faculty, class_name, assignment_name, update_type):
+        cmd = 'gkeep update {} {} {}'.format(class_name, assignment_name, update_type)
+        try:
+            client_control.run(faculty, cmd)
+            error = ('Command should have had non-zero exit code: {}'
+                     .format(cmd))
+            raise GkeepRobotException(error)
+        except ExitCodeException as e:
+            pass
+
+    def folder_exists(self, faculty, folder):
+        cmd = 'test -d {}'.format(folder)
+        try:
+            client_control.run(faculty, cmd)
+        except ExitCodeException as e:
+            raise GkeepRobotException('Folder does not exist: {}'.format(folder))
+
+    def file_exists(self, faculty, filename):
+        cmd = 'test -f {}'.format(filename)
+        try:
+            client_control.run(faculty, cmd)
+        except ExitCodeException as e:
+            raise GkeepRobotException('File does not exist: {}'.format(filename))
+
+    def new_assignment_succeeds(self, faculty, assignment_name, template_name=None):
+        if template_name is None:
+            client_control.run(faculty, 'gkeep new {}'.format(assignment_name))
+        else:
+            client_control.run(faculty, 'gkeep new {} {}'.format(assignment_name, template_name))
+
+    def new_assignment_fails(self, faculty, assignment_name, template_name=None):
+        try:
+            if template_name is None:
+                cmd = 'gkeep new {}'.format(assignment_name)
+                client_control.run(faculty, cmd)
+            else:
+                cmd = 'gkeep new {} {}'.format(assignment_name, template_name)
+                client_control.run(faculty, cmd)
+            error = ('Command should have had non-zero exit code: {}'.format(cmd))
+            raise GkeepRobotException(error)
+        except ExitCodeException as e:
             pass

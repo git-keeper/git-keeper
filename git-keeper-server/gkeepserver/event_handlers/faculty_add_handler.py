@@ -21,7 +21,7 @@ import json
 from gkeepcore.path_utils import user_from_log_path
 from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
-from gkeepserver.create_user import add_faculty
+from gkeepserver.user_setup import add_faculty
 from gkeepserver.gkeepd_logger import gkeepd_logger
 from gkeepserver.handler_utils import log_gkeepd_to_faculty
 from gkeepserver.info_update_thread import info_updater
@@ -38,20 +38,22 @@ class FacultyAddHandler(EventHandler):
         """
 
         try:
-            if db.faculty_username_exists(self._username):
-                error = 'Faculty user {} already exists'.format(self._username)
-                raise HandlerException(error)
-
             if not db.is_admin(self._adder_username):
                 error = 'User {} is not an admin'.format(self._adder_username)
                 raise HandlerException(error)
 
-            add_faculty(self._last_name, self._first_name, self._email_address,
-                        self._admin)
+            try:
+                _, _ = self._email_address.split('@')
+            except ValueError:
+                raise HandlerException('{} is not an email address'
+                                       .format(self._email_address))
 
-            info_updater.enqueue_full_scan(self._username)
+            faculty = add_faculty(self._last_name, self._first_name,
+                                  self._email_address, self._admin)
 
-            self._log_to_faculty('FACULTY_ADD_SUCCESS', self._username)
+            info_updater.enqueue_full_scan(faculty.username)
+
+            self._log_to_faculty('FACULTY_ADD_SUCCESS', self._adder_username)
         except Exception as e:
             self._log_error_to_faculty(str(e))
             gkeepd_logger.log_warning('Faculty add failed: {0}'.format(e))
@@ -77,7 +79,6 @@ class FacultyAddHandler(EventHandler):
         _adder_username - username of the user adding the faculty member
         _last_name - last name of the new faculty member
         _first_name - first name of the new faculty member
-        _username = username of the new faculty member
         _email_address - email address of the new faculty member
         _admin - whether or not the new user should be an admin
         """
@@ -99,12 +100,6 @@ class FacultyAddHandler(EventHandler):
         self._first_name = faculty_dictionary['first_name']
         self._email_address = faculty_dictionary['email_address']
         self._admin = faculty_dictionary['admin']
-
-        try:
-            self._username, _ = self._email_address.split('@')
-        except ValueError:
-            raise HandlerException('{} is not an email address'
-                                   .format(self._email_address))
 
     def _log_to_faculty(self, event_type, text):
         """

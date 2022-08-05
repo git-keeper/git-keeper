@@ -27,18 +27,20 @@ submission_test_threads - list of SubmissionTestThread objects which run tests
 
 """
 import argparse
+from time import sleep
+
 import fcntl
 import sys
-import traceback
-from queue import Queue, Empty
+from queue import Queue
 from signal import signal, SIGINT, SIGTERM
 
-from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.version import __version__ as core_version
+from gkeepserver.check_config import check_config
 from gkeepserver.check_system import check_system
 from gkeepserver.database import db
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.event_handler_assigner import EventHandlerAssignerThread
+from gkeepserver.event_handler_thread import EventHandlerThread
 from gkeepserver.event_handlers.handler_registry import event_handlers_by_type
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepserver.info_update_thread import info_updater
@@ -67,6 +69,19 @@ def signal_handler(signum, frame):
     shutdown_flag = True
 
 
+def verify_core_version_match():
+    """
+    Exits with a non-zero exit code if the gkeepserver version does not match
+    the gkeepcore version.
+    """
+
+    if server_version != core_version:
+        error = 'git-keeper-server and git-keeper-core versions must match.\n'
+        error += 'server version: {}\n'.format(server_version)
+        error += 'core version: {}'.format(core_version)
+        sys.exit(error)
+
+
 def main():
     """
     Entry point of the gkeepd process.
@@ -75,17 +90,29 @@ def main():
     version and exit.
     """
 
+    verify_core_version_match()
+
     description = ('gkeepd, the git-keeper server, version {}'
                    .format(server_version))
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('-v', '--version', action='store_true',
                         help='Print gkeepd version')
+    parser.add_argument('-c', '--check', action='store_true',
+                        help='Validate config and send test email to admins')
 
     args = parser.parse_args()
 
     if args.version:
         print('gkeepd version {}'.format(server_version))
         sys.exit(0)
+
+    if args.check:
+        try:
+            check_config()
+            sys.exit(0)
+        except Exception as e:
+            print(e)
+            sys.exit(1)
 
     # setup signal handling
     global shutdown_flag
@@ -96,7 +123,8 @@ def main():
     try:
         config.parse()
     except ServerConfigurationError as e:
-        sys.exit(e)
+        error = 'Configuration error:\n{}: {}'.format(config.config_path, e)
+        sys.exit(error)
 
     # prevent multiple instances
     try:
@@ -135,12 +163,15 @@ def main():
     new_log_event_queue = Queue()
     event_handler_queue = Queue()
 
-    # the handler assigner creates event handlers for the main loop to call
-    # upon
+    # the handler assigner creates event handlers for the event handler thread
+    # to call upon
     handler_assigner = EventHandlerAssignerThread(new_log_event_queue,
                                                   event_handler_queue,
                                                   event_handlers_by_type,
                                                   logger)
+
+    # the event handler thread handles events created by the assigner
+    event_handler_thread = EventHandlerThread(event_handler_queue, logger)
 
     # the log poller detects new events and passes them to the handler assigner
     log_poller.initialize(new_log_event_queue, LocalLogFileReader, logger)
@@ -153,39 +184,15 @@ def main():
         # thread is automatically started by the constructor
         submission_test_threads.append(SubmissionTestThread())
 
+    event_handler_thread.start()
     handler_assigner.start()
     log_poller.start()
 
     logger.log_info('Server is running')
 
-    # main loop
+    # spin until shutdown
     while not shutdown_flag:
-        try:
-            # do not fully block since we need to check shutdown_flag
-            # regularly
-            handler = event_handler_queue.get(block=True, timeout=0.1)
-
-            logger.log_debug('New task: ' + str(handler))
-
-            # all of the main thread's actions are carried out by handlers
-            handler.handle()
-
-        # get() raises Empty after blocking for timeout seconds
-        except Empty:
-            pass
-        except (GkeepException, Exception) as e:
-            # A handler's handle() method should catch all exceptions. If we
-            # get here there is likely an issue with the handler.
-            error = ('**ERROR: UNEXPECTED EXCEPTION**\n'
-                     'This is likely due to a bug.\n'
-                     'Please report this to the git-keeper developers along '
-                     'with the following stack trace:\n{0}'
-                     .format(traceback.format_exc()))
-            print(error)
-            logger.log_error('Unexpected exception. Please report this bug '
-                             'along with the stack trace from gkeepd\'s '
-                             'standard output if possible. '
-                             '{0}: {1}'.format(type(e), e))
+        sleep(0.1)
 
     print('Shutting down. Waiting for threads to finish ... ', end='')
     # flush so it prints immediately despite no newline
@@ -196,6 +203,7 @@ def main():
     # shut down the pipeline in this order so that no new log events are lost
     log_poller.shutdown()
     handler_assigner.shutdown()
+    event_handler_thread.shutdown()
 
     for thread in submission_test_threads:
         thread.shutdown()
@@ -212,10 +220,4 @@ def main():
 
 
 if __name__ == '__main__':
-    if server_version != core_version:
-        error = 'git-keeper-server and git-keeper-core versions must match.\n'
-        error += 'server version: {}\n'.format(server_version)
-        error += 'core version: {}'.format(core_version)
-        sys.exit(error)
-
     main()

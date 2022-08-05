@@ -64,8 +64,10 @@ Attributes:
     faculty_json_path - path to file containing faculty members
     faculty_log_dir_path - path to directory containing faculty event logs
 
-    DO NOT USE UNTIL FIXED
     test_thread_count - maximum number of threads for testing student code
+    tests_timeout - maximum number of seconds for tests to run
+    tests_memory_limit - maximum amount of memory per test, in MB
+    default_test_env - default TestEnv for running tests
 
     from_name - the name that emails are from
     from_address - the address that emails are from
@@ -79,7 +81,9 @@ Attributes:
 import configparser
 import os
 from getpass import getuser
+from time import time
 
+from gkeepcore.assignment_config import TestEnv, AssignmentConfig
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_home_dir
 from gkeepserver.gkeepd_logger import LogLevel
@@ -113,10 +117,12 @@ class ServerConfiguration:
         accessed.
         """
 
+        self._init_time = time()
+
         self.home_dir = os.path.expanduser('~')
         self.username = getuser()
 
-        self._config_path = None
+        self.config_path = None
 
         self._parsed = False
 
@@ -136,12 +142,12 @@ class ServerConfiguration:
 
         if config_path is None:
             config_filename = 'server.cfg'
-            self._config_path = os.path.join(self.home_dir, config_filename)
+            self.config_path = os.path.join(self.home_dir, config_filename)
         else:
-            self._config_path = config_path
+            self.config_path = config_path
 
-        if not os.path.isfile(self._config_path):
-            error = '{0} does not exist'.format(self._config_path)
+        if not os.path.isfile(self.config_path):
+            error = '{0} does not exist'.format(self.config_path)
             raise ServerConfigurationError(error)
 
         self._initialize_default_attributes()
@@ -152,7 +158,18 @@ class ServerConfiguration:
         self._set_server_options()
         self._set_admin_options()
 
+        self._verify_sections(['email', 'gkeepd', 'server', 'admin'])
+
         self._parsed = True
+
+    def uptime(self):
+        """
+        gkeepd uptime, in seconds
+
+        :return: number of seconds since the config object was initialized
+        """
+
+        return time() - self._init_time
 
     @property
     def run_action_sh_file_path(self):
@@ -189,6 +206,7 @@ class ServerConfiguration:
         self.test_thread_count = 1
         self.tests_timeout = 300
         self.tests_memory_limit = 1024
+        self.default_test_env = TestEnv.FIREJAIL
 
         # users and groups
         self.keeper_user = 'keeper'
@@ -202,7 +220,7 @@ class ServerConfiguration:
         self.email_username = None
         self.email_password = None
         self.email_interval = 2
-        self.use_html = False
+        self.use_html = True
 
         # admin
         self.admin_email = None
@@ -218,9 +236,9 @@ class ServerConfiguration:
         self._parser = configparser.ConfigParser()
 
         try:
-            self._parser.read(self._config_path)
+            self._parser.read(self.config_path)
         except configparser.ParsingError as e:
-            error = 'Error reading {0}: {1}'.format(self._config_path,
+            error = 'Error reading {0}: {1}'.format(self.config_path,
                                                     e.message)
             raise ServerConfigurationError(error)
 
@@ -229,7 +247,7 @@ class ServerConfiguration:
 
         if section not in self._parser.sections():
             error = ('section {0} is not present in {1}'
-                     .format(section, self._config_path))
+                     .format(section, self.config_path))
             raise ServerConfigurationError(error)
 
     def _set_email_options(self):
@@ -237,12 +255,16 @@ class ServerConfiguration:
 
         self._ensure_section_is_present('email')
 
+        required_options = [
+            'from_name',
+            'from_address',
+            'smtp_server',
+            'smtp_port',
+        ]
+
         try:
-            # Required fields
-            self.from_name = self._parser.get('email', 'from_name')
-            self.from_address = self._parser.get('email', 'from_address')
-            self.smtp_server = self._parser.get('email', 'smtp_server')
-            self.smtp_port = self._parser.get('email', 'smtp_port')
+            for option in required_options:
+                setattr(self, option, self._parser.get('email', option))
 
         except configparser.NoOptionError as e:
             raise ServerConfigurationError(e.message)
@@ -284,7 +306,8 @@ class ServerConfiguration:
                 error = 'email_interval must be a non-negative number'
                 raise ServerConfigurationError(error)
 
-        self._ensure_options_are_valid('email')
+        self._ensure_options_are_valid('email',
+                                       required_options + optional_options)
 
     def _set_server_options(self):
         self._ensure_section_is_present('server')
@@ -299,12 +322,15 @@ class ServerConfiguration:
 
         self._ensure_section_is_present('admin')
 
+        required_options = [
+            'admin_email',
+            'admin_first_name',
+            'admin_last_name',
+        ]
+
         try:
-            # Required fields
-            self.admin_email = self._parser.get('admin', 'admin_email')
-            self.admin_first_name = self._parser.get('admin',
-                                                     'admin_first_name')
-            self.admin_last_name = self._parser.get('admin', 'admin_last_name')
+            for option in required_options:
+                setattr(self, option, self._parser.get('admin', option))
         except configparser.NoOptionError as e:
             raise ServerConfigurationError(e.message)
 
@@ -314,7 +340,7 @@ class ServerConfiguration:
             raise ServerConfigurationError('{} is not a valid email address'
                                            .format(self.admin_email))
 
-        self._ensure_options_are_valid('admin')
+        self._ensure_options_are_valid('admin', required_options)
 
     def _ensure_positive_integer(self, name):
         # raises an exception if the attribute specified by name is not a
@@ -341,6 +367,7 @@ class ServerConfiguration:
             'test_thread_count',
             'tests_timeout',
             'tests_memory_limit',
+            'default_test_env',
         ]
 
         for name in optional_options:
@@ -362,15 +389,59 @@ class ServerConfiguration:
         for name in positive_integer_options:
             self._ensure_positive_integer(name)
 
-        self._ensure_options_are_valid('gkeepd')
+        self._validate_default_test_env()
 
-    def _ensure_options_are_valid(self, section):
-        # all section's options must exist as attributes
+        self._ensure_options_are_valid('gkeepd', optional_options)
+
+    def _validate_default_test_env(self):
+
+        valid_default_envs = [
+            TestEnv.HOST,
+            TestEnv.FIREJAIL,
+        ]
+
+        valid_default_env_names = [
+            'host',
+            'firejail',
+        ]
+
+        if type(self.default_test_env) == str:
+            try:
+                self.default_test_env = TestEnv[self.default_test_env.upper()]
+            except KeyError:
+                error = ('{} is not a valid default_test_env, it must be one '
+                         'of: {}'.format(self.default_test_env,
+                                     ','.join(valid_default_env_names)))
+                raise ServerConfigurationError(error)
+
+        if self.default_test_env not in valid_default_envs:
+            error = ('{} is not a valid default_test_env, it must be one of: '
+                     '{}'.format(self.default_test_env.value,
+                                 ','.join(valid_default_env_names)))
+            raise ServerConfigurationError(error)
+
+        try:
+            AssignmentConfig(config_path='',
+                             default_env=self.default_test_env).verify_env()
+        except GkeepException as e:
+            error = ('Error in default_test_env: {}'.format(e))
+            raise ServerConfigurationError(error)
+
+    def _ensure_options_are_valid(self, section, allowed_fields):
+        # all section's options must exist be allowed
 
         for name in self._parser.options(section):
-            if not hasattr(self, name):
+            if not hasattr(self, name) or name not in allowed_fields:
                 error = ('{0} is not a valid option in config section [{1}]'
                          .format(name, section))
+                raise ServerConfigurationError(error)
+
+    def _verify_sections(self, allowed_sections):
+        # check for extra sections
+
+        for section in self._parser.sections():
+            if section not in allowed_sections:
+                error = ('[{}] is not a valid section'.format(section))
                 raise ServerConfigurationError(error)
 
 

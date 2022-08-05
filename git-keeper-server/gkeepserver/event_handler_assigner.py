@@ -98,20 +98,21 @@ class EventHandlerAssignerThread(Thread):
     def _examine_all_new_events(self):
         # Examine all new log events that are in the queue
 
-        try:
-            while True:
+        empty = False
+        while not empty:
+            try:
                 # block for a short time so we don't hog the CPU when the
                 # queue is empty
                 log_path, log_event = \
                     self._new_log_event_queue.get(block=True, timeout=0.1)
 
                 self._examine_new_event(log_path, log_event)
-        except Empty:
-            # get() throws an Empty exception when the queue is empty
-            pass
-        except Exception as e:
-            error = 'Unexpected error in log event assigner: {0}'.format(e)
-            gkeepd_logger.log_error(error)
+            except Empty:
+                # get() throws an Empty exception when the queue is empty
+                empty = True
+            except Exception as e:
+                error = 'Unexpected error in log event assigner: {0}'.format(e)
+                gkeepd_logger.log_error(error)
 
     def _examine_new_event(self, log_path: str, log_event: LogEvent):
         # Examine a single log event.

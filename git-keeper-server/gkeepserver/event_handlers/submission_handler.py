@@ -63,21 +63,11 @@ class SubmissionHandler(EventHandler):
                                                        self._class_name,
                                                        self._faculty_username)
 
-        if db.is_disabled(self._class_name, self._assignment_name,
-                          self._faculty_username):
-            email_subject = ('[{}] Assignment disabled: {}'
-                             .format(self._class_name, self._assignment_name))
-            email_body = ('Assignment {} in class {} has been disabled. '
-                          'No tests will be run if you push to your '
-                          'repository for this assignment.')
-            email_sender.enqueue(Email(student.email_address,
-                                       email_subject, email_body))
-        else:
-            submission = Submission(student, self._submission_repo_path,
-                                    self._commit_hash, assignment_directory,
-                                    self._faculty_username, faculty_email)
+        submission = Submission(student, self._submission_repo_path,
+                                self._commit_hash, assignment_directory,
+                                self._faculty_username, faculty_email)
 
-            new_submission_queue.put(submission)
+        new_submission_queue.put(submission)
 
     def __repr__(self) -> str:
         """

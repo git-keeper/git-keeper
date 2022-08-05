@@ -20,16 +20,18 @@ import os
 from tempfile import TemporaryDirectory
 
 from gkeepclient.client_configuration import config
+from gkeepclient.duration_to_string import duration_to_string
 from gkeepclient.text_ui import confirmation
 from gkeepcore.valid_names import validate_class_name, validate_assignment_name
-
 from gkeepclient.assignment_uploader import AssignmentUploader
 from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_does_not_exist, class_exists, \
     assignment_exists, assignment_not_published, assignment_not_disabled, \
     class_is_open
 from gkeepclient.server_interface import server_interface
-from gkeepclient.server_response_poller import communicate_event
+from gkeepclient.server_response_poller import communicate_event, ServerResponsePoller, ServerResponseType, \
+    ServerResponseWarning, ServerResponseError
+from gkeepclient.version import __version__
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.local_csv_files import LocalCSVReader, LocalCSVWriter
 from gkeepcore.student import students_from_csv
@@ -74,7 +76,7 @@ def class_add(class_name: str, csv_file_path: str, yes: bool):
 
     communicate_event('CLASS_ADD', class_name,
                       success_message='Class added successfully',
-                      error_message='Error adding class:',
+                      error_message='Error adding class: ',
                       timeout_message='Server response timeout. '
                                       'Class add status unknown')
 
@@ -96,7 +98,7 @@ def class_add(class_name: str, csv_file_path: str, yes: bool):
 
     communicate_event('STUDENTS_ADD', payload,
                       success_message='Students added successfully',
-                      error_message='Error adding students:',
+                      error_message='Error adding students: ',
                       timeout_message='Server response timeout. '
                                       'Students add status unknown')
 
@@ -199,7 +201,7 @@ def class_modify(class_name: str, csv_file_path: str, yes: bool):
             old_last = existing_students_by_email[email_address]['last']
             print('{}, {} -> {}, {}'.format(old_last, old_first, last_name,
                                             first_name))
-            update_name_rows.append((first_name, last_name, email_address))
+            update_name_rows.append((last_name, first_name, email_address))
 
     if not changes_exist:
         raise GkeepException('There are no changes to be made')
@@ -286,7 +288,7 @@ def update_status(class_name: str, status: str):
 
     communicate_event('CLASS_STATUS', payload,
                       success_message='Status updated successfully',
-                      error_message='Error updating status:',
+                      error_message='Error updating status: ',
                       timeout_message='Server response timeout. '
                                       'Status of status update unknown')
 
@@ -315,7 +317,7 @@ def add_faculty(last_name: str, first_name: str, email_address: str,
 
     communicate_event('FACULTY_ADD', payload,
                       success_message='Faculty added successfully',
-                      error_message='Error adding faculty:',
+                      error_message='Error adding faculty: ',
                       timeout_message='Server response timeout. '
                                       'Status of adding faculty unknown')
 
@@ -389,7 +391,7 @@ def delete_assignment(class_name: str, assignment_name: str,
 
     communicate_event('DELETE', payload,
                       success_message='Assignment deleted successfully',
-                      error_message='Error deleting response:',
+                      error_message='Error deleting response: ',
                       timeout_message='Server response timeout. '
                                       'Delete status unknown')
 
@@ -421,7 +423,9 @@ def disable_assignment(class_name: str, assignment_name: str,
     print('Disabling assignment {} in class {}. This cannot be undone.'
           .format(assignment_name, class_name))
     print('Students will be notified that the assignment has been disabled.')
-    print('Tests will no longer be run on submissions to this assignment.')
+    print('The action script will no longer be run on submissions to this ')
+    print('assignment.  Instead, students will receive an email stating')
+    print('that the assignment is disabled.')
 
     if not yes and not confirmation('Proceed?', 'y'):
         raise GkeepException('Aborting')
@@ -458,7 +462,7 @@ def publish_assignment(class_name: str, assignment_name: str):
 
     communicate_event('PUBLISH', payload,
                       success_message='Assignment successfully published',
-                      error_message='Error publishing assignment:',
+                      error_message='Error publishing assignment: ',
                       timeout_message='Server response timeout. '
                                       'Publish status unknown.')
 
@@ -470,7 +474,7 @@ def publish_assignment(class_name: str, assignment_name: str):
 @assignment_exists
 @assignment_not_disabled
 def trigger_tests(class_name: str, assignment_name: str,
-                  student_usernames: list, response_timeout=20):
+                  student_usernames: list, yes: bool, response_timeout=20):
     """
     Trigger tests to be run on the server.
 
@@ -481,6 +485,7 @@ def trigger_tests(class_name: str, assignment_name: str,
     :param assignment_name: name of the assignment
     :param student_usernames: list of student usernames for whom tests should
     be run, or an empty list for all students
+    :param yes: if True, will automatically answer yes to confirmation prompts
     :param response_timeout: seconds to wait for server response
     """
 
@@ -507,7 +512,14 @@ def trigger_tests(class_name: str, assignment_name: str,
                 error = ('No student {0} in {1}'.format(username, class_name))
                 raise GkeepException(error)
 
-    print('Triggering tests for', assignment_name, 'in class', class_name)
+    print('Triggering tests for', assignment_name, 'in class', class_name,
+          'for the following students:')
+
+    for username in student_usernames:
+        print(username)
+
+    if not yes and not confirmation('Proceed?', 'y'):
+        raise GkeepException('Aborting')
 
     payload = '{0} {1}'.format(class_name, assignment_name)
 
@@ -516,7 +528,7 @@ def trigger_tests(class_name: str, assignment_name: str,
 
     communicate_event('TRIGGER', payload, response_timeout=response_timeout,
                       success_message='Tests triggered successfully',
-                      error_message='Error triggering tests:',
+                      error_message='Error triggering tests: ',
                       timeout_message='Server response timeout. '
                                       'Triggering status unknown')
 
@@ -527,7 +539,7 @@ def trigger_tests(class_name: str, assignment_name: str,
 @class_is_open
 @assignment_not_disabled
 def update_assignment(class_name: str, upload_dir_path: str,
-                      items=('base_code', 'email', 'tests'),
+                      items=('base_code', 'email', 'tests', 'config'),
                       response_timeout=20):
     """
     Update an assignment on the server
@@ -539,7 +551,7 @@ def update_assignment(class_name: str, upload_dir_path: str,
         base_code/
         email.txt
         tests/
-            action.sh
+            action.sh or action.py
 
     Copies items to the server, writes a log entry to notify the server of the
     upload, and waits for a logged confirmation of success or error from the
@@ -553,7 +565,7 @@ def update_assignment(class_name: str, upload_dir_path: str,
     :param response_timeout: seconds to wait for server response
     """
 
-    valid_items = {'base_code', 'email', 'tests'}
+    valid_items = {'base_code', 'email', 'tests', 'config'}
 
     for item in items:
         if item not in valid_items:
@@ -581,7 +593,7 @@ def update_assignment(class_name: str, upload_dir_path: str,
                                               upload_dir.assignment_name)
 
     if is_published and ('base_code' in items or 'email' in items):
-        error = 'Assignment is already published, only tests may be updated.'
+        error = 'Assignment is already published, only tests or config may be updated.'
         raise GkeepException(error)
 
     print('updating', upload_dir.assignment_name, 'in', class_name)
@@ -595,6 +607,8 @@ def update_assignment(class_name: str, upload_dir_path: str,
             uploader.upload_email_txt()
         if 'tests' in items:
             uploader.upload_tests()
+        if 'config' in items:
+            uploader.upload_config()
     except GkeepException as e:
         error = 'Error uploading assignment updates: {0}'.format(str(e))
         raise GkeepException(error)
@@ -604,7 +618,7 @@ def update_assignment(class_name: str, upload_dir_path: str,
 
     communicate_event('UPDATE', payload, response_timeout=response_timeout,
                       success_message='Assignment updated successfully',
-                      error_message='Error updating assignment:',
+                      error_message='Error updating assignment: ',
                       timeout_message='Server response timeout. '
                                       'Update status unknown')
 
@@ -626,6 +640,10 @@ def upload_assignment(class_name: str, upload_dir_path: str):
         tests/
             action.sh
 
+    The following file is optional:
+
+        assignment.cfg
+
     Copies files to the server, writes a log entry to notify the server of the
     upload, and waits for a logged confirmation of success or error from the
     server.
@@ -646,6 +664,11 @@ def upload_assignment(class_name: str, upload_dir_path: str):
 
     validate_assignment_name(upload_dir.assignment_name)
 
+    if not os.path.isfile(upload_dir.config_path):
+        print('NOTE: There is no assignment.cfg file for this assignment.')
+        print('      Tests for this assignment will be run using the '
+              'server\'s default environment.')
+
     if server_interface.assignment_exists(class_name,
                                           upload_dir.assignment_name):
         error = ('Assignment {0} already exists in class {1}'
@@ -654,12 +677,13 @@ def upload_assignment(class_name: str, upload_dir_path: str):
 
     print('uploading', upload_dir.assignment_name, 'in', class_name)
 
-    # upload base_code, email.txt, and tests
+    # upload base_code, email.txt, , assignment.cfg, and tests
     try:
         uploader = AssignmentUploader(upload_dir)
         uploader.upload_base_code()
         uploader.upload_email_txt()
         uploader.upload_tests()
+        uploader.upload_config()
     except GkeepException as e:
         error = 'Error uploading assignment: {0}'.format(str(e))
         raise GkeepException(error)
@@ -669,7 +693,7 @@ def upload_assignment(class_name: str, upload_dir_path: str):
 
     communicate_event('UPLOAD', payload,
                       success_message='Assignment uploaded successfully',
-                      error_message='Error uploading assignment:',
+                      error_message='Error uploading assignment: ',
                       timeout_message='Server response timeout. '
                                       'Upload status unknown')
 
@@ -688,3 +712,100 @@ def reset_password(username: str):
                       error_message='Error resetting password: ',
                       timeout_message='Server response timeout. '
                                       'Password reset status unknown')
+
+
+@config_parsed
+@server_interface_connected
+def check():
+    """
+    Check the connection to the server and print server information.
+    """
+
+    event_type = 'CHECK'
+    response_timeout = 10
+
+    # requests need a payload, but we have nothing to pass
+    payload = 'dummy'
+
+    poller = ServerResponsePoller(event_type, response_timeout)
+
+    server_interface.log_event(event_type, payload)
+
+    success_messages = []
+
+    for response in poller.response_generator():
+        if response.response_type == ServerResponseType.SUCCESS:
+            success_messages.append(response.message)
+        elif response.response_type == ServerResponseType.ERROR:
+            message = ('Connection to the server via SSH was successful '
+                       'but gkeepd responded with an error:\n{}'
+                       .format(response.message))
+            raise ServerResponseError(message)
+        elif response.response_type == ServerResponseType.WARNING:
+            message = ('Connection to the server via SSH was successful '
+                       'but gkeepd responded with a warning:\n{}'
+                       .format(response.message))
+            raise ServerResponseWarning(message)
+        elif response.response_type == ServerResponseType.TIMEOUT:
+            error = ('Connection to the server via SSH was successful but '
+                     'the response from gkeepd\ntimed out. gkeepd may not '
+                     'be running on the server.')
+            raise GkeepException(error)
+
+    # These should never happen if the code is functioning correctly
+    if len(success_messages) == 0:
+        raise GkeepException('ERROR: check did not produce a proper response')
+    elif len(success_messages) > 1:
+        raise GkeepException('ERROR: server unexpectedly produced a stream '
+                             'of responses: {}'.format(success_messages))
+
+    payload = success_messages[0]
+
+    try:
+        data = json.loads(payload)
+    except json.JSONDecodeError as e:
+        error = ('ERROR: {}\nServer produced invalid JSON:\n{}'
+                 .format(e, payload))
+        raise GkeepException(error)
+
+    print()
+    print('Successfully communicated with', config.server_host)
+
+    if 'is_admin' in data and data['is_admin']:
+        print('You are an admin user')
+
+    print()
+    print('Server information:')
+
+    if 'version' in data:
+        print('  Version:', data['version'])
+        if __version__ != data['version']:
+            print('NOTE: client version {} does not match server version {}'
+                  .format(__version__, data['version']))
+            print('This could potentially cause problems')
+    else:
+        print('  Version unknown')
+
+    if 'uptime' in data:
+        print('  gkeepd uptime:', duration_to_string(data['uptime']))
+
+    if 'firejail_installed' in data:
+        print('  Firejail installed:', data['firejail_installed'])
+
+    if 'docker_installed' in data:
+        print('  Docker installed:', data['docker_installed'])
+
+    print()
+    print('Server default assignment settings that can be overridden:')
+
+    if 'default_test_env' in data:
+        print('  env:', data['default_test_env'])
+
+    if 'use_html' in data:
+        print('  use_html:', data['use_html'])
+
+    if 'tests_timeout' in data:
+        print('  timeout:', data['tests_timeout'])
+
+    if 'tests_memory_limit' in data:
+        print('  memory_limit', data['tests_memory_limit'])

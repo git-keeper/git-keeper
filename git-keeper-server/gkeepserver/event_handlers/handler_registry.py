@@ -22,6 +22,7 @@ constructor.
 from gkeepserver.event_handlers.admin_demote_handler import AdminDemoteHandler
 from gkeepserver.event_handlers.admin_promote_handler import \
     AdminPromoteHandler
+from gkeepserver.event_handlers.check_handler import CheckHandler
 from gkeepserver.event_handlers.class_add_handler import ClassAddHandler
 from gkeepserver.event_handlers.disable_handler import DisableHandler
 from gkeepserver.event_handlers.students_add_handler import StudentsAddHandler
@@ -57,4 +58,5 @@ event_handlers_by_type = {
     'FACULTY_ADD': FacultyAddHandler,
     'ADMIN_PROMOTE': AdminPromoteHandler,
     'ADMIN_DEMOTE': AdminDemoteHandler,
+    'CHECK': CheckHandler,
 }

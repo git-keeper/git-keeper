@@ -40,7 +40,7 @@ Valid Class
     Class Contains Student    faculty1    cs1    student1
     Class Contains Student    faculty1    cs1    student2
 
-Same Email Username
+Add Students With Same Email Username
     [Tags]    happy_path
     Add To Class CSV    faculty=faculty1    class_name=cs1    username=user    email_domain=one.edu
     Add To Class CSV    faculty=faculty1    class_name=cs1    username=user    email_domain=two.edu
@@ -71,10 +71,11 @@ Missing CSV
     [Tags]    error
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
-Invalid Username
-    [Tags]    error
-    Add File To Client    faculty1    files/invalid_username.csv   invalid_username.csv
-    Gkeep add Fails    faculty=faculty1    class_name=invalid_username
+Non ASCII Characters
+    [Tags]    happy_path
+    Add File To Client    faculty1    files/non_ascii_characters.csv   non_ascii_characters.csv
+    Gkeep Add Succeeds    faculty=faculty1    class_name=non_ascii_characters
+    User Exists On Server    funny
 
 Existing Student
     [Tags]    error
@@ -84,10 +85,12 @@ Existing Student
     Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
     User Exists On Server    student1
     User Exists On Server    student2
+    User Exists On Server    student21
     New Account Email Exists    student1
-    New Account Email Does Not Exist    to_user=student2
+    New Account Email Exists    student21
+    New Account Email Does Not Exist    student2
     Class Contains Student    faculty1    cs1    student1
-    Class Contains Student    faculty1    cs1    student2
+    Class Contains Student    faculty1    cs1    student21
 
 Call Add Twice
     [Tags]    error
@@ -108,9 +111,20 @@ Malformed CSV
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
 
 Student Named Student
-    [Tags]    error
+    [Tags]    happy_path
     Add To Class CSV    faculty=faculty1    class_name=cs1    username=student
-    Gkeep Add Fails    faculty=faculty1    class_name=cs1
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    Class Contains Student    faculty1    cs1    student1
+    User Exists On Server    student1
+    New Account Email Exists    student1
+
+Student Named Tester
+    [Tags]    happy_path
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=tester
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    Class Contains Student    faculty1    cs1    tester1
+    User Exists On Server    tester1
+    New Account Email Exists    tester1
 
 Same Class Name From Different Faculty
     [Tags]    happy_path
@@ -133,5 +147,25 @@ Empty CSV
 
 No CSV
     [Tags]  happy_path
-    Make Empty File    faculty1    cs1.csv
     Gkeep Add No CSV Succeeds    faculty=faculty1    class_name=cs1
+
+Uppercase Email
+    [Tags]    happy_path
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=STUDENT1    email_domain=SCHOOL.EDU
+    Gkeep Add Succeeds    faculty=faculty1    class_name=cs1
+    Class Contains Student    faculty1    cs1    student1
+    User Exists On Server    student1
+
+Different Case Email Username
+    [Tags]    error
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=STUDENT1
+    Gkeep Add Fails    faculty=faculty1    class_name=cs1
+    Gkeepd Is Running
+
+Different Case Email Domain
+    [Tags]    error
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1    email_domain='SCHOOL.EDU'
+    Gkeep Add Fails    faculty=faculty1    class_name=cs1
+    Gkeepd Is Running

@@ -21,16 +21,17 @@ Event type: UPDATE
 
 import os
 
+from gkeepcore.assignment_config import AssignmentConfig
+from gkeepserver.directory_locks import directory_locks
 from gkeepcore.gkeep_exception import GkeepException
-from gkeepcore.local_csv_files import LocalCSVReader
 from gkeepcore.path_utils import user_from_log_path, \
-    faculty_assignment_dir_path, user_home_dir, user_gitkeeper_path
+    faculty_assignment_dir_path, user_gitkeeper_path
 from gkeepcore.system_commands import sudo_chown, rm
 from gkeepcore.upload_directory import UploadDirectory
 from gkeepserver.assignments import AssignmentDirectory, \
     create_base_code_repo, copy_email_txt_file, \
     copy_tests_dir, remove_student_assignment, setup_student_assignment, \
-    StudentAssignmentError
+    StudentAssignmentError, copy_config_file
 from gkeepserver.database import db
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.gkeepd_logger import gkeepd_logger
@@ -65,6 +66,10 @@ class UpdateHandler(EventHandler):
                      .format(self._assignment_name, self._class_name))
             raise HandlerException(error)
 
+        with directory_locks.get_lock(assignment_path):
+            self._perform_update(assignment_path)
+
+    def _perform_update(self, assignment_path):
         assignment_dir = None
 
         try:
@@ -76,8 +81,19 @@ class UpdateHandler(EventHandler):
 
             upload_dir = UploadDirectory(self._upload_path, check=False)
 
+            # validate the fields in assignment.cfg file (including whether
+            # the required components that support the environment are in
+            # place)
+            if os.path.isfile(upload_dir.config_path):
+                assignment_config = \
+                    AssignmentConfig(os.path.join(self._upload_path,
+                                                  'assignment.cfg'),
+                                     config.default_test_env)
+                assignment_config.verify_env()
+
             self._update_items(assignment_dir, upload_dir)
             self._replace_faculty_test_assignment(assignment_dir)
+
             log_gkeepd_to_faculty(self._faculty_username, 'UPDATE_SUCCESS',
                                   self._upload_path)
             info = '{0} updated {1} in {2}'.format(self._faculty_username,
@@ -85,7 +101,7 @@ class UpdateHandler(EventHandler):
                                                    self._class_name)
             gkeepd_logger.log_info(info)
         except GkeepException as e:
-            error = '{0} {1}'.format(self._upload_path, str(e))
+            error = '{0}'.format(str(e))
             log_gkeepd_to_faculty(self._faculty_username, 'UPDATE_ERROR',
                                   error)
             warning = 'Faculty update failed: {0}'.format(str(e))
@@ -136,6 +152,10 @@ class UpdateHandler(EventHandler):
 
             rm(assignment_dir.tests_path, recursive=True)
             copy_tests_dir(assignment_dir, upload_dir.tests_path)
+
+        if os.path.isfile(upload_dir.config_path):
+            rm(assignment_dir.config_path)
+            copy_config_file(assignment_dir, upload_dir.config_path)
 
         # sanity check
         assignment_dir.check()

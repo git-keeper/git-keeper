@@ -29,13 +29,13 @@ from tempfile import TemporaryDirectory
 from threading import Thread
 from time import time
 
+from gkeepserver.directory_locks import directory_locks
 from gkeepcore.git_commands import git_head_hash, git_hashes_and_times
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_home_dir, student_assignment_repo_path, \
-    faculty_info_path, user_gitkeeper_path
+    faculty_info_path, user_gitkeeper_path, faculty_assignment_dir_path
 from gkeepcore.system_commands import sudo_chown, chmod, mv, mkdir, rm
-from gkeepserver.assignments import get_class_assignment_dirs, \
-    AssignmentDirectory, get_assignment_dir
+from gkeepserver.assignments import AssignmentDirectory
 from gkeepserver.database import db
 from gkeepserver.gkeepd_logger import gkeepd_logger as logger
 from gkeepserver.server_configuration import config
@@ -272,14 +272,12 @@ class InfoUpdateThread(Thread):
                 self._class_scan(payload.faculty_username, payload.class_name)
 
             elif payload.instruction == InfoInstruction.ASSIGNMENT_SCAN:
-                assignment_dir = get_assignment_dir(payload.faculty_username,
-                                                    payload.class_name,
-                                                    payload.assignment_name)
-
                 students = db.get_class_students(payload.class_name,
                                                  payload.faculty_username)
 
-                self._assignment_scan(payload.faculty_username, assignment_dir,
+                self._assignment_scan(payload.faculty_username,
+                                      payload.class_name,
+                                      payload.assignment_name,
                                       students)
 
             elif payload.instruction == InfoInstruction.DELETE_ASSIGNMENT:
@@ -293,16 +291,13 @@ class InfoUpdateThread(Thread):
                                          payload.assignment_name)
 
             elif payload.instruction == InfoInstruction.SUBMISSION_SCAN:
-                assignment_dir = get_assignment_dir(payload.faculty_username,
-                                                    payload.class_name,
-                                                    payload.assignment_name)
-
                 student = db.get_class_student_by_username(payload.student_username,
                                                            payload.class_name,
                                                            payload.faculty_username)
 
-                self._assignment_scan(payload.faculty_username, assignment_dir,
-                                      (student,))
+                self._assignment_scan(payload.faculty_username,
+                                      payload.class_name,
+                                      payload.assignment_name, (student,))
 
             self._write_info(payload.faculty_username)
 
@@ -378,12 +373,15 @@ class InfoUpdateThread(Thread):
 
             class_info['students'] = students_info
 
-            assignment_dirs = get_class_assignment_dirs(faculty_username,
-                                                        class_name)
+            assignment_names = [
+                assignment.name for assignment in
+                db.get_class_assignments(class_name,
+                                         faculty_username)
+            ]
 
-            for assignment_dir in assignment_dirs:
-                self._assignment_scan(faculty_username, assignment_dir,
-                                      students)
+            for assignment_name in assignment_names:
+                self._assignment_scan(faculty_username, class_name,
+                                      assignment_name, students)
         else:
             class_info['open'] = False
             class_info['students'] = nested_defaultdict()
@@ -402,12 +400,14 @@ class InfoUpdateThread(Thread):
         assignment_info['reports_repo'] = None
         assignment_info['students_repos'] = None
 
-    def _assignment_scan(self, faculty_username,
-                         assignment_dir: AssignmentDirectory, students):
+    def _assignment_scan(self, faculty_username, class_name, assignment_name,
+                         students):
         # Update the information for a single assignment
 
-        class_name = assignment_dir.class_name
-        assignment_name = assignment_dir.assignment_name
+        gitkeeper_path = user_gitkeeper_path(faculty_username)
+        assignment_path = faculty_assignment_dir_path(class_name,
+                                                      assignment_name,
+                                                      gitkeeper_path)
 
         class_info = self._info[faculty_username][class_name]
 
@@ -434,9 +434,11 @@ class InfoUpdateThread(Thread):
         if not assignment_info['published'] or assignment_info['disabled']:
             return
 
-        reports_repo_path = assignment_dir.reports_repo_path
-        reports_repo_hash = git_head_hash(assignment_dir.reports_repo_path,
-                                          user=faculty_username)
+        with directory_locks.get_lock(assignment_path):
+            assignment_dir = AssignmentDirectory(assignment_path)
+            reports_repo_path = assignment_dir.reports_repo_path
+            reports_repo_hash = git_head_hash(assignment_dir.reports_repo_path,
+                                              user=faculty_username)
 
         reports_repo_info = {
             'path': reports_repo_path,

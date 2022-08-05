@@ -47,11 +47,11 @@ class ClientSetupKeywords:
     def create_git_config(self, username):
         name_cmd = 'git config --global user.name "{}"'.format(username)
         client_control.run(username, name_cmd)
-        email_cmd = 'git config --global user.email {}@gitkeeper.edu'.format(username)
+        email_cmd = 'git config --global user.email {}@school.edu'.format(username)
         client_control.run(username, email_cmd)
 
     def add_to_class_csv(self, faculty, class_name, username, last_name='Last',
-                         first_name='First', email_domain='gitkeeper.edu'):
+                         first_name='First', email_domain='school.edu'):
         line = '{},{},{}@{}'.format(last_name, first_name, username,
                                     email_domain)
         client_control.run_vm_python_script(faculty, 'add_to_file.py',
@@ -64,8 +64,15 @@ class ClientSetupKeywords:
     def add_file_to_client(self, username, filename, target_filename):
         client_control.copy(username, filename, target_filename)
 
+    def delete_file_on_client(self, username, filename):
+        cmd = 'rm {}'.format(filename)
+        client_control.run(username, cmd)
+
     def make_empty_file(self, username, filename):
         client_control.run(username, 'touch {}'.format(filename))
+
+    def make_empty_directory(self, username, directory_name):
+        client_control.run(username, 'mkdir -p {}'.format(directory_name))
 
     def create_gkeep_config_file(self, faculty):
         client_control.run_vm_bash_script(faculty, 'make_gkeep_config.sh',
@@ -132,3 +139,16 @@ class ClientSetupKeywords:
     def add_submissions_folder_to_config(self, faculty, directory):
         client_control.run(faculty, 'echo [local] >> .config/git-keeper/client.cfg')
         client_control.run(faculty, 'echo submissions_path={} >> .config/git-keeper/client.cfg'.format(directory))
+
+    def add_templates_folder_to_config(self, faculty, directory):
+        client_control.run(faculty, 'echo [local] >> .config/git-keeper/client.cfg')
+        client_control.run(faculty, 'echo templates_path={} >> .config/git-keeper/client.cfg'.format(directory))
+
+    def add_assignment_template(self, faculty, source_name, destination_name, template_dir=None):
+        if template_dir is None:
+            template_dir = '~/.config/git-keeper/templates'
+
+        cmd = 'mkdir -p {}'.format(template_dir)
+        client_control.run(faculty, cmd)
+        cmd = 'cp -r /vagrant/templates/{} {}/{}'.format(source_name, template_dir, destination_name)
+        client_control.run(faculty, cmd)

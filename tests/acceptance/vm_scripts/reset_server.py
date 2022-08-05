@@ -29,6 +29,10 @@ def server_running():
 def stop_gkeepd():
     if server_running():
         run_command('screen -S gkserver -X quit')
+    try:
+        run_command('killall gkeepd')
+    except Exception:
+        pass
 
 
 def remove(filename):
@@ -39,11 +43,10 @@ def remove(filename):
 
 
 def remove_gkeepd_files():
-    # remove gkeepd.log, gkeepd_db.sqlite, server.cfg, and faculty.json
     remove('gkeepd.log')
     remove('gkeepd_db.sqlite')
     remove('server.cfg')
-    remove('faculty.json')
+    remove('gkeepd.lock')
 
 
 def delete_email():

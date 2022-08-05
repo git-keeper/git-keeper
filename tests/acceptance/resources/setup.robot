@@ -24,17 +24,20 @@ Library    gkeeprobot.keywords.ClientCheckKeywords
 
 Add Faculty and Configure Accounts on Client
     [Arguments]    @{faculty_names}
-    :FOR    ${username}    IN    @{faculty_names}
-    \        Gkeep Add Faculty Succeeds    admin_prof    ${username}
-    \        Wait For Email    to_user=${username}    subject_contains="New git-keeper account"    body_contains=Password
+    FOR    ${username}    IN    @{faculty_names}
+            Gkeep Add Faculty Succeeds    admin_prof    ${username}
+            Wait For Email    to_user=${username}    subject_contains="New git-keeper account"    body_contains=Password
+    END
     Create Accounts On Client  @{faculty_names}
-    :FOR    ${username}    IN    @{faculty_names}
-    \            Create Git Config    ${username}
+    FOR    ${username}    IN    @{faculty_names}
+                Create Git Config    ${username}
+    END
 
 Launch Gkeepd And Configure Admin Account on Client
+    [Arguments]    ${server_cfg}=files/valid_server.cfg
     Reset Server
     Reset Client
-    Add File To Server    keeper    files/valid_server.cfg    server.cfg
+    Add File To Server    keeper    ${server_cfg}    server.cfg
     Start gkeepd
     Wait For Gkeepd
     Wait For Email    to_user=admin_prof    subject_contains="New git-keeper account"    body_contains=Password
@@ -42,14 +45,16 @@ Launch Gkeepd And Configure Admin Account on Client
 
 Establish Course
     [Arguments]    ${faculty}    ${class}    @{students}
-    :FOR     ${student}    IN    @{students}
-    \    Add To Class CSV   faculty=${faculty}    class_name=${class}    username=${student}
+    FOR     ${student}    IN    @{students}
+        Add To Class CSV   faculty=${faculty}    class_name=${class}    username=${student}
+    END
     Gkeep Add Succeeds    faculty=${faculty}   class_name=${class}
 
 
 Create Accounts On Client
     [Arguments]    @{usernames}
-    :FOR    ${username}    IN    @{usernames}
-    \       Create Account    ${username}
-    \       Establish SSH Keys    ${username}
-    \       Create Gkeep Config File    ${username}
+    FOR    ${username}    IN    @{usernames}
+           Create Account    ${username}
+           Establish SSH Keys    ${username}
+           Create Gkeep Config File    ${username}
+    END

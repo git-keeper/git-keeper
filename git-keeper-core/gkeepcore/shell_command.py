@@ -26,10 +26,28 @@ from gkeepcore.gkeep_exception import GkeepException
 
 class CommandError(GkeepException):
     """
-    Raised if a command is run that returns a non-zero exit code, or if the
-    command is not a list or a string.
+    Base class for command errors.
     """
     pass
+
+
+class InvalidCommandError(CommandError):
+    """
+    Raised if the given command is not a string or a list, or of the command
+    is a list and the program to run does not exist.
+    """
+    pass
+
+
+class CommandExitCodeError(CommandError):
+    """
+    Raised if a command exits with a non-zero exit code. The exit code is
+    available through the exit_code attribute.
+    """
+
+    def __init__(self, message, exit_code):
+        super().__init__(message)
+        self.exit_code = exit_code
 
 
 def run_command(command, sudo=False, user=None, stderr=STDOUT) -> str:
@@ -51,8 +69,8 @@ def run_command(command, sudo=False, user=None, stderr=STDOUT) -> str:
 
     # command must be a string or list
     if not isinstance(command, str) and not isinstance(command, list):
-        raise CommandError('command must be a string or a list, not {0}'
-                           .format(type(command)))
+        raise InvalidCommandError('command must be a string or a list, not {0}'
+                                  .format(type(command)))
 
     # prepend sudo and specify user if need be
     if sudo:
@@ -76,7 +94,11 @@ def run_command(command, sudo=False, user=None, stderr=STDOUT) -> str:
             output = check_output(command, stderr=stderr, shell=False)
     except CalledProcessError as e:
         # the CommandError exception will contain the output as a string
-        raise CommandError(e.output.decode('utf-8'))
+        # and the exit code
+        raise CommandExitCodeError(e.output.decode('utf-8'), e.returncode)
+    except FileNotFoundError:
+        error = 'Error running command, {} does not exist'.format(command[0])
+        raise InvalidCommandError(error)
 
     # convert the output from bytes to a string when returning, replacing any
     # byte sequences that are not valid utf-8 with the � character

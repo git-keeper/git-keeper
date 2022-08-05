@@ -63,3 +63,14 @@ class AssignmentUploader:
         """Upload the tests directory to the server."""
         target = os.path.join(self._target_path, 'tests')
         server_interface.copy_directory(self._upload_dir.tests_path, target)
+
+    def upload_config(self):
+        """
+        Upload the assignment.cfg if it is present in the assignment.
+        If not create a default empty file.
+        """
+        target = os.path.join(self._target_path, 'assignment.cfg')
+        if os.path.exists(self._upload_dir.config_path):
+            server_interface.copy_file(self._upload_dir.config_path, target)
+        else:
+            server_interface.create_empty_file(target)

@@ -38,7 +38,8 @@ from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
 from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, \
     upload_assignment, trigger_tests, update_status, add_faculty, \
-    reset_password, admin_promote, admin_demote, disable_assignment
+    reset_password, admin_promote, admin_demote, disable_assignment, check
+from gkeepclient.new_assignment import new_assignment
 from gkeepclient.test_solution import test_solution
 from gkeepclient.queries import list_classes, list_assignments, \
     list_students, list_recent
@@ -120,6 +121,17 @@ def add_optional_csv_file_path_argument(subparser):
                            default=None, nargs='?')
 
 
+def add_check_subparser(subparsers):
+    """
+    Add a subparser for action 'check', which checks that the client can
+    connect to the server and prints server info.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparsers.add_parser('check', help='check client config and server status')
+
+
 def add_add_subparser(subparsers):
     """
     Add a subparser for action 'add', which adds a class.
@@ -181,7 +193,7 @@ def add_update_subparser(subparsers):
     add_assignment_path_argument(subparser)
     subparser.add_argument('item', metavar='<update item>',
                            help='item to update: base_code, email, tests, '
-                                'or all')
+                                'config, or all')
 
 
 def add_delete_subparser(subparsers):
@@ -371,6 +383,22 @@ def add_admin_demote_subparser(subparsers):
                            help='email address of the faculty member')
 
 
+def add_new_assignment_subparser(subparsers):
+    """
+    Add a subparser for action 'new_assignment', which creates the directories
+    and files for a new assignment.
+
+    :param subparsers: subparsers to add to
+    """
+    subparser = subparsers.add_parser('new',
+                                      help='create a directory containing base files for a new assignment')
+    subparser.add_argument('assignment_path', metavar='<path to assignment folder>',
+                           help='path for the new assignment folder')
+    subparser.add_argument('template_name', type=str, metavar='<template name>',
+                           help='name of the template to use for the assignment (optional)',
+                           default=None, nargs='?')
+
+
 def initialize_action_parser() -> GraderParser:
     """
     Initialize a GraderParser object.
@@ -393,8 +421,10 @@ def initialize_action_parser() -> GraderParser:
     subparsers = parser.add_subparsers(dest='subparser_name', title="Actions")
 
     # add subparsers
+    add_check_subparser(subparsers)
     add_add_subparser(subparsers)
     add_modify_subparser(subparsers)
+    add_new_assignment_subparser(subparsers)
     add_upload_subparser(subparsers)
     add_update_subparser(subparsers)
     add_publish_subparser(subparsers)
@@ -434,6 +464,19 @@ def run_query(query_type: str, number_of_days: int, output_json: bool):
         list_recent(number_of_days, output_json)
 
 
+def verify_core_version_match():
+    """
+    Exits with a non-zero exit code if the gkeepclient version does not match
+    the gkeepcore version.
+    """
+
+    if client_version != core_version:
+        error = 'git-keeper-client and git-keeper-core versions must match.\n'
+        error += 'client version: {}\n'.format(client_version)
+        error += 'core version: {}'.format(core_version)
+        sys.exit(error)
+
+
 def main():
     """
     gkeep entry point.
@@ -441,6 +484,8 @@ def main():
     Setup the command line argument parser, parse the arguments, and call the
     appropriate function.
     """
+
+    verify_core_version_match()
 
     # Initialize the parser object that will interpret the passed in
     # command line arguments
@@ -463,12 +508,17 @@ def main():
     if parsed_args.version:
         print('gkeep version', client_version)
 
-    # Every action except "config" requires that the configuration file be
-    # parsed
-    if parsed_args.subparser_name != 'config':
-        config.parse()
-
     try:
+        # Every action except "config" requires that the configuration file be
+        # parsed
+        if parsed_args.subparser_name != 'config':
+            try:
+                config.parse()
+            except GkeepException as e:
+                error = 'Error in {}:\n{}'.format(config.config_path, e)
+                raise GkeepException(error)
+        if parsed_args.subparser_name == 'check':
+            print('{} parsed without errors'.format(config.config_path))
         take_action(parsed_args)
     except GkeepException as e:
         sys.exit(e)
@@ -488,15 +538,19 @@ def take_action(parsed_args):
         assignment_name = path_to_assignment_name(assignment_name)
 
     # call the appropriate function for the action
+    if action_name == 'check':
+        check()
     if action_name == 'add':
         class_add(class_name, parsed_args.csv_file_path, parsed_args.yes)
     elif action_name == 'modify':
         class_modify(class_name, parsed_args.csv_file_path, parsed_args.yes)
+    elif action_name == 'new':
+        new_assignment(parsed_args.assignment_path, parsed_args.template_name)
     elif action_name == 'upload':
         upload_assignment(class_name, parsed_args.assignment_path)
     elif action_name == 'update':
         if parsed_args.item == 'all':
-            items = ('base_code', 'email', 'tests')
+            items = ('base_code', 'email', 'tests', 'config')
         else:
             items = (parsed_args.item,)
         update_assignment(class_name, parsed_args.assignment_path, items)
@@ -516,7 +570,7 @@ def take_action(parsed_args):
                   parsed_args.json)
     elif action_name == 'trigger':
         trigger_tests(class_name, assignment_name,
-                      parsed_args.student_usernames)
+                      parsed_args.student_usernames, parsed_args.yes)
     elif action_name == 'passwd':
         reset_password(parsed_args.username)
     elif action_name == 'config':
@@ -531,15 +585,8 @@ def take_action(parsed_args):
     elif action_name == 'admin_demote':
         admin_demote(parsed_args.email_address)
     elif action_name == 'test':
-        test_solution(class_name, parsed_args.assignment_name,
-                      parsed_args.solution_path)
+        test_solution(class_name, assignment_name, parsed_args.solution_path)
 
 
 if __name__ == '__main__':
-    if core_version != client_version:
-        error = 'git-keeper-client and git-keeper-core versions must match.\n'
-        error += 'client version: {}\n'.format(client_version)
-        error += 'core version: {}'.format(core_version)
-        sys.exit(error)
-
     main()

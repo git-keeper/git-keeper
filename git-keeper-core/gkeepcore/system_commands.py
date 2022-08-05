@@ -21,7 +21,7 @@ Provides functions for system calls and command line filesystem operations.
 import os
 from getpass import getuser
 from grp import getgrgid, getgrnam
-from pwd import getpwuid, getpwnam
+from pwd import getpwuid, getpwnam, getpwall
 from shutil import which
 
 from gkeepcore.path_utils import user_home_dir
@@ -132,7 +132,7 @@ def sudo_add_user(username, groups=None, shell=None, home_dir_mode=755):
     A group with the same name as the user will be created and will be the
     user's default group.
 
-    The user's shell will be bash.
+    Unless specified, the user's shell will be bash.
 
     Any additional groups that the user should be in can be passed as well.
 
@@ -162,6 +162,36 @@ def sudo_add_user(username, groups=None, shell=None, home_dir_mode=755):
     chmod(home_dir_path, home_dir_mode, sudo=True)
 
 
+def sudo_add_user_to_groups(username, groups):
+    """
+    Add a user to all of the groups in the provided list.
+
+    :param username: username of the user
+    :param groups: a list of groups to add the user to
+    """
+
+    for group in groups:
+        cmd = ['usermod', '-a', '-G', group, username]
+        run_command(cmd, sudo=True)
+
+
+def sudo_set_shell(username, shell):
+    """
+    Set a user's shell. Raises a CommandError if the shell does not exist.
+
+    :param username: username of the user
+    :param shell: name of the shell
+    """
+
+    shell_path = which(shell)
+
+    if shell_path is None:
+        raise CommandError('{0} is not a valid shell'.format(shell))
+
+    cmd = ['chsh', '-s', shell_path, username]
+    run_command(cmd, sudo=True)
+
+
 def sudo_set_password(username, password):
     """
     Set a user's password using sudo and chpasswd.
@@ -172,6 +202,16 @@ def sudo_set_password(username, password):
 
     cmd = 'echo {0}:{1} | sudo chpasswd'.format(username, password)
     run_command(cmd)
+
+
+def get_all_users():
+    """
+    Return a list of the usernames of all the users on the system.
+
+    :return: list of all usernames
+    """
+
+    return [user[0] for user in getpwall()]
 
 
 def user_exists(user):

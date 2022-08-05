@@ -1,0 +1,1 @@
+print('Base code output')
