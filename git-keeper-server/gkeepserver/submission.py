@@ -34,13 +34,33 @@ from gkeepcore.git_commands import git_clone, git_add_all, git_commit, \
     git_checkout
 from gkeepcore.assignment_config import AssignmentConfig, TestEnv
 from gkeepcore.system_commands import cp, sudo_chown, rm, chmod, mv
-from gkeepcore.shell_command import run_command, CommandError, CommandExitCodeError
+from gkeepcore.shell_command import run_command, CommandExitCodeError
 from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.info_update_thread import info_updater
 from gkeepserver.reports import reports_clone
 from gkeepserver.server_configuration import config
 from gkeepserver.server_email import Email
-from gkeepcore.path_utils import parse_submission_repo_path, user_home_dir
+from gkeepcore.path_utils import user_home_dir
+
+
+class TempPaths:
+    """
+    Represents the various paths in a temporary testing directory.
+
+    Attributes:
+
+    temp_path - path to the temporary directory storing all items
+    submission_path - path to the clone of the student's submission
+    run_action_sh_path - path to run_action.sh that will be called ot initiate
+                         tests
+    assignment_cfg_path - path to assignment.cfg, which may or may not exist
+    """
+
+    def __init__(self, temp_path, assignment_name):
+        self.temp_path = temp_path
+        self.submission_path = os.path.join(temp_path, assignment_name)
+        self.run_action_sh_path = os.path.join(temp_path, 'run_action.sh')
+        self.assignment_cfg_path = os.path.join(temp_path, 'assignment.cfg')
 
 
 class Submission:
@@ -88,81 +108,37 @@ class Submission:
         run the tests.
         """
 
-        faculty_username, class_name, assignment_name = \
-            parse_submission_repo_path(self.student_repo_path)
-
-        if not db.class_is_open(class_name, faculty_username):
-            self._send_closed_email(class_name, assignment_name)
+        if not db.class_is_open(self.class_name, self.faculty_username):
+            self._send_closed_email()
             return
 
-        if db.is_disabled(class_name, assignment_name, faculty_username):
-            self._send_disabled_email(class_name, assignment_name)
+        if db.is_disabled(self.class_name, self.assignment_name,
+                          self.faculty_username):
+            self._send_disabled_email()
             return
 
         logger.log_debug('Running tests on {0}'.format(self.student_repo_path))
 
-        temp_path = mkdtemp(dir=user_home_dir(config.tester_user),
-                            prefix='{}_'.format(int(time())))
-        chmod(temp_path, '770')
+        temp_path = ''
 
-        temp_assignment_path = os.path.join(temp_path, assignment_name)
-
-        git_clone(self.student_repo_path, temp_path)
-        git_checkout(temp_assignment_path, self.commit_hash)
-
-        # copy the tests - this creates a tests folder inside the temp dir
-        with directory_locks.get_lock(self.assignment_dir.path):
-            cp(self.tests_path, temp_path, recursive=True)
-            # copy the assignment.cfg file (if present)
-            if os.path.exists(self.config_path):
-                cp(self.config_path, temp_path)
-
-        temp_run_action_sh_path = os.path.join(temp_path, 'run_action.sh')
-
-        assignment_config = AssignmentConfig(os.path.join(temp_path,
-                                                          'assignment.cfg'),
-                                             config.default_test_env)
-
-        if assignment_config.env == TestEnv.FIREJAIL:
-            # firejail makes the temp directory look like /home/tester from
-            # the tests point of view
-            write_run_action_sh(temp_run_action_sh_path, self.tests_path,
-                                assignment_config,
-                                user_home_dir(config.tester_user))
-        elif assignment_config.env == TestEnv.DOCKER:
-            write_run_action_sh(temp_run_action_sh_path, self.tests_path,
-                                assignment_config)
-        else:
-            write_run_action_sh(temp_run_action_sh_path, self.tests_path,
-                                assignment_config, temp_path)
-
-        temp_assignment_path = os.path.join(temp_path, assignment_name)
-
-        # make the tester user the owner of the temporary directory
-        sudo_chown(temp_path, config.tester_user, config.keeper_group,
-                   recursive=True)
-
-        # execute action.sh and capture the output
         try:
-            assignment_config = AssignmentConfig(self.config_path,
-                                                 config.default_test_env)
-            if assignment_config.env == TestEnv.DOCKER:
-                # Run a docker pull on the image here so that the output
-                # is not captured in the email.  If the container image is
-                # already on the server, this will return quickly
-                pull_cmd = ['docker', 'pull', assignment_config.image]
-                run_command(pull_cmd)
-                cmd = self._make_docker_command(temp_path, assignment_name,
-                                                assignment_config.image)
-            elif assignment_config.env == TestEnv.FIREJAIL:
-                cmd = self._make_firejail_command(temp_path, assignment_name,
-                                                  assignment_config.append_args)
-            elif assignment_config.env == TestEnv.HOST:
-                cmd = self._make_host_command(temp_run_action_sh_path,
-                                              temp_assignment_path)
-            else:
-                raise GkeepException('Unknown test env type {}'
-                                     .format(assignment_config.env))
+            # An exception raised in this block is considered a failure to
+            # run the tests, and both the student and faculty user will be
+            # notified
+
+            temp_path = mkdtemp(dir=user_home_dir(config.tester_user),
+                                prefix='{}_'.format(int(time())))
+
+            paths = TempPaths(temp_path, self.assignment_name)
+
+            with directory_locks.get_lock(self.assignment_dir.path):
+                assignment_cfg_path = self.assignment_dir.config_path
+                assignment_cfg = AssignmentConfig(assignment_cfg_path,
+                                                  config.default_test_env)
+
+            self._setup_temp_dir(paths, assignment_cfg)
+
+            cmd = self._make_action_command(paths, assignment_cfg)
 
             try:
                 body = run_command(cmd)
@@ -175,19 +151,9 @@ class Submission:
                 else:
                     raise e
 
-            # send output as email
-            if assignment_config.use_html is not None:
-                html_pre_body = assignment_config.use_html
-            else:
-                html_pre_body = config.use_html
+            self._email_results(body, assignment_cfg)
 
-            subject = (assignment_config.results_subject
-                       .format(class_name=class_name,
-                               assignment_name=assignment_name))
-            email_sender.enqueue(Email(self.student.email_address, subject,
-                                       body, html_pre_body=html_pre_body))
-
-            if self.student.username != faculty_username:
+            if self.student.username != self.faculty_username:
                 with directory_locks.get_lock(self.assignment_dir.path):
                     self._add_report(body)
                 info_updater.enqueue_submission_scan(self.faculty_username,
@@ -196,14 +162,45 @@ class Submission:
                                                      self.student.username)
 
         except Exception as e:
-            report_failure(assignment_name, self.student,
+            report_failure(self.assignment_name, self.student,
                            self.faculty_email, str(e))
-
-        if os.path.isdir(temp_path):
-            rm(temp_path, recursive=True, sudo=True)
+        finally:
+            if os.path.isdir(temp_path):
+                rm(temp_path, recursive=True, sudo=True)
 
         logger.log_debug('Done running tests on {0}'
                          .format(self.student_repo_path))
+
+    def _setup_temp_dir(self, paths: TempPaths,
+                        assignment_cfg: AssignmentConfig):
+        # clone the student's submission, copy the tests and assignment config,
+        # write run_action.sh, and set permissions
+
+        chmod(paths.temp_path, '770')
+
+        git_clone(self.student_repo_path, paths.temp_path)
+        git_checkout(paths.submission_path, self.commit_hash)
+
+        # copy the tests - this creates a tests folder inside the temp dir
+        with directory_locks.get_lock(self.assignment_dir.path):
+            cp(self.tests_path, paths.temp_path, recursive=True)
+
+        if assignment_cfg.env == TestEnv.FIREJAIL:
+            # firejail makes the temp directory look like /home/tester from
+            # the tests point of view
+            write_run_action_sh(paths.run_action_sh_path, self.tests_path,
+                                assignment_cfg,
+                                user_home_dir(config.tester_user))
+        elif assignment_cfg.env == TestEnv.DOCKER:
+            write_run_action_sh(paths.run_action_sh_path, self.tests_path,
+                                assignment_cfg)
+        else:
+            write_run_action_sh(paths.run_action_sh_path, self.tests_path,
+                                assignment_cfg, paths.temp_path)
+
+        # make the tester user the owner of the temporary directory
+        sudo_chown(paths.temp_path, config.tester_user, config.keeper_group,
+                   recursive=True)
 
     def _add_report(self, body):
         # Add the results of running tests to the reports repository
@@ -236,63 +233,100 @@ class Submission:
             git_add_all(temp_reports_repo_path)
             git_commit(temp_reports_repo_path, reports_commit_message)
 
-    def _make_docker_command(self, temp_path, assignment_name,
-                             container_image):
-        return ['docker', 'run', '-v',
-                '{}:/git-keeper-tester'.format(temp_path),
-                container_image, 'bash',
+    def _email_results(self, body, assignment_cfg: AssignmentConfig):
+        # send the student the results via email
+
+        if assignment_cfg.use_html is not None:
+            html_pre_body = assignment_cfg.use_html
+        else:
+            html_pre_body = config.use_html
+
+        subject = (assignment_cfg.results_subject
+                   .format(class_name=self.class_name,
+                           assignment_name=self.assignment_name))
+        email_sender.enqueue(Email(self.student.email_address, subject,
+                                   body, html_pre_body=html_pre_body))
+
+    def _make_action_command(self, paths: TempPaths,
+                             assignment_cfg: AssignmentConfig):
+        # build the command to run to run the tests based on the test
+        # environment type
+
+        if assignment_cfg.env == TestEnv.DOCKER:
+            # Run a docker pull on the image here so that the output
+            # is not captured in the email.  If the container image is
+            # already on the server, this will return quickly
+            pull_cmd = ['docker', 'pull', assignment_cfg.image]
+            run_command(pull_cmd)
+            cmd = self._make_docker_command(paths, assignment_cfg)
+        elif assignment_cfg.env == TestEnv.FIREJAIL:
+            cmd = self._make_firejail_command(paths, assignment_cfg)
+        elif assignment_cfg.env == TestEnv.HOST:
+            cmd = self._make_host_command(paths)
+        else:
+            raise GkeepException('Unknown test env type {}'
+                                 .format(assignment_cfg.env))
+
+        return cmd
+
+    def _make_docker_command(self, paths: TempPaths,
+                             assignment_cfg: AssignmentConfig):
+        return ['docker', 'run', '--pull', 'never', '-v',
+                '{}:/git-keeper-tester'.format(paths.temp_path),
+                assignment_cfg.image, 'bash',
                 '/git-keeper-tester/run_action.sh',
-                os.path.join('/git-keeper-tester/', assignment_name),
+                os.path.join('/git-keeper-tester/', self.assignment_name),
                 self.student.username, self.student.email_address,
                 self.student.last_name, self.student.first_name]
 
-    def _make_host_command(self, temp_run_action_sh_path,
-                           temp_assignment_path):
+    def _make_host_command(self, paths: TempPaths):
         return ['sudo', '--user', config.tester_user, '--set-home', 'bash',
-                temp_run_action_sh_path, temp_assignment_path,
+                paths.run_action_sh_path, paths.submission_path,
                 self.student.username, self.student.email_address,
                 self.student.last_name, self.student.first_name]
 
-    def _make_firejail_command(self, temp_path, assignment_name, append_args):
+    def _make_firejail_command(self, paths: TempPaths,
+                               assignment_cfg: AssignmentConfig):
         tester_home = user_home_dir(config.tester_user)
 
         cmd = ['sudo', '--user', config.tester_user, '--set-home',
                'firejail', '--noprofile', '--quiet',
-               '--deterministic-exit-code', '--private={}'.format(temp_path)]
+               '--deterministic-exit-code',
+               '--private={}'.format(paths.temp_path)]
 
-        if append_args is not None:
-            cmd.extend(append_args.split())
+        if assignment_cfg.append_args is not None:
+            cmd.extend(assignment_cfg.append_args.split())
 
         cmd.extend(['bash', os.path.join(tester_home, 'run_action.sh'),
-                    os.path.join(tester_home, assignment_name),
+                    os.path.join(tester_home, self.assignment_name),
                     self.student.username, self.student.email_address,
                     self.student.last_name, self.student.first_name])
 
         return cmd
 
-    def _send_closed_email(self, class_name, assignment_name):
+    def _send_closed_email(self):
         # Send an email to the submitter that the class has closed
-        subject = ('[{0}] class is closed'.format(class_name))
+        subject = ('[{0}] class is closed'.format(self.class_name))
         body = ('You have pushed a submission for a class that is is '
                 'closed.')
         email_sender.enqueue(Email(self.student.email_address, subject,
                                    body))
         logger.log_info('{} pushed to {} in {}, which is closed'
-                        .format(self.student.username, assignment_name,
-                                class_name))
+                        .format(self.student.username, self.assignment_name,
+                                self.class_name))
 
-    def _send_disabled_email(self, class_name, assignment_name):
+    def _send_disabled_email(self):
         # Send an email to the submitter that the class is disabled
         subject = ('[{0}] assignment {1} is disabled'
-                   .format(class_name, assignment_name))
+                   .format(self.class_name, self.assignment_name))
         body = ('You have pushed a submission for assignment {} which is '
                 'disabled. No tests were run on your submission.'
-                .format(assignment_name))
+                .format(self.assignment_name))
         email_sender.enqueue(Email(self.student.email_address, subject,
                                    body))
         logger.log_info('{} pushed to {} in {}, which is disabled'
-                        .format(self.student.username, assignment_name,
-                                class_name))
+                        .format(self.student.username, self.assignment_name,
+                                self.class_name))
 
 
 def write_run_action_sh(dest_path: str, tests_path: str,
