@@ -1,13 +1,7 @@
 # Faculty Users
 
-This page has guides for faculty users:
-
-* [Client Setup](#client-setup)
-* [Creating Classes](#creating-classes)
-* [Modifying Classes](#modifying-classes)
-* [Class Status](#class-status)
-* [Password Reset](#password-reset)
-* [Assignments](#assignments)
+This page has numerous guides for faculty users. See the nagivation bar to
+explore the sections on this page.
 
 ## Client Setup
 
