@@ -214,6 +214,68 @@ To add tests for a new unit, create a new file in `tests/unit` that begins with
 considered a test. See the [pytest documentation](https://docs.pytest.org/) for
 more information about writing tests for `pytest`.
 
+## Documentation
+
+Documentation is contained in the `docs` folder of the git-keeper project, is
+built using [MkDocs](https://www.mkdocs.org/), and is hosted on
+[Read the Docs](https://readthedocs.org/) at
+[https://git-keeper.readthedocs.io/](https://git-keeper.readthedocs.io/).
+
+MkDocs settings are specified in `mkdocs.yml`. Settings for Read the Docs are
+in `.readthedocs.yaml`. The versions of tools and libraries from PyPI used by
+Read the Docs are specified in `docs/requirements.txt`.
+
+Read the Docs will automatically build new docs when the `develop` and `master`
+branches are updated on GitHub. By default the `master` branch's docs are
+shown, and the `develop` branch's docs are at
+[https://git-keeper.readthedocs.io/en/develop/](https://git-keeper.readthedocs.io/en/develop/).
+
+### Viewing Docs Locally
+
+To view the docs locally before deploying, run `mkdocs serve` in the root
+directory of the project. This will print a local URL that you can visit to
+view the current docs. Editing any of the doc files will automatically reload
+the updated docs.
+
+### MkDocs Markdown
+
+The docs are written in
+[Markdown](https://daringfireball.net/projects/markdown/). MkDocs has some
+extra Markdown features, and the ones used in our docs are detailed below.
+
+#### Fenced Code Blocks
+
+Fenced code blocks begin and end with 3 backticks and create a block of text
+using a monospaced font, which may also be syntax highlighted. The language for
+syntax highlighting is automatically detected, or it can be specified with a
+string directly after the first set of backticks. To disable highlighting for a
+block, use `no-highlight` as the language. It is a good idea to disable
+highlighting for blocks that do not need it.
+
+For examples of fenced code blocks look through the raw Markdown files for the
+docs, they are used extensively.
+
+#### Admonitions
+
+A block like this:
+
+```
+!!! note
+
+    This is a note
+```
+
+Renders like this:
+
+!!! note
+
+    This is a note
+
+Other types besides `note` are `tip`, `warning`, `caution`, `error`, and
+`danger`. See here for more:
+[https://python-markdown.github.io/extensions/admonition/](https://python-markdown.github.io/extensions/admonition/)
+
+
 ## Release Checklist
 
 To release version x.y.z of git-keeper, follow the steps below.
