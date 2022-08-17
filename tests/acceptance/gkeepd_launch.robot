@@ -36,6 +36,12 @@ Admin Account Already Exists
     Add File To Server    keeper    files/valid_server.cfg    server.cfg
     Start gkeepd
     New Account Email Does Not Exist    admin_prof
+    New Account Email Exists    admin_prof1
+    User Exists On Server    admin_prof1
+    Gkeepd Is Running
+    # make sure restarting still works, this was broken in v1.0.0
+    Stop Gkeepd
+    Start Gkeepd
     Gkeepd Is Running
 
 Admin Named Faculty
