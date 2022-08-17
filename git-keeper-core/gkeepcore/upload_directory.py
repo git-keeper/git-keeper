@@ -111,3 +111,7 @@ class UploadDirectory:
             # if it exists.
             if os.path.exists(self.config_path):
                 AssignmentConfig(self.config_path)
+
+            # Verify that the base_code folder is not empty
+            if len([name for name in os.listdir(self.base_code_path)]) == 0:
+                raise GkeepException('The base_code directory must contain at least one file.')

@@ -60,3 +60,10 @@ Double Assignment Upload
     Add Assignment to Client  faculty1  good_simple
     Gkeep Upload Succeeds   faculty1   cs1    good_simple
     Gkeep Upload Fails   faculty1   cs1    good_simple
+
+Empty BaseCode Folder
+    [Tags]  error
+    # git ignores empty folders, so we have to use good_simple and delete the file
+    Add Assignment to Client  faculty1  good_simple
+    Delete File on Client   faculty1    good_simple/base_code/code.py
+    Gkeep Upload Fails    faculty1  cs1     good_simple
