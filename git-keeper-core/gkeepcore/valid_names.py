@@ -32,7 +32,7 @@ def validate_assignment_name(assignment_name: str):
 
     :param assignment_name: name of the assignment
     """
-    blacklist = ['all']
+    blacklist = ['all', 'tests']
 
     if assignment_name in blacklist:
         error = ('"{0}" is not an allowed assignment name'

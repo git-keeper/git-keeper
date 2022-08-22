@@ -60,3 +60,13 @@ Double Assignment Upload
     Add Assignment to Client  faculty1  good_simple
     Gkeep Upload Succeeds   faculty1   cs1    good_simple
     Gkeep Upload Fails   faculty1   cs1    good_simple
+
+Assignment Named all
+    [Tags]  error
+    Add Assignment to Client  faculty1  all
+    Gkeep Upload Fails  faculty1  cs1  all
+
+Assignment Named tests
+    [Tags]  error
+    Add Assignment to Client  faculty1  tests
+    Gkeep Upload Fails  faculty1  cs1  tests
