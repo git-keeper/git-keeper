@@ -227,8 +227,6 @@ class ServerConfiguration:
         self.admin_first_name = None
         self.admin_last_name = None
 
-        self.admin_username = None
-
     def _parse_config_file(self):
         # Use a ConfigParser object to parse the configuration file and store
         # the state
@@ -335,7 +333,7 @@ class ServerConfiguration:
             raise ServerConfigurationError(e.message)
 
         try:
-            self.admin_username, _ = self.admin_email.split('@')
+            _, _ = self.admin_email.split('@')
         except ValueError:
             raise ServerConfigurationError('{} is not a valid email address'
                                            .format(self.admin_email))
