@@ -1,19 +1,12 @@
 site_name: git-keeper Documentation
 repo_url: https://github.com/git-keeper/git-keeper
 nav:
-    - Home: 'index.md'
-    - 'Faculty Users':
-        - 'Client Setup': 'faculty/client-setup.md'
-        - 'Create a Class': 'faculty/create-class.md'
-        - 'Assignment Workflow': 'faculty/assignment-workflow.md'
-    - 'Admin Users':
-        - 'Server Setup': 'admin/server-setup.md'
-    - Developers:
-        - 'General Guidelines': 'develop/developers.md'        
-        - 'Release Checklist': 'develop/release_checklist.md'
-        - 'JSON Structure': 'develop/info-json-structure.md'
-        - 'Log Structure': 'develop/log-events.md'
-        - 'Server File Structure': 'develop/server_filesystem_structure.md'
-    - Reference:
-        - 'Client': 'reference/client.md'
+    - Home: index.md
+    - 'Faculty Users': faculty-users.md
+    - 'Admin Users': admin-users.md
+    - Reference: reference.md
+    - Developers: developers.md
 theme: readthedocs
+markdown_extensions:
+    - admonition
+    - toc

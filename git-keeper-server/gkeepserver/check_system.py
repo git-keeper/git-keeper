@@ -57,7 +57,7 @@ def check_system():
 
     check_paths_and_permissions()
     check_dummy_accounts()
-    check_faculty()
+    check_admin()
 
 
 def check_paths_and_permissions():
@@ -166,17 +166,29 @@ def write_gitconfig():
     gkeepd_logger.log_info('Created {0}'.format(config.gitconfig_file_path))
 
 
-def check_faculty():
-    """Add any new faculty members."""
+def check_admin():
+    """
+    Check the admin user in the server configuration.
+
+    If no user exists with the admin email address, add a new faculty admin
+    user. If a faculty user exists with the admin email address, promote the
+    user to admin. If a student user exists with the admin email address, make
+    the existing student user a faculty admin user.
+    """
 
     gkeepd_logger.log_debug('Checking faculty')
 
-    if not db.faculty_username_exists(config.admin_username):
+    if not db.email_exists(config.admin_email):
         add_faculty(config.admin_last_name, config.admin_first_name,
                     config.admin_email, admin=True)
-
-    elif not db.is_admin(config.admin_username):
-        db.set_admin(config.admin_username)
+    else:
+        username = db.get_username_from_email(config.admin_email)
+        if not db.faculty_username_exists(username):
+            add_faculty(config.admin_last_name, config.admin_first_name,
+                        config.admin_email, admin=True)
+        elif not db.is_admin(username):
+            gkeepd_logger.log_info('Making user {} an admin'.format(username))
+            db.set_admin(username)
 
 
 def check_dummy_accounts():
