@@ -106,7 +106,7 @@ Server information:
 ### Getting Help
 
 Run `gkeep` with no arguments to see a usage message.  Run `gkeep` with a
-subcommands and no additional arguments to see a usage message for that
+subcommand and no additional arguments to see a usage message for that
 subcommand.
 
 ## Creating Classes
@@ -132,12 +132,13 @@ Now you can add the class on the server using `gkeep`:
 gkeep add cs100f22 cs100f22.csv
 ```
 
-An Account will be created for any student in the class that does not already
+An account will be created for any student in the class that does not already
 have an account on the server. The account name will be the username portion of
-the student's email address. In the case of a duplicate, a number will be added
-after the username to create a unique account.  Passwords are randomly
-generated.  An email containing the student's username and password will be
-sent to the student.
+the student's email address, though modifications will be performed if the
+email username is not a valid Linux username. In the case of a duplicate
+username, a number will be appended to the username to create a unique account.
+Passwords are randomly generated.  An email containing the student's username
+and password will be sent to the student.
 
 !!! note
     Faculty should save the CSV file in case they need to make changes to
@@ -162,8 +163,8 @@ prompt you for confirmation.
 
 ### Examples
 
-In the following examples, assume you have a class named `cs1f22` based on the 
-file `cs1f22.csv`:
+In the following examples, assume you have a class named `cs100f22` based on the 
+file `cs100f22.csv`:
 
 ```no-highlight
 Hamilton,Margaret,mhamilton@example.edu
@@ -185,13 +186,13 @@ Turing,Alan,turninga@example.edu
 Modify the class enrollment and confirm the changes
 
 ```no-highlight
-gkeep modify cs1f22 cs1f22.csv
+gkeep modify cs100f22 cs100f22.csv
 ```
 
 The output will be:
 
 ```no-highlight
-Modifying class cs1f22
+Modifying class cs100f22
 
 The following students will be added to the class:
 Turing, Alan, turninga@example.edu
@@ -213,13 +214,13 @@ Lovelace,Ada,alovelace@example.edu
 Modify the class enrollment and confirm the changes
 
 ```no-highlight
-gkeep modify cs1f22 cs1f22.csv
+gkeep modify cs100f22 cs100f22.csv
 ```
 
 The output will be:
 
 ```no-highlight
-Modifying class cs1f22
+Modifying class cs100f22
 
 The following students will be removed from the class:
 Hopper, Grace, ghopper@example.edu
@@ -234,7 +235,7 @@ Edit the class CSV file to update the student name (change "Margaret" to
 "Maggie" in this example):
 
 ```no-highlight
-Modifying class cs1f22
+Modifying class cs100f22
 
 The following student names will be updated:
 Hamilton, Margaret -> Hamilton, Maggie
@@ -251,13 +252,13 @@ to "alovelace@babbage.edu" in this example):
 Modify the class enrollment and confirm the changes:
 
 ```no-highlight
-gkeep modify cs1f22 cs1f22.csv
+gkeep modify cs100f22 cs100f22.csv
 ```
 
 The output will be:
 
 ```no-highlight
-Modifying class cs1f22
+Modifying class cs100f22
 
 The following students will be added to the class:
 Lovelace, Ada, alovelace@babbage.edu
@@ -281,7 +282,7 @@ identify the student.
 ## Class Status
 
 Each class in `git-keeper` has a status, "open" or "closed."  When created a
-class it is open, and it remains open until the faculty explicitly closes it.
+class is open, and it remains open until the faculty explicitly closes it.
 To change the status of a class run the command
 
 ```no-highlight
@@ -625,10 +626,11 @@ gkeep upload CS100 hw01-hello_world
 Uploading an assignment does not immediately send it to your students. If the
 assignment uploads successfully you will receive an email that looks just like
 the email that the students get when they receive the assignment. You can make
-sure the assignment works as expected by cloning it and pushing some solutions.
+sure the assignment works as expected by using `gkeep test` or by cloning it
+and pushing some solutions.
 
 If you discover errors in your assignment you can update it before sending it
-to the students. You can modify the any one of the three components of the
+to the students. You can modify any one of the four components of the
 assignment individually, or update everything. To update the entire assignment:
 
 ```no-highlight
