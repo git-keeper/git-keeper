@@ -345,7 +345,7 @@ The optional `assignment.cfg` file may be used to configure the
 testing environment, time and memory limits, and
 whether or not the results emails will use HTML. See
 [Testing Environments](#testing-environments) and
-[Assignment Configuration](#assignment-configuration) for more details.
+[Assignment Configuration](/reference/#assignment-configuration) for more details.
 
 #### `base_code`
 
@@ -412,7 +412,7 @@ The testing environment for an assignment can be specified in the optional file
 `assignment.cfg` within the assignment directory. If this file does not exist
 for a given assignment, the assignment will use the default testing
 environment. This will be `firejail`, unless specified otherwise in the
-[Server Configuration]().
+[Server Configuration](/reference/#server-configuration).
 
 #### Host Environment
 
@@ -1206,7 +1206,7 @@ In this tutorial, you will update an existing assignment.
 * A faculty account on the server
 * The `gkeep` client setup on your computer
 * A class named `cs100f22` added to the server
-* The [`project1` example assignment](new_assignment.md) created and uploaded (but not published)
+* The [`project1` example assignment](**#a-simple-assignment-from-the-default-template) created and uploaded (but not published)**
 
 #### Overview
 
@@ -1412,7 +1412,7 @@ In this tutorial you will trigger tests for one or more students.
 * A faculty account on the server
 * The `gkeep` client setup on your computer
 * A class named `cs100f22` added to the server
-* The [`project1` example assignment](new_assignment.md) created, uploaded, and published
+* The [`project1` example assignment](#a-simple-assignment-from-the-default-template) created, uploaded, and published
 
 
 #### Overview
@@ -1473,7 +1473,7 @@ published assignment.
 * A faculty account on the server
 * The `gkeep` client setup on your computer
 * A class named `cs100f22` added to the server
-* The [`project1` example assignment](new_assignment.md) created and uploaded (but not published)
+* The [`project1` example assignment](#a-simple-assignment-from-the-default-template) created and uploaded (but not published)
 
 #### Overview
 
