@@ -11,8 +11,8 @@ special users used by `gkeepd`: `tester` and `keeper`.
 ### The `keeper` User
 
 The `keeper` user is the user that runs `gkeepd`. This user is created manually
-during [Server Setup](). The `keeper` user has full `sudo` privileges and
-creates all of the other accounts on the server.
+during [Server Setup](admin-users.md#server-setup). The `keeper` user has full
+`sudo` privileges and creates all of the other accounts on the server.
 
 ### The `tester` User
 
@@ -45,8 +45,9 @@ user is defined in the [Server Configuration](#server-configuration).
     directories that are managed by `gkeepd`.
 
 If a facutly user is added to a class owned by another faculty user, then they
-become both a faculty and student user, without the [Git shell](#git-shell)
-restrictions placed on normal student users.
+become both a faculty and student user, without the
+[Git shell](#student-server-access) restrictions placed on normal student
+users.
 
 ### Student Users
 
@@ -56,9 +57,9 @@ When a faculty user adds students to a class with
 have an account.  When account is made, the system will email the student an
 email containing their username and password.
 
-Usernames are generally the username of the email, will make modifications for
-duplicate usernames or email usernames with inappropriate characters. See
-[Account Usernames](#account-usernames) for more information.
+Usernames are generally the username of the email, but modifications will be
+made for duplicate usernames or email usernames with inappropriate characters.
+See [Account Usernames](#account-usernames) for more information.
 
 Passwords are randomly generated for each student.
 
@@ -128,7 +129,8 @@ optional additional text. Faculty users create tests to go with each assignment
 which will be run when students push assignment submissions back to the
 server. Students receive tests results via email.
 
-There are numerous [`gkeep` commands]() for working with assignments.
+There are numerous [`gkeep` commands](#gkeep-commands) for working with
+assignments.
 
 ### Structure
 
@@ -175,24 +177,24 @@ results_subject = [{class_name}] {assignment_name} submission test results
 ##### Tests Configuration
 
 The `env` field defines the type of testing environment, which must be `host`,
-`firejail`, or `docker`. See [Testing Environments](testing-environments.md)
-for more details.
+`firejail`, or `docker`. See
+[Testing Environments](faculty-users.md#testing-environments) for more details.
 
 The `timeout` field specifies a timeout in seconds. If the timeout is exceeded
 during testing, testing halts and the student receives an email that there was
 a timeout. Using this setting overrides the timeout value in the
-[Server Configuration]().
+[Server Configuration](#server-configuration).
 
 The `memory_limit` field specifies a memory limit in megabytes. If the memory
 limit is exceeded during testing, testing halts and the student receives an
 email that something went wrong during testing. Using this setting overrides
-the memory limit defined in the [Server Configuration]().
+the memory limit defined in the [Server Configuration](#server-configuration).
 
 ##### Email Configuration
 
 The `use_html` option specifies whether or not to use HTML in test results
 emails to display the text in a monospace font. This overrides the value set in
-the [Server Configuration]().
+the [Server Configuration](#server-configuration).
 
 The `announcement_subject` option can be used to specify a custom subject line
 for new assignment announcement emails. The strings `{class_name}` and
@@ -231,8 +233,8 @@ repository for the assignment.
 A class is owned by a single faculty user, and consists of a collection of
 students and assignments.
 
-A new class is created using the [`gkeep add`]() command, and the roster can be
-modified using [`gkeep modify`]().
+A new class is created using the [`gkeep add`](#add) command, and the roster
+can be modified using [`gkeep modify`](#modify).
 
 A class name may only contain the characters `A-Z`, `a-z`, `0-9`, `-`, and `_`.
 
@@ -243,7 +245,8 @@ class is closed.
 ## Client
 
 Faculty users interact with the git-keeper server using the `gkeep` client
-application. For information about installing the client, see [Client Setup]().
+application. For information about installing the client, see
+[Client Setup](faculty-users.md#client-setup).
 
 ### Client Configuration
 
@@ -308,7 +311,7 @@ Adds a new class on the server.
 
 Usage: `gkeep add <class name> [<csv filename>]`
 
-* `<class name>`: Name of the new class. See [Class Names]() for valid names.
+* `<class name>`: Name of the new class
 * `<csv filename>`: Path to a class roster, with lines of the form
   `Last,First,email@school.edu`. If omitted, an empty class will be created and
   students can be added later.
@@ -329,7 +332,7 @@ Usage: `gkeep modify <class name> <csv filename>`
 
 Creates a directory containing base files for a new assignment. By default
 empty files and directories will be created, but the user can create
-[Template Directories]() to create custom assignment templates.
+[Template Directories](#new-assignment-templates) to create custom assignment templates.
 
 Usage: `gkeep new <path to assignment folder> [<template name>]`
 
@@ -337,13 +340,13 @@ Usage: `gkeep new <path to assignment folder> [<template name>]`
   the assignment
 * `<template name>`: Optional template name. If omitted, a default template
   will be used. If provided, specifies the name of a template in the
-  [Templates Directory]().
+  [Templates Directory](#new-assignment-templates).
 
 #### upload
 
 Uploads a new assignment to the server. The name of the directory containing
 the assignment files will be the name of the assignment. See
-[Assignment Names]() for information about valid names.
+[Assignment Names](#assignment-names) for information about valid names.
 
 The faculty user receives the email that will be sent to the students when the
 assignment is published, and the faculty user can submit solutions to test the
@@ -353,7 +356,7 @@ Usage: `gkeep upload <class name> <assignment directory>`
 
 * `<class name>`: Name of an existing class in which to add the assignment
 * `<assignment directory>`: Path to a directory containing the assignment
-  files. See [Assignment Directories]() for details about the required
+  files. See [Assignments](#assignments) for details about the required
   structure.
 
 #### update
@@ -429,7 +432,7 @@ subdirectory for each student. Each student directory is a clone of their
 submission repository.
 
 The behavior of this command depends on whether or not the `submissions_path`
-option is set in the [Client Configuration]().
+option is set in the [Client Configuration](#client-configuration).
 
 Usage: `gkeep fetch <class name> <assignment name> [<destination>]`
 
@@ -440,7 +443,8 @@ Usage: `gkeep fetch <class name> <assignment name> [<destination>]`
   submission data. The assignment submission data will be fetched to the
   directory `<destination>/<assignment name>`. If `<destination>` is omitted,
   it will either be set to the current working directory or to the
-  `submissions_path` specified in the [Client Configuration]()
+  `submissions_path` specified in the
+  [Client Configuration](#client-configuration)
 
 #### query
 
@@ -582,7 +586,7 @@ Usage: `gkeep config`
 Changes the status of a class to `open` or `closed`. If a class is closed,
 tests will not be run if a student pushes a new submission, and the student
 will recieve an email that says the class is closed. Closed classes will be
-omitted when listing assignments and students using [`gkeep_query`]().
+omitted when listing assignments and students using [`gkeep_query`](#query).
 
 Usage: `gkeep status <class name> <class status>`
 
@@ -593,8 +597,8 @@ Usage: `gkeep status <class name> <class status>`
 
 Adds a new faculty user. The user running this command must be an admin
 user. An account will be created for the user, and the username will be based
-on the user's email address. See [Account Usernames]() for more information on
-usernames.
+on the user's email address. See [Account Usernames](#account-usernames) for
+more information on usernames.
 
 Usage: `gkeep add_faculty <last name> <first name> <email address>`
 
@@ -606,7 +610,7 @@ Usage: `gkeep add_faculty <last name> <first name> <email address>`
 
 Promotes an existing faculty user to an admin user. The user running this
 command must be an admin user. The first admin user must be specified in the
-[Server Configuration]().
+[Server Configuration](#server-configuration).
 
 Usage: `gkeep admin_promote <email address>`
 
@@ -622,21 +626,23 @@ Usage: `gkeep admin_demote <email address>`
 
 ### New Assignment Templates
 
-The [`gkeep new`]() command can create a directory structure with empty files
+The [`gkeep new`](#new) command can create a directory structure with empty files
 as a skeleton for a new assignment, or it can copy a custom template directory
 for you. By default, `gkeep new` looks for templates in
 `~/.config/git-keeper/templates`, but this location can be overridden by
-setting the `templates_path` option in the [Client Configuration]().
+setting the `templates_path` option in the
+[Client Configuration](#client-configuration).
 
 Note that `gkeep new` does not perform any checks on the template to ensure the
 proper structure, it simply performs a copy of the template directory.
 
 ### Fetched Submissions
 
-The [`gkeep fetch`]() command can fetch student submission data to a specified
+The [`gkeep fetch`](#fetch) command can fetch student submission data to a specified
 location. If the location is omitted, then submission data is fetched either
 into the current working directory, or into a specified submissions location
-specified by the `submissions_path` setting in the [Client Configuration]().
+specified by the `submissions_path` setting in the
+[Client Configuration](#client-configuration).
 
 Submission data for an assignment includes 2 folders: `reports` and
 `submissions`. Each of these contains one subdirectory for each student, named
@@ -705,7 +711,8 @@ hello_world
 ## Server
 
 The server side of git-keeper is implemented by the `gkeepd` application. See
-the [Server Setup]() guide for a walk-through of how to set up the server.
+the [Server Setup](admin-users.md#server-setup) guide for a walk-through of how
+to set up the server.
 
 ### Dependencies
 
@@ -727,7 +734,7 @@ also be used as a testing environment.
 `gkeepd` is configured with the `server.cfg` file in the `keeper` user's home
 directory. Details about all sections and fields are below. There is a
 [template `server.cfg`](admin-users.md#template-servercfg) in the
-[Admin Users](#admin-users) guide.
+[Admin Users](admin-users.md) guide.
 
  `server.cfg` has four sections: `[server]`, `[email]`, `[admin]`,
 and `[gkeepd]`.
