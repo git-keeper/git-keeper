@@ -292,18 +292,21 @@ def verify_firejail_installed():
                              'the server')
 
 
-def verify_docker_installed():
+def verify_docker_installed(location='on the server'):
     """
     Determine if Docker is installed.
     Raises GkeepException if Docker is not installed.
+
+    :param location: string used in the exception error message for the
+     location where docker installation is being tested
     """
     cmd = ['docker', '--version']
 
     try:
         run_command(cmd)
     except CommandError:
-        raise GkeepException('docker does not appear to be installed on the '
-                             'server')
+        raise GkeepException('docker does not appear to be installed {}'
+                             .format(location))
 
 
 def verify_docker_image(image):
