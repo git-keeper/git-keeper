@@ -149,7 +149,7 @@ class EmailSenderThread(Thread):
             sleep_time = config.email_interval - elapsed_time
             sleep(sleep_time)
 
-        self._last_send_time = current_time
+        self._last_send_time = time()
 
         try:
             email.send()
