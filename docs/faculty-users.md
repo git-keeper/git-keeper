@@ -883,7 +883,7 @@ In addition, you should have an email from `git-keeper` containing:
 
 ```no-highlight
 Clone URL:
-prof1@gkserver:/home/prof1/prof1/cs100f22/hwk_even.git
+ssh://prof1@gkserver/home/prof1/prof1/cs100f22/hwk_even.git
 
 
 hwk_even: Implement a function to determine if a number is even.
@@ -1048,7 +1048,7 @@ Each student will receive an announcement email:
 
 ```no-highlight
 Clone URL:
-alovelace@gkserver:/home/alovelace/prof1/cs100f22/hwk_even.git
+ssh://alovelace@gkserver/home/alovelace/prof1/cs100f22/hwk_even.git
 
 
 hwk_even: Implement a function to determine if a number is even.
@@ -1116,7 +1116,7 @@ And you should have an email containing:
 
 ```no-highlight
 Clone URL:
-prof1@gkserver:/home/prof1/prof1/cs100f22/project1.git
+ssh://prof1@gkserver/home/prof1/prof1/cs100f22/project1.git
 
 Your first project.  See Canvas for details.
 ```
@@ -1245,7 +1245,7 @@ And you should have an email containing:
 
 ```no-highlight
 Clone URL:
-prof1@gkserver:/home/prof1/prof1/cs100f22/project1.git
+ssh://prof1@gkserver/home/prof1/prof1/cs100f22/project1.git
 
 Your first project is to implement a function to validate
 a username.  See Canvas for details.
@@ -1282,7 +1282,7 @@ And you should have an email containing:
 
 ```no-highlight
 Clone URL:
-prof1@gkserver:/home/prof1/prof1/cs100f22/project1.git
+ssh://prof1@gkserver/home/prof1/prof1/cs100f22/project1.git
 
 Your first project is to implement a function to validate
 a username.  See Canvas for details.
