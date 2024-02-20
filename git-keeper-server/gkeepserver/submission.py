@@ -227,6 +227,12 @@ class Submission:
             with open(report_file_path, 'w') as f:
                 f.write(body)
 
+            for placeholder_filename in ('.placeholder', 'no_submission'):
+                placeholder_path = os.path.join(student_report_dir_path,
+                                                placeholder_filename)
+                if os.path.isfile(placeholder_path):
+                    os.remove(placeholder_path)
+
             reports_commit_message = ('Submission report for {}'
                                       .format(last_first_username))
 
