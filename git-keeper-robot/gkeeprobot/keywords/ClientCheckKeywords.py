@@ -340,7 +340,7 @@ class ClientCheckKeywords:
 
         if submission_count == 0 and report_files != ['no_submission']:
             raise GkeepRobotException('With 0 submissions, expected no_submission to be the only file in {}, got {}'.format(student_report_dir, report_files))
-        else:
+        elif submission_count > 0:
             if 'no_submission' in report_files:
                 raise GkeepRobotException('Unexpected no_submission file in {}'.format(student_report_dir))
             if len(report_files) != submission_count:
