@@ -331,11 +331,20 @@ class ClientCheckKeywords:
             pass
 
     def verify_submission_count(self, faculty_name, submission_folder, class_name, assignment_name, student_name, submission_count):
+        submission_count = int(submission_count)
+
         reports_dir = '{}/{}/{}/reports'.format(submission_folder, class_name, assignment_name)
         student_report_dir = reports_dir + '/last_first_{}'.format(student_name)
-        file_count = client_control.run(faculty_name, 'ls {} | grep -v no_submission | wc -l'.format(student_report_dir)).strip()
-        if file_count != submission_count:
-            raise GkeepRobotException('Expected {} files but found {}'.format(submission_count, file_count))
+
+        report_files = client_control.run(faculty_name, 'ls -A {}'.format(student_report_dir)).strip().split('\n')
+
+        if submission_count == 0 and report_files != ['no_submission']:
+            raise GkeepRobotException('With 0 submissions, expected no_submission to be the only file in {}, got {}'.format(student_report_dir, report_files))
+        else:
+            if 'no_submission' in report_files:
+                raise GkeepRobotException('Unexpected no_submission file in {}'.format(student_report_dir))
+            if len(report_files) != submission_count:
+                raise GkeepRobotException('Expected {} files but found {} in {}: {}'.format(submission_count, len(report_files), student_report_dir, report_files))
 
     def gkeep_test_succeeds(self, faculty, course_name, assignment_name, solution_path):
         cmd = 'gkeep test {} {} {}'.format(course_name, assignment_name, solution_path)
