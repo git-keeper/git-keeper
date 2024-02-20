@@ -46,42 +46,42 @@ Student Submits to Firejail Assignment
     Add Upload and Publish Assignment  faculty1  cs1  good_firejail
     Clone Assignment  student1  faculty1    cs1     good_firejail
     Student Submits    student1    faculty1    cs1    good_firejail    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_firejail    "|/home/tester/tests|"
+    Submission Test Results Email Exists    student1    cs1    good_firejail    |/home/tester/tests|
 
 Student Submits to Firejail Append Args Assignment
     [Tags]    happy_path
     Add Upload and Publish Assignment  faculty1  cs1  good_firejail_append_args
     Clone Assignment  student1  faculty1    cs1     good_firejail_append_args
     Student Submits    student1    faculty1    cs1    good_firejail_append_args    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_firejail_append_args    "|/home/tester/tests|"
+    Submission Test Results Email Exists    student1    cs1    good_firejail_append_args    |/home/tester/tests|
 
 Firejail Prevents Writing Large File
     [Tags]    happy_path
     Add Upload and Publish Assignment  faculty1  cs1  good_firejail_large_file
     Clone Assignment  student1  faculty1    cs1     good_firejail_large_file
     Student Submits    student1    faculty1    cs1    good_firejail_large_file    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_firejail_large_file    "File too large"
+    Submission Test Results Email Exists    student1    cs1    good_firejail_large_file    File\ too\ large
 
 Student Submits to Docker Assignment
     [Tags]    happy_path
     Add Upload and Publish Assignment  faculty1  cs1  good_docker
     Clone Assignment  student1  faculty1    cs1     good_docker
     Student Submits    student1    faculty1    cs1    good_docker    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_docker    "In Docker"
+    Submission Test Results Email Exists    student1    cs1    good_docker    In\ Docker
 
 Student Submits to No Config Assignment
     [Tags]    happy_path
     Add Upload and Publish Assignment   faculty1    cs1     good_no_config
     Clone Assignment  student1  faculty1    cs1     good_no_config
     Student Submits    student1    faculty1    cs1    good_no_config    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_no_config    "On Host"
+    Submission Test Results Email Exists    student1    cs1    good_no_config    On\ Host
 
 Student Submits to Host Assignment
     [Tags]    happy_path
     Add Upload and Publish Assignment  faculty1    cs1     good_host
     Clone Assignment  student1  faculty1    cs1     good_host
     Student Submits    student1    faculty1    cs1    good_host    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_host    "On Host"
+    Submission Test Results Email Exists    student1    cs1    good_host    On\ Host
 
 Bad Config Format
     [Tags]  Error
@@ -127,7 +127,7 @@ Faculty Updates to Include Docker Before Publish
     Gkeep Publish Succeeds  faculty1    cs1     good_host
     Clone Assignment  student1  faculty1    cs1     good_host
     Student Submits    student1    faculty1    cs1    good_host    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_host    "In Docker"
+    Submission Test Results Email Exists    student1    cs1    good_host    In\ Docker
 
 Faculty Updates to Include Docker After Publish
     [Tags]  happy_path
@@ -136,7 +136,7 @@ Faculty Updates to Include Docker After Publish
     Gkeep Update Succeeds   faculty1    cs1     good_host     config
     Clone Assignment  student1  faculty1    cs1     good_host
     Student Submits    student1    faculty1    cs1    good_host    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_host    "In Docker"
+    Submission Test Results Email Exists    student1    cs1    good_host    In\ Docker
 
 Faculty Updates to Remove Docker Before Publish
     [Tags]    happy_path
@@ -147,7 +147,7 @@ Faculty Updates to Remove Docker Before Publish
     Gkeep Publish Succeeds  faculty1    cs1     good_docker
     Clone Assignment  student1  faculty1    cs1     good_docker
     Student Submits    student1    faculty1    cs1    good_docker    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_docker    "On Host"
+    Submission Test Results Email Exists    student1    cs1    good_docker    On\ Host
 
 Faculty Updates to Remove Docker After Publish
     [Tags]    happy_path
@@ -156,7 +156,7 @@ Faculty Updates to Remove Docker After Publish
     Gkeep Update Succeeds   faculty1    cs1     good_docker     config
     Clone Assignment  student1  faculty1    cs1     good_docker
     Student Submits    student1    faculty1    cs1    good_docker    correct_solution
-    Submission Test Results Email Exists    student1    cs1    good_docker    "On Host"
+    Submission Test Results Email Exists    student1    cs1    good_docker    On\ Host
 
 Update to Bad Config No Image
     [Tags]  Error
@@ -184,11 +184,11 @@ Test Produces Email to Faculty in Docker
     Add Assignment to Client  faculty1  good_docker
     Gkeep Upload Succeeds   faculty1   cs1    good_docker
     Gkeep Test Succeeds    faculty1    cs1    good_docker    good_docker/correct_solution
-    Submission Test Results Email Exists    faculty1    cs1    good_docker    "In Docker"
+    Submission Test Results Email Exists    faculty1    cs1    good_docker    In\ Docker
 
 Assignment Timeout Overrides Server Timeout
     [Tags]  happy_path
     Add Assignment to Client  faculty1  one_second_timeout
     Gkeep Upload Succeeds  faculty1  cs1  one_second_timeout
     Gkeep Test Succeeds  faculty1  cs1  one_second_timeout  one_second_timeout/correct_solution
-    Submission Test Results Email Exists  faculty1  cs1  one_second_timeout  "Tests timed out"
+    Submission Test Results Email Exists  faculty1  cs1  one_second_timeout  Tests\ timed\ out
