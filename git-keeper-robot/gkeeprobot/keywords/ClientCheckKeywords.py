@@ -333,7 +333,7 @@ class ClientCheckKeywords:
     def verify_submission_count(self, faculty_name, submission_folder, class_name, assignment_name, student_name, submission_count):
         reports_dir = '{}/{}/{}/reports'.format(submission_folder, class_name, assignment_name)
         student_report_dir = reports_dir + '/last_first_{}'.format(student_name)
-        file_count = client_control.run(faculty_name, 'ls {} | wc -l'.format(student_report_dir)).strip()
+        file_count = client_control.run(faculty_name, 'ls {} | grep -v no_submission | wc -l'.format(student_report_dir)).strip()
         if file_count != submission_count:
             raise GkeepRobotException('Expected {} files but found {}'.format(submission_count, file_count))
 

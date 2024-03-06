@@ -64,7 +64,7 @@ Bad Action.sh
     Gkeep Publish Succeeds  faculty1    cs1     bad_action
     Clone Assignment  student1  faculty1    cs1     bad_action
     Student Submits    student1    faculty1    cs1    bad_action    correct_solution
-    Email Exists    student1    subject_contains="bad_action: Failed to process submission - contact instructor"    body_contains="instructor"
+    Email Exists    student1    bad_action:\ Failed\ to\ process\ submission\ -\ contact\ instructor    instructor
 
 Duplicate Assignment Name Across Courses Managed
     [Tags]    happy_path
@@ -103,4 +103,4 @@ Global Timeout Catches Infinite Loop
     Gkeep Publish Succeeds  faculty1    cs1     run_py
     Clone Assignment  student1  faculty1    cs1     run_py
     Student Submits    student1    faculty1    cs1    run_py    infinite_loop_submission
-    Submission Test Results Email Exists    student1   cs1   run_py   "Tests timed out"
+    Submission Test Results Email Exists    student1   cs1   run_py   Tests\ timed\ out
