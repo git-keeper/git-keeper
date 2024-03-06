@@ -346,6 +346,18 @@ class ClientCheckKeywords:
             if len(report_files) != submission_count:
                 raise GkeepRobotException('Expected {} files but found {} in {}: {}'.format(submission_count, len(report_files), student_report_dir, report_files))
 
+    def no_submission_file_exists(self, faculty_name, submission_folder, class_name, assignment_name, student_name):
+        reports_dir = '{}/{}/{}/reports'.format(submission_folder, class_name, assignment_name)
+        student_report_dir = reports_dir + '/last_first_{}'.format(student_name)
+        no_submission_file_path = student_report_dir + '/no_submission'
+        self.file_exists(faculty_name, no_submission_file_path)
+
+    def no_submission_file_does_not_exist(self, faculty_name, submission_folder, class_name, assignment_name, student_name):
+        reports_dir = '{}/{}/{}/reports'.format(submission_folder, class_name, assignment_name)
+        student_report_dir = reports_dir + '/last_first_{}'.format(student_name)
+        no_submission_file_path = student_report_dir + '/no_submission'
+        self.file_does_not_exist(faculty_name, no_submission_file_path)
+
     def gkeep_test_succeeds(self, faculty, course_name, assignment_name, solution_path):
         cmd = 'gkeep test {} {} {}'.format(course_name, assignment_name, solution_path)
         client_control.run(faculty, cmd)
@@ -408,6 +420,14 @@ class ClientCheckKeywords:
             client_control.run(faculty, cmd)
         except ExitCodeException as e:
             raise GkeepRobotException('File does not exist: {}'.format(filename))
+
+    def file_does_not_exist(self, faculty, filename):
+        cmd = 'test -f {}'.format(filename)
+        try:
+            client_control.run(faculty, cmd)
+            raise GkeepRobotException('File exists: {}'.format(filename))
+        except ExitCodeException:
+            pass
 
     def new_assignment_succeeds(self, faculty, assignment_name, template_name=None):
         if template_name is None:
