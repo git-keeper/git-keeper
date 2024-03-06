@@ -105,7 +105,7 @@ class PublishHandler(EventHandler):
                 mkdir(student_report_path)
 
                 student_placeholder_path = os.path.join(student_report_path,
-                                                        '.placeholder')
+                                                        'no_submission')
                 touch(student_placeholder_path)
 
             git_add_all(temp_dir_path)
