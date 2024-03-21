@@ -1,8 +1,6 @@
 import os
 
-proc_data = open('/proc/1/cgroup').read()
-
-if 'docker' in proc_data:
+if os.path.isfile('/.dockerenv'):
     print('docker')
 elif os.getcwd() == '/home/tester/tests':
     print('firejail')

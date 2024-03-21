@@ -35,14 +35,14 @@ Add One Faculty
 Duplicate Faculty
     [Tags]    error
     Gkeep Add Faculty Succeeds    admin_prof    faculty1
-    Wait For Email      to_user=faculty1    subject_contains="New git-keeper account"    body_contains=Password
+    Wait For Email      faculty1    New\ git-keeper\ account   Password
     Gkeep Add Faculty Fails    admin_prof    faculty1
     Gkeepd Is Running
 
 Add Faculty As Non Admin
     [Tags]    error
     Gkeep Add Faculty Succeeds    admin_prof    faculty1
-    Wait For Email      to_user=faculty1    subject_contains="New git-keeper account"    body_contains=Password
+    Wait For Email      faculty1    New\ git-keeper\ account    Password
     Create Accounts On Client    faculty1
     Gkeep Add Faculty Fails    faculty1    prof3
     Gkeepd Is Running
@@ -51,11 +51,11 @@ Different Case Email
     [Tags]    error
     Gkeep Add Faculty Succeeds    admin_prof    faculty1
     Gkeep Add Faculty Fails    admin_prof    FaCuLtY1
-    Gkeep Add Faculty Fails    admin_prof    faculty1    email_domain='ScHoOl.EdU'
+    Gkeep Add Faculty Fails    admin_prof    faculty1    email_domain=ScHoOl.EdU
 
 Uppercase Email
     [Tags]    happy_path
-    Gkeep Add Faculty Succeeds    admin_prof    FACULTY1    email_domain='SCHOOL.EDU'
+    Gkeep Add Faculty Succeeds    admin_prof    FACULTY1    email_domain=SCHOOL.EDU
     New Account Email Exists    faculty1
     User Exists On Server    faculty1
 
@@ -80,7 +80,11 @@ Admin Promote And Demote
 Add Faculty With Same Email Username
     [Tags]    happy_path
     Gkeep Add Faculty Succeeds    admin_prof    faculty1
-    Gkeep Add Faculty Succeeds    admin_prof    faculty1     email_domain='gitkeeper.edu'
+    Gkeep Add Faculty Succeeds    admin_prof    faculty1     email_domain=gitkeeper.edu
+    User Exists On Server    faculty1
+    New Account Email Exists    faculty1
+    User Exists On Server    faculty11
+    New Account Email Exists    faculty11
 
 Faculty Named Faculty
     [Tags]    happy_path

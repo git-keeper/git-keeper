@@ -215,6 +215,9 @@ class ServerConfiguration:
         self.faculty_group = 'faculty'
         self.student_group = 'student'
 
+        # server
+        self.ssh_port = 22
+
         # email
         self.use_tls = True
         self.email_username = None
@@ -314,6 +317,12 @@ class ServerConfiguration:
             self.hostname = self._parser.get('server', 'hostname')
         except configparser.NoOptionError as e:
             raise ServerConfigurationError(e.message)
+
+        if self._parser.has_option('server', 'ssh_port'):
+            try:
+                self.ssh_port = int(self._parser.get('email', 'ssh_port'))
+            except ValueError:
+                raise ServerConfigurationError('ssh_port must be an integer')
 
     def _set_admin_options(self):
         # set admin-related attributes

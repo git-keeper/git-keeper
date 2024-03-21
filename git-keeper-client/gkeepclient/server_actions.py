@@ -665,9 +665,10 @@ def upload_assignment(class_name: str, upload_dir_path: str):
     validate_assignment_name(upload_dir.assignment_name)
 
     if not os.path.isfile(upload_dir.config_path):
-        print('NOTE: There is no assignment.cfg file for this assignment.')
-        print('      Tests for this assignment will be run using the '
-              'server\'s default environment.')
+        print('NOTE: There is no assignment.cfg file for this assignment. '
+              'Tests for this ')
+        print('      assignment will be run using the server\'s default '
+              'environment.')
 
     if server_interface.assignment_exists(class_name,
                                           upload_dir.assignment_name):

@@ -28,37 +28,73 @@ Setup Server and Client Accounts
     Create Accounts On Client    student1    student2
     Create Git Config    student1
     Create Git Config    student2
+
+Upload And Publish Good Simple
     Add Assignment to Client  faculty1  good_simple
     Gkeep Upload Succeeds   faculty1   cs1    good_simple
     Gkeep Publish Succeeds  faculty1    cs1     good_simple
+
+Student One Submit
     Clone Assignment  student1  faculty1    cs1     good_simple
     Student Submits    student1    faculty1    cs1    good_simple    correct_solution
     Submission Test Results Email Exists    student1    cs1    good_simple    Done
 
+Student Two Submit
+    Clone Assignment  student2  faculty1    cs1     good_simple
+    Student Submits    student2    faculty1    cs1    good_simple    correct_solution
+    Submission Test Results Email Exists    student2    cs1    good_simple    Done
+
 
 *** Test Cases ***
 
+Fetched Reports After No Submissions Contains No Submission File
+    [Tags]  happy_path
+    Upload And Publish Good Simple
+    Fetch Assignment    faculty1    cs1    good_simple    fetched_assignments
+    No Submission File Exists   faculty1    fetched_assignments    cs1    good_simple    student1
+    No Submission File Exists   faculty1    fetched_assignments    cs1    good_simple    student2
+
+One Student Submitting Removes Their No Submission File
+    [Tags]  happy_path
+    Upload And Publish Good Simple
+    Student One Submit
+    Fetch Assignment    faculty1    cs1    good_simple    fetched_assignments
+    No Submission File Does Not Exist   faculty1    fetched_assignments    cs1    good_simple    student1
+    No Submission File Exists   faculty1    fetched_assignments    cs1    good_simple    student2
+
+Two Students Submitting Removes Both No Submission Files
+    [Tags]  happy_path
+    Upload And Publish Good Simple
+    Student One Submit
+    Student Two Submit
+    Fetch Assignment    faculty1    cs1    good_simple    fetched_assignments
+    No Submission File Does Not Exist   faculty1    fetched_assignments    cs1    good_simple    student1
+    No Submission File Does Not Exist   faculty1    fetched_assignments    cs1    good_simple    student2
+
 Fetch After Student Submission
     [Tags]  happy_path
+    Upload And Publish Good Simple
+    Student One Submit
     Fetch Assignment    faculty1    cs1    good_simple    fetched_assignments
     Verify Submission Count   faculty1    fetched_assignments    cs1    good_simple    student1    1
     Verify Submission Count   faculty1    fetched_assignments    cs1    good_simple    student2    0
 
 Second Fetch Updates Submissions
     [Tags]  happy_path
+    Upload And Publish Good Simple
+    Student One Submit
     Fetch Assignment    faculty1    cs1    good_simple    fetched_assignments
     Verify Submission Count   faculty1    fetched_assignments    cs1    good_simple    student1    1
     Verify Submission Count   faculty1    fetched_assignments    cs1    good_simple    student2    0
-    # Student 2 submits and then re-fetch
-    Clone Assignment  student2  faculty1    cs1     good_simple
-    Student Submits    student2    faculty1    cs1    good_simple    correct_solution
-    Submission Test Results Email Exists    student2    cs1    good_simple    Done
+    Student Two Submit
     Fetch Assignment    faculty1    cs1    good_simple    fetched_assignments
     Verify Submission Count   faculty1    fetched_assignments    cs1    good_simple    student1    1
     Verify Submission Count   faculty1    fetched_assignments    cs1    good_simple    student2    1
 
 Fetch to Submissions Folder
     [Tags]  happy_path
+    Upload And Publish Good Simple
+    Student One Submit
     Add Submissions Folder to Config    faculty1    ~/submissions
     Fetch Assignment    faculty1    cs1    good_simple
     Verify Submission Count   faculty1    submissions    cs1    good_simple    student1    1

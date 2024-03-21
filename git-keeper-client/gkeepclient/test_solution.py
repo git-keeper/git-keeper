@@ -26,6 +26,7 @@ from gkeepclient.client_function_decorators import config_parsed, \
     server_interface_connected, class_exists, assignment_exists
 from gkeepclient.server_actions import trigger_tests
 from gkeepclient.server_interface import server_interface
+from gkeepcore.git_clone_url import git_clone_url
 from gkeepcore.git_commands import git_clone_remote, git_add_all, git_commit, \
     git_push, git_unstaged_changes_exist
 from gkeepcore.gkeep_exception import GkeepException
@@ -73,8 +74,8 @@ def test_solution(class_name: str, assignment_name: str, solution_path: str):
     remote_repo_path = os.path.join(server_home_dir, server_username,
                                     class_name, assignment_name) + '.git'
 
-    clone_url = '{}@{}:{}'.format(server_username, config.server_host,
-                                  remote_repo_path)
+    clone_url = git_clone_url(server_username, config.server_host,
+                              config.server_ssh_port, remote_repo_path)
 
     git_clone_remote(clone_url, repo_temp_path)
 

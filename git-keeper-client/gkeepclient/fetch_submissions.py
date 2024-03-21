@@ -29,6 +29,7 @@ from gkeepclient.server_interface import server_interface
 from gkeepclient.server_response_poller import ServerResponsePoller, \
     ServerResponseType
 from gkeepclient.text_ui import confirmation
+from gkeepcore.git_clone_url import git_clone_url
 from gkeepcore.git_commands import is_non_bare_repo, git_head_hash, \
     git_pull, git_clone_remote
 from gkeepcore.gkeep_exception import GkeepException
@@ -160,23 +161,6 @@ def pull_repo_if_updated(local_repo_path, remote_url, remote_head_hash,
         print(str(e))
 
 
-def build_clone_url(path):
-    """
-    Build a git clone URL with the following form:
-
-    ssh://<username>@<hostname>:<port number>/<path>
-
-    The username, hostname, and port number come from the configuration file,
-    which needs to be parsed.
-
-    :param path: path to the repository on the server
-    :return:
-    """
-    return ('ssh://{0}@{1}:{2}/{3}'
-            .format(config.server_username, config.server_host,
-                    config.server_ssh_port, path))
-
-
 def fetch_student_submission(class_name: str, assignment_name: str,
                              assignment_submission_path: str,
                              remote_head_hash: str, remote_repo_path: str,
@@ -203,7 +187,8 @@ def fetch_student_submission(class_name: str, assignment_name: str,
     student_submission_path = os.path.join(assignment_submission_path,
                                            last_first_username)
 
-    remote_git_url = build_clone_url(remote_repo_path)
+    remote_git_url = git_clone_url(config.server_username, config.server_host,
+                                   config.server_ssh_port, remote_repo_path)
 
     # pull if the repo already exists, clone otherwise
     if os.path.isdir(student_submission_path):
@@ -247,7 +232,8 @@ def fetch_assignment_submissions(class_name: str, assignment_name: str,
     remote_reports_path = info.reports_path(class_name, assignment_name)
     remote_reports_hash = info.reports_hash(class_name, assignment_name)
 
-    remote_git_url = build_clone_url(remote_reports_path)
+    remote_git_url = git_clone_url(config.server_username, config.server_host,
+                                   config.server_ssh_port, remote_reports_path)
 
     if os.path.isdir(assignment_reports_path):
         pull_repo_if_updated(assignment_reports_path, remote_git_url,
