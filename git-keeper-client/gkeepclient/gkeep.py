@@ -26,6 +26,7 @@ arguments and calls the appropriate function.
 import sys
 from argparse import ArgumentParser
 
+from gkeepclient.local_test import local_test
 from gkeepclient.version import __version__ as client_version
 from gkeepcore.path_utils import path_to_assignment_name
 from gkeepcore.version import __version__ as core_version
@@ -309,6 +310,24 @@ def add_test_subparser(subparsers):
                            help='path to the solution directory')
 
 
+def add_local_test_subparser(subparsers):
+    """
+    Add a subparser for action 'local_test', which runs an assignment's tests
+    on a local solution directory.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('local_test',
+                                      help='test a solution locally')
+    subparser.add_argument('--cleanup', '-c', action='store_true',
+                           help='remove copies of directories after testing')
+    add_assignment_path_argument(subparser)
+    subparser.add_argument('solution_path',
+                           metavar='<solution path>',
+                           help='path to the solution directory')
+
+
 def add_config_subparser(subparsers):
     """
     Add a subparser for action 'config', which asks to create a new
@@ -435,6 +454,7 @@ def initialize_action_parser() -> GraderParser:
     add_trigger_subparser(subparsers)
     add_passwd_subparser(subparsers)
     add_test_subparser(subparsers)
+    add_local_test_subparser(subparsers)
     add_config_subparser(subparsers)
     add_status_subparser(subparsers)
     add_add_faculty_subparser(subparsers)
@@ -586,6 +606,9 @@ def take_action(parsed_args):
         admin_demote(parsed_args.email_address)
     elif action_name == 'test':
         test_solution(class_name, assignment_name, parsed_args.solution_path)
+    elif action_name == 'local_test':
+        local_test(parsed_args.assignment_path, parsed_args.solution_path,
+                   parsed_args.cleanup)
 
 
 if __name__ == '__main__':

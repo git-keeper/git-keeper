@@ -371,6 +371,25 @@ class ClientCheckKeywords:
         except ExitCodeException:
             pass
 
+    def gkeep_local_test_output_contains(self, faculty, assignment_path,
+                                         solution_path, expected_output):
+        cmd = 'gkeep local_test {} {}'.format(assignment_path, solution_path)
+        output = client_control.run(faculty, cmd)
+
+        if expected_output not in output:
+            raise GkeepRobotException('Expected {} to be in output:\n{}'
+                                      .format(expected_output, output))
+
+    def gkeep_local_test_fails(self, faculty, assignment_path, solution_path):
+        cmd = 'gkeep local_test {} {}'.format(assignment_path, solution_path)
+
+        try:
+            output = client_control.run(faculty, cmd)
+            raise GkeepRobotException('Expected a non-zero exit code. Output:\n'
+                                      .format(output))
+        except ExitCodeException:
+            pass
+
     def gkeep_status_succeeds(self, faculty, class_name, status):
         cmd = 'gkeep status {} {}'.format(class_name, status)
         try:

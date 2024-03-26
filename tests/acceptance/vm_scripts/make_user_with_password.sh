@@ -17,4 +17,5 @@
 
 sudo useradd -ms /bin/bash $1
 echo "$1:$1" | sudo chpasswd
+sudo usermod -aG docker $1
 exit 0
