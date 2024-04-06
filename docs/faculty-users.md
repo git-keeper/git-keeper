@@ -759,7 +759,8 @@ where `homework1`, `base_code`, and `tests` are folders and `assignment.cfg`,
 
 You can create your own assignment templates in 
 `~/.config/git-keeper/templates` and then provide a template name to
-`gkeep new` to create an assignment from that one of your templates.
+`gkeep new` to create an assignment from one of your templates. The new
+assignment directory will simply be a copy of the template directory.
 
 For example, 
 
