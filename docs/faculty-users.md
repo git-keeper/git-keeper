@@ -346,7 +346,7 @@ The optional `assignment.cfg` file may be used to configure the
 testing environment, time and memory limits, and
 whether or not the results emails will use HTML. See
 [Testing Environments](#testing-environments) and
-[Assignment Configuration](/reference/#assignment-configuration) for more details.
+[Assignment Configuration](reference.md#assignment-configuration) for more details.
 
 #### `base_code`
 
@@ -354,6 +354,11 @@ Within the assignment directory there must be a directory named
 `base_code`. The contents of this directory will be the initial contents of the
 student's repository for the assignment. Put skeleton code, data files,
 instructions, etc. in this directory.
+
+!!! note
+    Git cannot track empty directories, so any empty directories within
+    `base_code` will not appear when a student clones the assignment
+    repository.
 
 #### `email.txt`
 
@@ -376,12 +381,76 @@ environment then runs `action.sh` using `bash` or `action.py` using `python3`,
 passing the action script the path to the temporary clone of the student's
 directory.
 
-This means that before you upload the assignment you can test your tests
-locally by entering the `tests` directory in the terminal and running
-`action.sh` or `action.py`, giving it the path to a solution as a command line
-argument. It is convenient to also store a `solution` directory in the
-assignment directory for testing. This way you can run the following from
-inside the `tests` directory to test your tests against your solution:
+
+### Creating Action Scripts
+
+For some assignments you can write all your tests in bash or Python and so the
+only file you need in the `tests` directory is `action.sh` or `action.py`.
+
+For other assignments you may wish to write your tests in another language or
+to use a testing framework such as JUnit to test the student code. In that case
+you can simply call your tests from `action.sh`.
+
+
+### Running Tests Locally
+
+Before you upload the assignment, you can test your tests locally either using
+the `gkeep local_test` command or by running your action script directly and
+passing it the path a solution.
+
+#### Using `gkeep local_test`
+
+The `gkeep local_test` command takes an assignment directory and a solution
+directory as arguments. It then makes copies of the assignment's `tests`
+directory and the provided solution directory into a timestamped subdirectory
+of `local_testing` within the assignment directory, creating `local_testing`
+if necessary. The tests are then run. If you need to investigate any of the
+output files that were created during testing, you can check within
+`local_testing`.
+
+It is useful to create a `solution` directory within the assignment directory
+to use for testing. This command runs tests locally for an assignment
+`hw01-hello_world` if we are in the assignment's parent directory and the
+assignment directory contains a `solution` subdirectory:
+
+```no-highlight
+gkeep local_test hw01-hello_world hw01-hello_world/solution
+```
+
+Example output is below. Note that only the output between `BEGIN RESULTS` and
+`END RESULTS` will be emailed to the student.
+
+```no-highlight
+Tests path:
+/home/turing/cs100/hw01-hello_world/tests
+Solution path:
+/home/turing/cs100/hw01-hello_world/solution
+Copies of these directories will be created in this testing directory:
+/home/turing/cs100/hw01-hello_world/local_testing/2024-04-06T13-43-27.157582
+
+Tests will be run directly locally and configured timeout and memory
+limits will not be enforced. Be sure to try the tests on the server
+before publishing.
+
+Running tests...
+Success!
+
+----------------------- BEGIN RESULTS ------------------------
+All tests passed, good job!
+
+------------------------ END RESULTS -------------------------
+
+If you need to inspect any output files, see /home/turing/cs100/hw01-hello_world/local_testing/2024-04-06T13-43-27.157582
+
+If you would like to clean up testing directories in the future, use
+--cleanup
+```
+
+#### Running Tests Manually
+
+Alternatively you can run your tests manually by entering the `tests` directory
+in the terminal and running `action.sh` or `action.py`, giving it the path to a
+solution as a command line argument:
 
 ```no-highlight
 bash action.sh ../solution
@@ -397,23 +466,13 @@ The output of the action script (both stdout and stderr) are placed in the
 email that the student receives as feedback.
 
 
-### Creating Action Scripts
-
-For some assignments you can write all your tests in bash or Python and so the
-only file you need in the `tests` directory is `action.sh` or `action.py`.
-
-For other assignments you may wish to write your tests in another language or
-to use a testing framework such as JUnit to test the student code. In that case
-you can simply call your tests from `action.sh`.
-
-
 ### Testing Environments
 
 The testing environment for an assignment can be specified in the optional file
 `assignment.cfg` within the assignment directory. If this file does not exist
 for a given assignment, the assignment will use the default testing
 environment. This will be `firejail`, unless specified otherwise in the
-[Server Configuration](/reference/#server-configuration).
+[Server Configuration](reference.md#server-configuration).
 
 #### Host Environment
 
@@ -698,9 +757,9 @@ homework1
 where `homework1`, `base_code`, and `tests` are folders and `assignment.cfg`, 
 `email.txt`, and `action.sh` are empty files.
 
-You can create your own template assignment in `~/.config/git-keeper/templates`
-and then add a template name to `gkeep new` to create an assignment from that
-template.
+You can create your own assignment templates in 
+`~/.config/git-keeper/templates` and then provide a template name to
+`gkeep new` to create an assignment from that one of your templates.
 
 For example, 
 
@@ -1208,7 +1267,7 @@ In this tutorial, you will update an existing assignment.
 * A faculty account on the server
 * The `gkeep` client setup on your computer
 * A class named `cs100f22` added to the server
-* The [`project1` example assignment](**#a-simple-assignment-from-the-default-template) created and uploaded (but not published)**
+* The [`project1` example assignment](#a-simple-assignment-from-the-default-template) created and uploaded (but not published)**
 
 #### Overview
 

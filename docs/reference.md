@@ -574,6 +574,30 @@ Usage: `gkeep test <class name> <assignment name> <solution path>`
 * `<solution path>`: The path to a directory containing a solution for the
   assignment
 
+#### local_test
+
+Runs an assignment's tests against a solution directory locally. The assignment
+does not need to be uploaded before running this command.
+
+The assignment's `tests` directory and the solution directory are copied to a
+timestamped subdirectory of the `local_testing` subdirectory of the assignment
+directory. The `local_testing` directory is created if it does not exist.
+
+By default, the copied directories persist in case you need to examine any
+output files that were created during testing. If the `--cleanup` argument is
+provided, the directory containing the copies will be deleted.
+
+If the assignment is configured to use the `firejail` environment, the
+`local_test` command will *not* use `firejail` locally, so be sure to also
+test the assignment on the server. If the `docker` environment is used, the
+local machine must have Docker installed and running for the tests to run.
+
+Usage: `gkeep local_test [--cleanup] <assignment directory> <solution path>`
+
+* `<assignment directory>`: The path to the directory containing the assignment
+* `<solution path>`: The path to a directory containing a solution for the
+  assignment
+
 #### config
 
 Writes a `gkeep` configuration file to `~/.config/git-keeper/config.cfg`. The
@@ -648,16 +672,23 @@ Submission data for an assignment includes 2 folders: `reports` and
 `submissions`. Each of these contains one subdirectory for each student, named
 as `last_first_username`. In the reports directory, each student's subdirectory
 contains one text file for each submission, containing the test results that
-the student received by email. The reports directory is a clone of a Git
-repository from the server. In the submissions directory, each student's
-subdirectory is a clone of the student's submission repository.
+the student received by email. If the student has not submitted anything for
+the assignment, their reports directory will contain the empty file
+`no_submission`.
+
+The reports directory is a clone of a Git repository from the server. In the
+submissions directory, each student's subdirectory is a clone of the student's
+submission repository.
 
 Performing the same fetch command multiple times will not do anything if
 nothing has changed since the last fetch, or will pull in updated items if a
 student has submitted since the last fetch.
 
-Here is an example structure for feched data in an assignment named
-`hello_world` for a class with 2 students that have each submitted once:
+Below is an example structure for feched data in an assignment named
+`hello_world` for a class with 2 students. One of the students has submitted
+once, and the other has yet to submit. Note that the student who has not
+submitted still has a subdirectory within `submissions`, but it will contain
+the same `hello_world.py` as the `base_code` directory.
 
 ```no-highlight
 hello_world
@@ -665,7 +696,7 @@ hello_world
 │   ├── hamilton_margaret_mhamilton
 │   │   └── report-2022-07-30_14-19-36-UTC.txt
 │   └── hopper_grace_ghopper
-│       └── report-2022-07-30_13-25-44-UTC.txt
+│       └── no_submission
 └── submissions
     ├── hamilton_margaret_mhamilton
     │   └── hello_world.py
@@ -674,13 +705,12 @@ hello_world
 ```
 
 There are additional hidden files and directories within this
-structure. The `reports` directory and each student subdirectory within
-`reports` each contain a `.placeholder` file since these are managed by a Git
-repository and may be empty, and Git cannot track empty directories. There are
-also `.git` folders within each Git repository in the structure. To make
-subsequent fetches run quickly if no data has changed, a `.hash_cache` file is
-stored at the assignment directory level which contains the Git hashes of the
-`HEAD` commits of each repository.
+structure. Each Git repository in the structure contains a `.git` folder. The
+`reports` directory contains a `.placeholder` file since Git repositories
+cannot be empty, and this folder is initially empty if the class is added with
+no students. To make subsequent fetches run quickly if no data has changed, a
+`.hash_cache` file is stored at the assignment directory level which contains
+the Git hashes of the `HEAD` commits of each repository.
 
 The full structure including hidden files and directories is below:
 
@@ -692,11 +722,9 @@ hello_world
 │   │   └── (.git contents omitted for brevety)
 │   ├── .placeholder
 │   ├── hamilton_margaret_mhamilton
-│   │   ├── .placeholder
 │   │   └── report-2022-07-30_14-19-36-UTC.txt
 │   ├-─ hopper_grace_ghopper
-│   │   ├── .placeholder
-│   │   └── report-2022-07-30_13-25-44-UTC.txt
+│   │   └── no_submission
 └── submissions
     ├── hamilton_margaret_mhamilton
     │   ├── .git
@@ -716,7 +744,7 @@ to set up the server.
 
 ### Dependencies
 
-`gkeepd`, must run on a Linux system. It is very highly recommended that the
+`gkeepd` must run on a Linux system. It is very highly recommended that the
 Linux system be dedicated to running `gkeepd` and nothing else, since `gkeepd`
 needs to create accounts on the machine and manage files in users' home
 directories.
