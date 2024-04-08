@@ -166,6 +166,6 @@ Different Case Email Username
 Different Case Email Domain
     [Tags]    error
     Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1
-    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1    email_domain='SCHOOL.EDU'
+    Add To Class CSV    faculty=faculty1    class_name=cs1    username=student1    email_domain=SCHOOL.EDU
     Gkeep Add Fails    faculty=faculty1    class_name=cs1
     Gkeepd Is Running

@@ -1,6 +1,5 @@
-
-proc_data = open('/proc/1/cgroup').read()
-if 'docker' in proc_data:
+import os
+if os.path.isfile('/.dockerenv'):
     print('In Docker')
 else:
     print('On Host')

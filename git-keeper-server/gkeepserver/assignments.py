@@ -22,6 +22,7 @@ from tempfile import TemporaryDirectory
 
 from gkeepcore.action_scripts import get_action_script_and_interpreter
 from gkeepcore.assignment_config import AssignmentConfig
+from gkeepcore.git_clone_url import git_clone_url
 from gkeepcore.student import Student
 from pkg_resources import resource_exists, resource_string, ResolutionError, \
     ExtractionError
@@ -440,9 +441,8 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
                              assignment_name=assignment_dir.assignment_name))
 
     # build the clone URL for the assignment
-    clone_url = '{0}@{1}:{2}'.format(student.username,
-                                     config.hostname,
-                                     assignment_repo_path)
+    clone_url = git_clone_url(student.username, config.hostname,
+                              config.ssh_port, assignment_repo_path)
 
     # read email.txt to get the customizable part of the email body
     try:

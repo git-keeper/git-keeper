@@ -41,21 +41,21 @@ Launch With Cfg And Submit Assignment
 Assignment Html True Server Html False
     [Tags]    happy_path
     Launch With Cfg And Submit Assignment    files/use_html_false_server.cfg    use_html_true
-    Submission Test Results Email Exists    student1    cs1    use_html_true    "<pre>Solution output\n</pre>"
+    Submission Test Results Email Exists    student1    cs1    use_html_true    <pre>Solution\ output\n</pre>
 
 Assignment Html False Server Html True
     [Tags]    happy_path
     Launch With Cfg And Submit Assignment    files/use_html_true_server.cfg    use_html_false
-    Submission Test Results Email Exists    student1    cs1    use_html_false    "Solution output"
-    Submission Test Results Email Does Not Exist    student1    cs1    use_html_false    "<pre>Solution output\n</pre>"
+    Submission Test Results Email Exists    student1    cs1    use_html_false    Solution\ output
+    Submission Test Results Email Does Not Exist    student1    cs1    use_html_false    <pre>Solution\ output\n</pre>
 
 Server Html True
     [Tags]    happy_path
     Launch With Cfg And Submit Assignment    files/use_html_true_server.cfg    good_simple
-    Submission Test Results Email Exists    student1    cs1    good_simple    "<pre>Done\n</pre>"
+    Submission Test Results Email Exists    student1    cs1    good_simple    <pre>Done\n</pre>
 
 Server Html False
     [Tags]    happy_path
     Launch With Cfg And Submit Assignment    files/use_html_false_server.cfg    good_simple
-    Submission Test Results Email Does Not Exist    student1    cs1    good_simple    "<pre>Done\n</pre>"
+    Submission Test Results Email Does Not Exist    student1    cs1    good_simple    <pre>Done\n</pre>
     Submission Test Results Email Exists    student1    cs1    good_simple    Done

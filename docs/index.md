@@ -24,7 +24,7 @@ the documentation.
   visit [Faculty Users](faculty-users.md)
 * System administrators wishing to set up a new git-keeper server should visit
   [Admin Users](admin-users.md)
-* Developers who wish to contribute to git-keeper should visit
-  [Developers](developers.md)
 * The [Reference](reference.md) section provides additional details beyond
   general user guides
+* Developers who wish to contribute to git-keeper should visit
+  [Developers](developers.md)

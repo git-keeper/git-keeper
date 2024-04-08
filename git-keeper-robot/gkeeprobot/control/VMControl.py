@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import shlex
+
 from gkeepcore.system_commands import chmod
-from gkeepcore.shell_command import run_command
 from tempfile import TemporaryDirectory
 
 from gkeeprobot.control.ServerCommunication import ServerCommunication
@@ -37,12 +38,12 @@ class VMControl:
 
     def run_vm_python_script(self, username, script, port, *args):
         base = 'python3 /vagrant/vm_scripts/' + script
-        cmd = ' '.join([base] + list(args))
+        cmd = ' '.join([base] + [shlex.quote(arg) for arg in args])
         return self.run(username, port, cmd).strip()
 
     def run_vm_bash_script(self, username, script, port, *args):
         base = 'source /vagrant/vm_scripts/' + script
-        cmd = ' '.join([base] + list(args))
+        cmd = ' '.join([base] + [shlex.quote(arg) for arg in args])
         return self.run(username, port, cmd).strip()
 
     def run(self, username, port, cmd):
