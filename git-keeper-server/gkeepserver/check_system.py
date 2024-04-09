@@ -107,7 +107,6 @@ def check_paths_and_permissions():
     # create the tester user if it does not exist
     if not user_exists(config.tester_user):
         sudo_add_user(config.tester_user)
-        sudo_add_user_to_group(config.tester_user, 'docker')
 
     tester_home_dir = user_home_dir(config.tester_user)
 
