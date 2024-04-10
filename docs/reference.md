@@ -770,7 +770,9 @@ and `[gkeepd]`.
 #### `[server]`
 
 The `[server]` section has a single required parameter `hostname`, which is the
-hostname of the server. This will be used to build Git URLs.
+hostname of the server. This will be used to build Git URLs. There is also an
+optional parameter `ssh_port` which defaults to 22. If this port is changed,
+the port will be included in the Git URLs.
 
 #### `[email]`
 
