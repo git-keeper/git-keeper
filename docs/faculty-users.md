@@ -1229,21 +1229,38 @@ email announcement is typically minimal, and we do not expect students to submit
 We can create an assignment template containing an `email.txt` with the default message
 and an `action.sh` that simply reminds students they do not need to submit.
 
-Create the following folders and files
+Start by using `gkeep new` to create a default template within `~/.config/git-keeper/templates`
+in a folder named `inclass`:
 
-1. Create the folder `~/.config/git-keeper/templates/inclass/base_code`
-2. Create the file `~/.config/git-keeper/templates/inclass/email.txt`:
-    ```no-highlight
-    This repo contains an in-class example.
-    ```
-3. Create the file `~/.config/git-keeper/templates/tests/action.sh`:
-    ```
-    echo 'No need to push in-class examples.
-    exit 0
-    ```
-   
-We do not need an `assignment.cfg` because this file is optional and all the default 
-values are appropriate.
+```no-highlight
+gkeep new ~/.config/git-keeper/templates/inclass
+```
+
+Edit the file `~/.config/git-keeper/templates/inclass/email.txt` to contain a message
+such as the following:
+
+```no-highlight
+This repo contains an in-class example.
+```
+
+Edit the file `~/.config/git-keeper/templates/inclass/tests/action.sh` such that it reminds
+students they do not need to submit:
+
+```bash
+echo 'No need to push in-class examples.'
+exit 0
+```
+
+Edit the file `~/.config/git-keeper/templates/inclass/assignment.cfg` so that the subject
+of the announcement email for any example created from this template will indicate it is an
+in-class example. Git-keeper will replace `{class_name}` and `{assignment_name}` in the
+subject template with the class and assignment names, so this configuration will work for any
+class and assignment:
+
+```ini
+[email]
+announcement_subject = [{class_name}] New in-class example: {assignment_name}
+```
 
 #### Use the template
 
