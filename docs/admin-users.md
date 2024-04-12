@@ -130,6 +130,7 @@ parameters are commented out with their default values, if they exist.
 ```
 [server]
 hostname = 
+#ssh_port = 22
 
 [email]
 from_name = 
