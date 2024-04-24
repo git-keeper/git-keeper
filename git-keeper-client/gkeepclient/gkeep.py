@@ -16,8 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# PYTHON_ARGCOMPLETE_OK
-
 """
 Provides the main entry point for the gkeep client. Parses command line
 arguments and calls the appropriate function.
@@ -31,7 +29,6 @@ from gkeepclient.version import __version__ as client_version
 from gkeepcore.path_utils import path_to_assignment_name
 from gkeepcore.version import __version__ as core_version
 
-from argcomplete import autocomplete
 from gkeepclient.client_configuration import config
 
 from gkeepclient.create_config import create_config
@@ -510,9 +507,6 @@ def main():
     # Initialize the parser object that will interpret the passed in
     # command line arguments
     parser = initialize_action_parser()
-
-    # Allow for auto-complete
-    autocomplete(parser)
 
     # If no arguments are given just display the help message and exit
     if len(sys.argv) == 1:
