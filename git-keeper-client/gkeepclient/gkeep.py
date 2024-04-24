@@ -21,6 +21,7 @@ Provides the main entry point for the gkeep client. Parses command line
 arguments and calls the appropriate function.
 """
 
+import os
 import sys
 from argparse import ArgumentParser
 
@@ -41,6 +42,7 @@ from gkeepclient.new_assignment import new_assignment
 from gkeepclient.test_solution import test_solution
 from gkeepclient.queries import list_classes, list_assignments, \
     list_students, list_recent
+from gkeepclient.completion import completion
 from gkeepcore.gkeep_exception import GkeepException
 
 
@@ -501,6 +503,10 @@ def main():
     Setup the command line argument parser, parse the arguments, and call the
     appropriate function.
     """
+
+    if os.environ.get('GKEEP_COMPLETION') == '1':
+        completion()
+        sys.exit(0)
 
     verify_core_version_match()
 
