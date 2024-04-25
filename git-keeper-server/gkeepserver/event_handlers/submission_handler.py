@@ -25,10 +25,8 @@ from gkeepcore.path_utils import user_from_log_path, \
 from gkeepcore.path_utils import faculty_assignment_dir_path
 from gkeepserver.assignments import AssignmentDirectory
 from gkeepserver.database import db
-from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.event_handler import EventHandler, HandlerException
 from gkeepserver.new_submission_queue import new_submission_queue
-from gkeepserver.server_email import Email
 from gkeepserver.submission import Submission
 
 
