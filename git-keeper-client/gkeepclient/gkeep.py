@@ -42,7 +42,7 @@ from gkeepclient.new_assignment import new_assignment
 from gkeepclient.test_solution import test_solution
 from gkeepclient.queries import list_classes, list_assignments, \
     list_students, list_recent
-from gkeepclient.completion import completion
+from gkeepclient.completion import run_completion, install_completion
 from gkeepcore.gkeep_exception import GkeepException
 
 
@@ -417,6 +417,25 @@ def add_new_assignment_subparser(subparsers):
                            default=None, nargs='?')
 
 
+def add_completion_subparser(subparsers):
+    """
+    Add a subparser for action 'completion', which prints or installs the
+    bash/zsh completion script.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('completion',
+                                      help='print or install bash completion script')
+    subparser.add_argument('shell', type=str, metavar='<shell>',
+                           help='shell to install completion for',
+                           choices=['bash', 'zsh'])
+    subparser.add_argument('--install', action='store_true',
+                            help='install the completion script instead of printing it')
+    subparser.add_argument('--rc', action='store_true',
+                            help='install the completion script in the user\'s rc file (not recommend)')
+
+
 def initialize_action_parser() -> GraderParser:
     """
     Initialize a GraderParser object.
@@ -459,6 +478,7 @@ def initialize_action_parser() -> GraderParser:
     add_add_faculty_subparser(subparsers)
     add_admin_promote_subparser(subparsers)
     add_admin_demote_subparser(subparsers)
+    add_completion_subparser(subparsers)
 
     return parser
 
@@ -505,7 +525,7 @@ def main():
     """
 
     if os.environ.get('GKEEP_COMPLETION') == '1':
-        completion()
+        run_completion()
         sys.exit(0)
 
     verify_core_version_match()
@@ -609,6 +629,8 @@ def take_action(parsed_args):
     elif action_name == 'local_test':
         local_test(parsed_args.assignment_path, parsed_args.solution_path,
                    parsed_args.cleanup)
+    elif action_name == 'completion':
+        install_completion(parsed_args.shell, parsed_args.install, parsed_args.rc)
 
 
 if __name__ == '__main__':

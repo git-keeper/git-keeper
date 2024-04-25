@@ -23,6 +23,7 @@ import string
 import tempfile
 import getpass
 import pickle
+import subprocess
 from datetime import datetime
 
 from gkeepclient.client_configuration import config
@@ -31,7 +32,7 @@ from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.faculty_class_info import FacultyClassInfo
 
 
-def completion():
+def run_completion():
     """Completion function for bash."""
     # Available environment variables:
     # COMP_LINE: the current command line
@@ -93,6 +94,8 @@ def __escape(word: str) -> str:
 
 def __unquote(word: str) -> str:
     """Remove quotes from a shell "word"."""
+    if word[-1:] == '\\' and (len(word) - len(word.rstrip('\\'))) % 2 == 1:
+        word = word[:-1] # the string ends with an odd number of backslashes, remove the last one
     word = shlex.split(word)
     return word[0] if word else ''
 
@@ -372,7 +375,7 @@ def __complete_word(word: str, possibilities: list[str]) -> list[str]:
     return [__escape(w)+' ' for w in possibilities if w.startswith(word)]
 
 
-def __get_info(max_age: int|float = 15) -> FacultyClassInfo:
+def __get_info(max_age = 15) -> FacultyClassInfo:
     """
     Get the faculty class info from the server. This will create a persistent cache (even in
     between runs of this program) for faster access.
@@ -435,7 +438,7 @@ def __complete_assignment(class_name: str, assignment: str, unpublished: bool = 
 
 
 def __get_assignments(class_name: str, unpublished: bool, published: bool, disabled: bool,
-                      max_age: int|float = 15) -> list[str]:
+                      max_age = 15) -> list[str]:
     info = __get_info(max_age)
     assignments = info.assignment_list(class_name)
     if not unpublished:
@@ -458,7 +461,7 @@ def __complete_student(class_name: str, student: str) -> list[str]:
     return words
 
 
-def __get_students(class_name: str, max_age: int|float = 15) -> list[str]:
+def __get_students(class_name: str, max_age = 15) -> list[str]:
     try:
         return __get_info(max_age).student_list(class_name)
     except KeyError:
@@ -476,7 +479,7 @@ def __complete_any_student(student: str) -> list[str]:
     return words
 
 
-def __get_all_students(max_age: int|float = 15) -> list[str]:
+def __get_all_students(max_age = 15) -> list[str]:
     info = __get_info(max_age)
     return list(set(student for class_name in info.class_list()
                     for student in info.student_list(class_name)))
@@ -518,3 +521,168 @@ def __get_files(path: str) -> list[str]:
 
     # Invalid path
     return []
+
+
+def generate_bash_completion():
+    """Generate the bash completion script for gkeep."""
+    return """
+# gkeep bash completion start
+_gkeep_completion()
+{
+    local IFS=$'\\x0B'
+    COMPREPLY=( $( COMP_WORDS="$( IFS=$'\\x0B'; echo -n "${COMP_WORDS[*]}" )" \
+                   COMP_CWORD=$COMP_CWORD \
+                   GKEEP_COMPLETION=1 $1 2>/dev/null) )
+}
+complete -o default -F _gkeep_completion gkeep
+# gkeep bash completion end
+"""
+
+
+def generate_zsh_completion():
+    """Generate the zsh completion script for gkeep."""
+    return """
+# gkeep zsh completion start
+#compdef gkeep
+__gkeep() {
+    compadd -Q "${(@ps:\v:)"$( COMP_WORDS="$( echo -n ${(pj:\v:)words} )" \
+                               COMP_CWORD=$((CURRENT-1)) \
+                               GKEEP_COMPLETION=1 $words[1] )"}"  #2>/dev/null
+}
+if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
+    # autoload from fpath, call function directly
+    __gkeep "$@"
+else
+    # eval/source/. command, register function for later
+    compdef __gkeep gkeep
+fi
+# gkeep zsh completion end
+"""
+
+
+def install_bash():
+    """
+    Installs the code completion handler with bash-completions. The bash-completions package is
+    required to be installed for this to be useful. If bash-completions is not installed then this
+    will have no effect (well, it will write some very small files). If you want to use this
+    without bash-completions run install_rc(), however this is the recommended way to have it
+    installed.
+
+    This follows the guidelines from https://github.com/scop/bash-completion/blob/master/README.md.
+    """
+    # First get the possible bash-completions directories
+    directories = []
+
+    # bash-completions global package setting
+    pkc_config = subprocess.run(['pkg-config', '--variable=completionsdir', 'bash-completion'],
+                                capture_output=True, text=True)
+    if pkc_config.returncode == 0:
+        directories.append(pkc_config.stdout.strip())
+
+    # bash-completions global package setting (compat)
+    pkc_config = subprocess.run(['pkg-config', '--variable=compatdir', 'bash-completion'],
+                                capture_output=True, text=True)
+    if pkc_config.returncode == 0:
+        directories.append(pkc_config.stdout.strip())
+
+    # Default global locations
+    directories.append('/usr/share/bash-completion/completions')
+    directories.append('/etc/bash_completion.d')
+
+    # Environment variable
+    if 'BASH_COMPLETION_USER_DIR' in os.environ:
+        directories.append(os.path.join(os.environ['BASH_COMPLETION_USER_DIR'], 'completions'))
+
+    # Default user location
+    directories.append(os.path.join(
+        os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')),
+        'bash-completion', 'completions'))
+
+    # Add the bash script to the first directory we can
+    script_code = generate_bash_completion()
+    for directory in directories:
+        try:
+            os.makedirs(directory, exist_ok=True)
+            with open(os.path.join(directory, 'gkeep'), 'w') as file:
+                file.write(script_code)
+        except OSError:
+            pass # failed, try another directory
+        else: # success
+            print(f"Installed bash completion in {directory}/gkeep")
+            return
+
+    # Final choice is the ~/.bash_completion file (very unlikely to get here)
+    # TODO: this is the only choice if the user does not have bash-completion installed, but that
+    # cannot be fully detected and missing directories above will be created and thus never get
+    # here. How to improve?
+    with open(os.path.expanduser('~/.bash_completion'), 'a') as file:
+        file.write(script_code)
+    print("Installed bash completion in ~/.bash_completion")
+
+
+def install_bashrc():
+    """
+    Installs this completion handler in either ~/.bashrc or /etc/bashrc depending on if the current
+    user is a regular user or root. The install_bash() function is preferred to this function.
+    """
+    file = '/etc/bashrc' if os.geteuid() == 0 else os.path.expanduser('~/.bashrc')
+    with open(file, 'a') as file:
+        file.write(generate_bash_completion())
+
+
+def install_zsh():
+    """
+    Installs the code completion handler with zsh.
+    """
+    # See https://apple.github.io/swift-argument-parser/documentation/argumentparser/installingcompletionscripts/
+    directories = ("~/.oh-my-zsh", "~/.zsh")
+    for directory in directories:
+        directory = os.path.expanduser(directory)
+        if os.path.isdir(directory):
+            os.makedirs(os.path.join(directory, 'completions'), exist_ok=True)
+            with open(os.path.join(directory, 'completions', '__gkeep'), 'w') as file:
+                file.write(generate_zsh_completion())
+            print(f"Installed zsh completion in {directory}/completions/__gkeep")
+            return
+    
+    # Fallback to ~/.zshrc - if they don't have autoload -U compinit && compinit it will fail
+    install_zshrc()
+
+
+def install_zshrc():
+    """
+    Installs the code completion handler with zsh. This will add the completion code to the
+    ~/.zshrc file. If you are using oh-my-zsh or another framework then you may need to add the
+    completion code to the framework's configuration file.
+
+    The install_zsh() function is preferred to this function.
+    """
+    with open(os.path.expanduser('~/.zshrc'), 'a') as file:
+        file.write(generate_zsh_completion())
+
+
+SHELLS = {
+    'bash': (install_bash, install_bashrc, generate_bash_completion),
+    'zsh': (install_zsh, install_zshrc, generate_zsh_completion),
+}
+
+
+def install_completion(shell: str, install: bool =True, rc: bool = False):
+    """
+    Install or print the completion code for the given shell.
+
+    :param shell: The shell to install the completion for (either 'bash' or 'zsh')
+    :param install: True to install the completion, False to just print it
+    :param rc: True to install the completion in the shell's rc file, False to install it in the
+               completion directory (recommended)
+    """
+    if shell not in SHELLS:
+        raise ValueError(f"Shell '{shell}' is not supported for completion.")
+    installer, installer_rc, generator = SHELLS[shell]
+    if install:
+        if rc:
+            installer_rc()
+        else:
+            installer()
+    else:
+        print(generator())
