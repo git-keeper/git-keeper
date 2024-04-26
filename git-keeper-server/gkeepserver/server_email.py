@@ -164,8 +164,8 @@ def _html_to_text(html_body: str) -> str:
     return parser.text.strip()
 
 
-def create_plain_text_email_body(body, max_character_count=1000000,
-                                 html_pre_body=False) -> MIMEBase:
+def create_text_email_body(body, max_character_count=1000000,
+                           html_pre_body=False) -> MIMEBase:
     """
     Construct a plain text email message. The body may be a single string or a
     list of strings. If the body is a list of strings, the final email message
@@ -310,8 +310,8 @@ class Email:
 
         # attach the body
         if not isinstance(body, MIMEBase):
-            body = create_plain_text_email_body(body, max_character_count,
-                                                html_pre_body)
+            body = create_text_email_body(body, max_character_count,
+                                          html_pre_body)
         message.attach(body)
 
         # attach any files

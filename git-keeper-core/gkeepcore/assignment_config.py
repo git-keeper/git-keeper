@@ -113,6 +113,7 @@ class AssignmentConfig:
 
         # [email]
         self.use_html = None
+        self.test_output_format = 'text'
         self.announcement_subject = '[{class_name}] New assignment: {assignment_name}'
         self.results_subject = '[{class_name}] {assignment_name} submission test results'
 
@@ -230,6 +231,7 @@ class AssignmentConfig:
 
         optional_options = [
             'use_html',
+            'test_output_format',
             'announcement_subject',
             'results_subject',
         ]
@@ -252,6 +254,13 @@ class AssignmentConfig:
                 else:
                     error = '{} must be true or false'.format(attr)
                     raise GkeepException(error)
+
+        # test_output_format must be: 'text', 'html', or 'markdown'
+        valid_formats = ['text', 'html', 'markdown']
+        if self.test_output_format not in valid_formats:
+            error = 'test_output_format must be one of: {}' \
+                .format(', '.join(valid_formats))
+            raise GkeepException(error)
 
         self._ensure_options_are_valid('email', optional_options)
 
