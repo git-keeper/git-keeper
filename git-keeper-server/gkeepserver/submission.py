@@ -40,7 +40,8 @@ from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.info_update_thread import info_updater
 from gkeepserver.reports import reports_clone
 from gkeepserver.server_configuration import config
-from gkeepserver.server_email import Email
+from gkeepserver.server_email import Email, create_html_email_body, \
+    create_email_body_from_markdown, create_text_email_body
 from gkeepcore.path_utils import user_home_dir
 
 
@@ -136,7 +137,7 @@ class Submission:
 
             if self.student.username != self.faculty_username:
                 with directory_locks.get_lock(self.assignment_dir.path):
-                    self._add_report(body)
+                    self._add_report(body, assignment_cfg)
                 info_updater.enqueue_submission_scan(self.faculty_username,
                                                      self.class_name,
                                                      self.assignment_name,
@@ -183,7 +184,7 @@ class Submission:
         sudo_chown(paths.temp_path, config.tester_user, config.keeper_group,
                    recursive=True)
 
-    def _add_report(self, body):
+    def _add_report(self, body, assignment_cfg: AssignmentConfig):
         # Add the results of running tests to the reports repository
         with reports_clone(self.assignment_dir) as temp_reports_repo_path:
             last_first_username = self.student.get_last_first_username()
@@ -193,14 +194,21 @@ class Submission:
             os.makedirs(student_report_dir_path, exist_ok=True)
 
             timestamp = strftime('%Y-%m-%d_%H-%M-%S-%Z')
-            report_filename = 'report-{0}.txt'.format(timestamp)
+            file_exts = {
+                'text': 'txt',
+                'html': 'html',
+                'markdown': 'md',
+            }
+            ext = file_exts.get(assignment_cfg.test_output_format, 'txt')
+
+            report_filename = 'report-{0}.{1}'.format(timestamp, ext)
             report_file_path = os.path.join(student_report_dir_path,
                                             report_filename)
 
             counter = 1
             while os.path.exists(report_file_path):
-                report_filename = 'report-{0}-{1}.txt'.format(timestamp,
-                                                              counter)
+                report_filename = 'report-{0}-{1}.{2}'.format(
+                    timestamp, counter, ext)
                 report_file_path = os.path.join(student_report_dir_path,
                                                 report_filename)
                 counter += 1
@@ -222,17 +230,25 @@ class Submission:
 
     def _email_results(self, body, assignment_cfg: AssignmentConfig):
         # send the student the results via email
-
-        if assignment_cfg.use_html is not None:
-            html_pre_body = assignment_cfg.use_html
+        if assignment_cfg.test_output_format == 'text':
+            if assignment_cfg.use_html is not None:
+                html_pre_body = assignment_cfg.use_html
+            else:
+                html_pre_body = config.use_html
+            message = create_text_email_body(body, html_pre_body=html_pre_body)
+        elif assignment_cfg.test_output_format == 'html':
+            message = create_html_email_body(body)
+        elif assignment_cfg.test_output_format == 'markdown':
+            message = create_email_body_from_markdown(body)
         else:
-            html_pre_body = config.use_html
-
+            raise GkeepException('Unknown test output format {}'
+                                 .format(assignment_cfg.test_output_format))
+        
         subject = (assignment_cfg.results_subject
-                   .format(class_name=self.class_name,
-                           assignment_name=self.assignment_name))
+                .format(class_name=self.class_name,
+                        assignment_name=self.assignment_name))
         email_sender.enqueue(Email(self.student.email_address, subject,
-                                   body, html_pre_body=html_pre_body))
+                                   message))
 
     def _make_action_command(self, paths: TempPaths,
                              assignment_cfg: AssignmentConfig):
