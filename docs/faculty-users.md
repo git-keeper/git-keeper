@@ -109,6 +109,32 @@ Run `gkeep` with no arguments to see a usage message.  Run `gkeep` with a
 subcommand and no additional arguments to see a usage message for that
 subcommand.
 
+### Shell Autocomplete
+
+The `gkeep` command has support for tab completion in `bash` and `zsh`
+including for subcommands along names of classes, assignments, and students
+where appropriate.
+
+If you are using `bash` it is recommended that you have `bash-completion`
+installed but it is not required. To install it you can use your package
+manager (i.e. `dnf`, `apt`, or `brew`). If using `brew`, you need to install
+the `bash-completion@2` package.
+
+If you are using `zsh` it is recommended that you have `oh-my-zsh` installed
+but it is not required. See <https://ohmyz.sh/> for installation instructions.
+
+Finally, run the following command to install:
+
+```sh
+gkeep completion --install <shell>
+```
+
+where `<shell>` is either `bash` or `zsh`. You need to restart your terminal
+session to activate the completions.
+
+You can also install manually by running it without `--install` and redirecting
+the output to the necessary file (such as your `.bashrc` file).
+
 ## Creating Classes
 
 To create a class you first need to create a CSV file with the names and email

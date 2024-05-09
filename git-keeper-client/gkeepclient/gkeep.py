@@ -16,13 +16,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# PYTHON_ARGCOMPLETE_OK
-
 """
 Provides the main entry point for the gkeep client. Parses command line
 arguments and calls the appropriate function.
 """
 
+import os
 import sys
 from argparse import ArgumentParser
 
@@ -31,7 +30,6 @@ from gkeepclient.version import __version__ as client_version
 from gkeepcore.path_utils import path_to_assignment_name
 from gkeepcore.version import __version__ as core_version
 
-from argcomplete import autocomplete
 from gkeepclient.client_configuration import config
 
 from gkeepclient.create_config import create_config
@@ -44,6 +42,7 @@ from gkeepclient.new_assignment import new_assignment
 from gkeepclient.test_solution import test_solution
 from gkeepclient.queries import list_classes, list_assignments, \
     list_students, list_recent
+from gkeepclient.completion import run_completion, install_completion
 from gkeepcore.gkeep_exception import GkeepException
 
 
@@ -418,6 +417,25 @@ def add_new_assignment_subparser(subparsers):
                            default=None, nargs='?')
 
 
+def add_completion_subparser(subparsers):
+    """
+    Add a subparser for action 'completion', which prints or installs the
+    bash/zsh completion script.
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('completion',
+                                      help='print or install bash completion script')
+    subparser.add_argument('shell', type=str, metavar='<shell>',
+                           help='shell to install completion for',
+                           choices=['bash', 'zsh'])
+    subparser.add_argument('--install', action='store_true',
+                            help='install the completion script instead of printing it')
+    subparser.add_argument('--rc', action='store_true',
+                            help='install the completion script in the user\'s rc file (not recommend)')
+
+
 def initialize_action_parser() -> GraderParser:
     """
     Initialize a GraderParser object.
@@ -460,6 +478,7 @@ def initialize_action_parser() -> GraderParser:
     add_add_faculty_subparser(subparsers)
     add_admin_promote_subparser(subparsers)
     add_admin_demote_subparser(subparsers)
+    add_completion_subparser(subparsers)
 
     return parser
 
@@ -505,14 +524,15 @@ def main():
     appropriate function.
     """
 
+    if os.environ.get('GKEEP_COMPLETION') == '1':
+        run_completion()
+        sys.exit(0)
+
     verify_core_version_match()
 
     # Initialize the parser object that will interpret the passed in
     # command line arguments
     parser = initialize_action_parser()
-
-    # Allow for auto-complete
-    autocomplete(parser)
 
     # If no arguments are given just display the help message and exit
     if len(sys.argv) == 1:
@@ -609,6 +629,8 @@ def take_action(parsed_args):
     elif action_name == 'local_test':
         local_test(parsed_args.assignment_path, parsed_args.solution_path,
                    parsed_args.cleanup)
+    elif action_name == 'completion':
+        install_completion(parsed_args.shell, parsed_args.install, parsed_args.rc)
 
 
 if __name__ == '__main__':
