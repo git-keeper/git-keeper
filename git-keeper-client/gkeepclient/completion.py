@@ -34,28 +34,6 @@ from gkeepcore.faculty_class_info import FacultyClassInfo
 
 def run_completion():
     """Completion function for bash."""
-    # Available environment variables:
-    # COMP_LINE: the current command line
-    # COMP_POINT: the index of the cursor in the command line
-    # COMP_CWORD: the index of the current word (the one the cursor is on)
-    # COMP_WORDS: an array of all the words in the command line
-    # and others...
-
-    # # Get command line using COMP_LINE and COMP_POINT
-    #point = int(os.environ['COMP_POINT'])
-    #line = os.environ['COMP_LINE'][:point]
-    # try:
-    #     words = shlex.split(line)
-    # except ValueError:
-    #     # We may have an unmatched quote in the final token
-    #     # Try to add either a ' or " at the end
-    #     try: words = shlex.split(line + '"')
-    #     except ValueError: words = shlex.split(line + "'")
-
-    # # If we ended with an un-quoted space add a new blank word to the end
-    # if line[-1].isspace() and words[-1][-1] != line[-1]: words.append('')
-    # words = words[1:] # Remove the "gkeep" command
-
     # Get command line using COMP_WORDS and COMP_CWORD
     cword = int(os.environ["COMP_CWORD"])
     words = os.environ["COMP_WORDS"].split("\v")[1:cword+1]
