@@ -317,7 +317,7 @@ If a student forgets their password, the faculty member can reset their
 password using
 
 ```no-highlight
-gkeep reset <username> 
+gkeep passwd <username> 
 ```
 
 ### Sample Password Reset Email
