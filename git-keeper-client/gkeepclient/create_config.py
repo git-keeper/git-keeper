@@ -23,15 +23,29 @@ from gkeepclient.text_ui import confirmation
 from gkeepcore.system_commands import mkdir
 
 
-def create_config():
+def create_config(dirpath):
     """
     Prompt the user for configuration parameters and creates client.cfg
     """
-    dirpath = os.path.expanduser("~/.config/git-keeper/")
-    filepath = os.path.join(dirpath, "client.cfg")
-    if not check_config_file(dirpath, filepath):
-        return
+
     print("Configuring gkeep")
+
+    if dirpath is None:
+        dirpath = os.path.expanduser('~/.config/git-keeper')
+
+    filepath = os.path.join(dirpath, "client.cfg")
+
+    print(f"Configuration will be written to {filepath}")
+    print("Set $XDG_CONFIG_HOME to customize the base config directory.")
+
+    if os.path.isfile(filepath):
+        if not confirmation("Configuration file already exists. Overwrite?"):
+            return
+
+    if not os.path.isdir(dirpath):
+        print(f"Creating {dirpath}")
+        mkdir(dirpath)
+
     host_name = input("Server hostname: ")
     username = input("Username: ")
     ssh_port = input("Server SSH port (press enter for port 22): ")
@@ -60,20 +74,3 @@ def create_config():
             config_file.write(file_text)
     else:
         print("No file was written.")
-
-
-def check_config_file(dirpath, filepath):
-    """
-    Check if client.cfg exist
-
-    :param dirpath: path to the directory containing client.cfg
-    :param filepath: path to client.cfg
-    :return: True if we should proceed with writing client.cfg, False otherwise
-    """
-    if not os.path.isdir(dirpath):
-        mkdir(dirpath)
-    if os.path.isfile(filepath):
-        return confirmation("client.cfg already exists. "
-                            "Do you want to overwrite?")
-    else:
-        return True
