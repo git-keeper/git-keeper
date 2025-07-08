@@ -15,10 +15,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-mkdir -p .config/git-keeper
-cat > .config/git-keeper/client.cfg <<EOL
+# If a location is provided, use that instead of ~/.config
+if [ -z "$2" ]
+then
+  config_dir=".config"
+else
+  config_dir=$2
+fi
+
+mkdir -p $config_dir/git-keeper
+cat > $config_dir/git-keeper/client.cfg <<EOL
 [server]
 host = gkserver
 username = $1
 EOL
+
 exit 0

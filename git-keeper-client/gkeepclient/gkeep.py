@@ -22,7 +22,7 @@
 Provides the main entry point for the gkeep client. Parses command line
 arguments and calls the appropriate function.
 """
-
+import os
 import sys
 from argparse import ArgumentParser
 
@@ -519,6 +519,12 @@ def main():
         parser.print_help()
         sys.exit(1)
 
+    # Allow users to change the configuration directory through
+    # $XDG_CONFIG_HOME
+    xdg_config_home = os.environ.get('XDG_CONFIG_HOME')
+    if xdg_config_home is not None:
+        config.set_config_dir_path(os.path.expanduser(xdg_config_home))
+
     # Parse the args
     parsed_args = parser.parse_args()
 
@@ -594,7 +600,7 @@ def take_action(parsed_args):
     elif action_name == 'passwd':
         reset_password(parsed_args.username)
     elif action_name == 'config':
-        create_config()
+        create_config(config.config_dir_path)
     elif action_name == 'status':
         update_status(class_name, parsed_args.status)
     elif action_name == 'add_faculty':

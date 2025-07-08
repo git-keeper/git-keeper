@@ -251,7 +251,8 @@ application. For information about installing the client, see
 ### Client Configuration
 
 The default configuration file path for `gkeep` is
-`~/.config/git-keeper/client.cfg`. This file can be created using the
+`~/.config/git-keeper/client.cfg` (or `$XDG_CONFIG_HOME/git-keeper/client.cfg`
+if `$XDG_CONFIG_HOME` is set). This file can be created using the
 `gkeep config` command, or edited manually. An alternate configuration file
 path may be specified using `--config_file <file path>` or `-f <file path>`.
 

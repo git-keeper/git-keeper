@@ -74,9 +74,13 @@ class ClientSetupKeywords:
     def make_empty_directory(self, username, directory_name):
         client_control.run(username, 'mkdir -p {}'.format(directory_name))
 
-    def create_gkeep_config_file(self, faculty):
-        client_control.run_vm_bash_script(faculty, 'make_gkeep_config.sh',
-                                          faculty)
+    def create_gkeep_config_file(self, faculty, location=None):
+        if location is None:
+            client_control.run_vm_bash_script(faculty, 'make_gkeep_config.sh',
+                                              faculty)
+        else:
+            client_control.run_vm_bash_script(faculty, 'make_gkeep_config.sh',
+                                              faculty, location)
 
     def run_gkeep_command(self, faculty, *command):
         cmd = 'gkeep ' + ' '.join(command)
