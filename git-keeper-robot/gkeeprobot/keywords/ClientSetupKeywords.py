@@ -100,7 +100,7 @@ class ClientSetupKeywords:
                         solution_folder, expect_failure=False, branch=None):
         assignment_folder = '~/assignments/{}/{}'.format(class_name,
                                                          assignment_name)
-        cp_cmd = ('cp /vagrant/assignments/{}/{}/* {}'
+        cp_cmd = ('cp -r /vagrant/assignments/{}/{}/* {}'
                   .format(assignment_name, solution_folder, assignment_folder))
         client_control.run(student, cp_cmd)
 
@@ -109,7 +109,7 @@ class ClientSetupKeywords:
                               .format(assignment_folder, branch))
             client_control.run(student, new_branch_cmd)
 
-        commit_cmd = 'cd {}; git commit -am "done"'.format(assignment_folder)
+        commit_cmd = 'cd {}; git add .; git commit -m "done"'.format(assignment_folder)
         client_control.run(student, commit_cmd)
 
         if branch is None:
