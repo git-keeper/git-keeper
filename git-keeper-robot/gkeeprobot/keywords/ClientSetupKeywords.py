@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 
 from gkeeprobot.control.ClientControl import ClientControl
 from gkeeprobot.control.ServerControl import ServerControl
@@ -34,7 +35,7 @@ class ClientSetupKeywords:
                                           name)
 
     def establish_ssh_keys(self, name):
-        temp_dir_name = client_control.vm_control.temp_dir.name
+        temp_dir_name = os.path.basename(client_control.vm_control.temp_dir.name)
         client_control.run_vm_bash_script('keeper',
                                           'make_ssh_keys.sh',
                                           name,

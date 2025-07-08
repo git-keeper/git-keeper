@@ -160,3 +160,10 @@ class ServerCheckKeywords:
                                               username)
         if result != 'True':
             raise GkeepRobotException('User {} exists but should not'.format(username))
+
+    def git_safe_directory_is_configured(self):
+        result = control.run_vm_python_script('keeper',
+                                              'git_safe_directory_is_configured.py')
+
+        if result != 'True':
+            raise GkeepRobotException('Git system safe.directory not set to *')
