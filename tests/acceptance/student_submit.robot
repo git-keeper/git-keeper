@@ -104,3 +104,12 @@ Global Timeout Catches Infinite Loop
     Clone Assignment  student1  faculty1    cs1     run_py
     Student Submits    student1    faculty1    cs1    run_py    infinite_loop_submission
     Submission Test Results Email Exists    student1   cs1   run_py   Tests\ timed\ out
+
+Submission And Tests Have Executable Files
+    [Tags]    happy_path
+    Add Assignment to Client  faculty1  executable
+    Gkeep Upload Succeeds  faculty1  cs1  executable
+    Gkeep Publish Succeeds  faculty1  cs1  executable
+    Clone Assignment  student1  faculty1    cs1     executable
+    Student Submits    student1    faculty1    cs1    executable    submission_with_subdir
+    Submission Test Results Email Exists    student1   cs1   executable   Success

@@ -326,6 +326,10 @@ class ServerInterface:
                     local_path = os.path.join(dir_path, file_name)
                     remote_path = local_path.replace(source_path, dest_path, 1)
                     self.copy_file(local_path, remote_path)
+                    # If the file is executable locally, make it executable
+                    # on the server
+                    if os.access(local_path, os.X_OK):
+                        self.run_command('chmod +x {}'.format(remote_path))
 
         except Exception as e:
             raise ServerInterfaceError(e)
