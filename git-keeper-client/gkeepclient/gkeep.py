@@ -39,7 +39,8 @@ from gkeepclient.fetch_submissions import fetch_submissions, build_dest_path
 from gkeepclient.server_actions import class_add, class_modify, \
     delete_assignment, publish_assignment, update_assignment, \
     upload_assignment, trigger_tests, update_status, add_faculty, \
-    reset_password, admin_promote, admin_demote, disable_assignment, check
+    reset_password, admin_promote, admin_demote, disable_assignment, check,\
+    resend_email
 from gkeepclient.new_assignment import new_assignment
 from gkeepclient.test_solution import test_solution
 from gkeepclient.queries import list_classes, list_assignments, \
@@ -280,6 +281,24 @@ def add_trigger_subparser(subparsers):
                                 'students')
 
 
+def add_resend_subparser(subparsers):
+    """
+    Add a subparser for action 'resend', which resends emails for an assignment
+
+    :param subparsers: subparsers to add to
+    """
+
+    subparser = subparsers.add_parser('resend',
+                                      help='resend assignment emails')
+    add_class_name_argument(subparser)
+    add_assignment_name_argument(subparser)
+    subparser.add_argument('student_usernames',
+                           metavar='<student username>',
+                           nargs='*',
+                           help='optional, resend emails for only these '
+                                'students')
+
+
 def add_passwd_subparser(subparsers):
     """
     Add a subparser for action 'passwd', which resets a student's password.
@@ -452,6 +471,7 @@ def initialize_action_parser() -> GraderParser:
     add_fetch_subparser(subparsers)
     add_query_subparser(subparsers)
     add_trigger_subparser(subparsers)
+    add_resend_subparser(subparsers)
     add_passwd_subparser(subparsers)
     add_test_subparser(subparsers)
     add_local_test_subparser(subparsers)
@@ -597,6 +617,9 @@ def take_action(parsed_args):
     elif action_name == 'trigger':
         trigger_tests(class_name, assignment_name,
                       parsed_args.student_usernames, parsed_args.yes)
+    elif action_name == 'resend':
+        resend_email(class_name, assignment_name,
+                     parsed_args.student_usernames, parsed_args.yes)
     elif action_name == 'passwd':
         reset_password(parsed_args.username)
     elif action_name == 'config':

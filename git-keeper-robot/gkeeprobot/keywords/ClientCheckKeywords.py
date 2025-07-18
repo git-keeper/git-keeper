@@ -330,6 +330,25 @@ class ClientCheckKeywords:
         except ExitCodeException:
             pass
 
+    def gkeep_resend_succeeds(self, faculty, course_name, assignment_name, student_name=None):
+        if student_name is None:
+            client_control.run(faculty, 'gkeep -y resend {} {}'.format(course_name, assignment_name))
+        else:
+            client_control.run(faculty, 'gkeep -y resend {} {} {}'.format(course_name, assignment_name, student_name))
+
+    def gkeep_resend_fails(self, faculty, course_name, assignment_name, student_name=None):
+        if student_name is None:
+            cmd = 'gkeep -y resend {} {}'.format(course_name, assignment_name)
+        else:
+            cmd = 'gkeep -y resend {} {} {}'.format(course_name, assignment_name, student_name)
+
+        try:
+            client_control.run(faculty, cmd)
+            error = 'gkeep resend should have non-zero return'
+            raise GkeepRobotException(error)
+        except ExitCodeException:
+            pass
+
     def gkeep_passwd_succeeds(self, faculty, username):
         client_control.run(faculty, 'gkeep passwd {}'.format(username))
 

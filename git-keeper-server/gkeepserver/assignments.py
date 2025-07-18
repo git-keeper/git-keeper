@@ -434,6 +434,20 @@ def setup_student_assignment(assignment_dir: AssignmentDirectory,
                  .format(assignment_repo_path, str(e)))
         raise StudentAssignmentError(error)
 
+    send_assignment_email(assignment_dir, student, faculty_username,
+                          assignment_repo_path)
+
+
+def send_assignment_email(assignment_dir: AssignmentDirectory, student,
+                          faculty_username, assignment_repo_path):
+    """
+    Send the email for an assignment to a student.
+
+    :param assignment_dir: object representing the assignment directory
+    :param student: Student object representing the student
+    :param faculty_username: username of the faculty who owns the class
+    :param assignment_repo_path: path to the assignment repo
+    """
     assignment_config = assignment_dir.get_config()
 
     email_subject = (assignment_config.announcement_subject

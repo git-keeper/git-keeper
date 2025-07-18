@@ -552,6 +552,20 @@ Usage: `gkeep trigger <class name> <assignment name> [<student username> ...]`
 * `<student username>`: Optional username or list of user names to trigger
   tests for. If omitted, tests will be triggered for all students in the class.
 
+#### resend
+
+Resend new assignment emails for a list of specified students or all students
+in the class. The email may be resent for the faculty user that owns the class
+as well.
+
+Usage: `gkeep resend <class name> <assignment name> [<student username> ...]`
+
+* `<class name>`: Name of the class containing the assignment
+* `<assignment name>`: The name of the assignment, or a path to a directory
+  whose name matches the assignment name
+* `<student username>`: Optional username or list of user names to send emails
+  to. If omitted, emails will be sent to all students in the class.
+
 #### passwd
 
 Reset the password of a student user. A new password will be randomly generated
