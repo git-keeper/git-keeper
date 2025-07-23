@@ -537,6 +537,73 @@ def trigger_tests(class_name: str, assignment_name: str,
 @server_interface_connected
 @class_exists
 @class_is_open
+@assignment_exists
+@assignment_not_disabled
+def resend_email(class_name: str, assignment_name: str,
+                 student_usernames: list, yes: bool,
+                 response_timeout=20):
+    """
+    Resend the assignment email for an assignment.
+
+    Emails will be sent to all the students in the student_usernames list,
+    or to all students if student_usernames is empty.
+
+    Unless the yes parameter is true, the user will be prompted to confirm.
+
+    :param class_name: name of the class the assignment belongs to
+    :param assignment_name: name of the assignment
+    :param student_usernames: list of student usernames for whom emails should
+    be sent, or an empty list for all students
+    :param yes: if True, will automatically answer yes to confirmation prompts
+    :param response_timeout: seconds to wait for server response
+    """
+
+    published = server_interface.assignment_published(class_name,
+                                                      assignment_name)
+    faculty_only = (len(student_usernames) == 1 and
+                    config.server_username in student_usernames)
+
+    if not published and not faculty_only:
+        error = 'This assignment is not published, no email will be resent'
+        raise GkeepException(error)
+
+    class_student_usernames = \
+        server_interface.get_info().student_list(class_name)
+
+    if len(student_usernames) == 0:
+        student_usernames = class_student_usernames
+    else:
+        for username in student_usernames:
+            if (username not in class_student_usernames and
+                    username != config.server_username):
+                error = ('No student {0} in {1}'.format(username, class_name))
+                raise GkeepException(error)
+
+    print('Resending emails for', assignment_name, 'in class', class_name,
+          'for the following students:')
+
+    for username in student_usernames:
+        print(username)
+
+    if not yes and not confirmation('Proceed?', 'y'):
+        raise GkeepException('Aborting')
+
+    payload = '{0} {1}'.format(class_name, assignment_name)
+
+    for username in student_usernames:
+        payload += ' {0}'.format(username)
+
+    communicate_event('RESEND', payload, response_timeout=response_timeout,
+                      success_message='Email(s) successfully queued for sending',
+                      error_message='Error resending emails: ',
+                      timeout_message='Server response timeout. '
+                                      'Resending status unknown')
+
+
+@config_parsed
+@server_interface_connected
+@class_exists
+@class_is_open
 @assignment_not_disabled
 def update_assignment(class_name: str, upload_dir_path: str,
                       items=('base_code', 'email', 'tests', 'config'),

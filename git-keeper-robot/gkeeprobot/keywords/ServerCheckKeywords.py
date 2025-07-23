@@ -79,12 +79,12 @@ class ServerCheckKeywords:
         if result != 'True':
             raise GkeepRobotException('No password reset email for {}'.format(username))
 
-    def new_assignment_email_exists(self, username, course_name, assignment_name):
+    def new_assignment_email_exists(self, username, course_name, assignment_name, count='1'):
         # assignment name is in the body of the message
         subject = '[{}] New assignment: {}'.format(course_name, assignment_name)
         result = control.run_vm_python_script('keeper', 'email_to.py',
                                               username, subject,
-                                              assignment_name)
+                                              assignment_name, count)
         if result != 'True':
             raise GkeepRobotException('No new assignment email exists for {}, {}, {}'.format(username, course_name,
                                                                                    assignment_name))
