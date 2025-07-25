@@ -25,8 +25,10 @@ calling check_system()
 """
 import os
 
+from gkeepcore.git_commands import git_config_system
 from gkeepcore.gkeep_exception import GkeepException
 from gkeepcore.path_utils import user_home_dir
+from gkeepcore.shell_command import CommandExitCodeError
 from gkeepcore.system_commands import (CommandError, user_exists, group_exists,
                                        sudo_add_group, mode, chmod,
                                        this_user, this_group, sudo_add_user,
@@ -56,8 +58,29 @@ def check_system():
     """
 
     check_paths_and_permissions()
+    check_system_git_config()
     check_dummy_accounts()
     check_admin()
+
+
+def check_system_git_config():
+    """
+    Check that git's safe.directory configuration option is set to * in the
+    system-wide git configuration file, and set it if it is not.
+    """
+
+    try:
+        config_output_lines = git_config_system(['safe.directory']).split('\n')
+    except CommandExitCodeError:
+        # Non-zero exit code most likely means the system config file does not
+        # yet exist
+        config_output_lines = []
+
+    if '*' not in config_output_lines:
+        log_message = 'Setting git safe.directory to * system-wide'
+        gkeepd_logger.log_info(log_message)
+
+        git_config_system(['--add', 'safe.directory', '*'])
 
 
 def check_paths_and_permissions():

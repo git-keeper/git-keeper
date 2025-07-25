@@ -69,7 +69,12 @@ def remove_users():
             run_command('sudo userdel -r {}'.format(user))
 
 
+def remove_system_gitconfig():
+    run_command('sudo rm -f /etc/gitconfig')
+
+
 stop_gkeepd()
 remove_gkeepd_files()
 delete_email()
 remove_users()
+remove_system_gitconfig()

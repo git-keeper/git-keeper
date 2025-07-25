@@ -34,3 +34,7 @@ Relative Submission Path Not Allow
 Absoluate Path Accepted
     Add Submissions Folder to Config    faculty1    ~/submissions
     Gkeep Query JSON Produces Results    faculty1    classes    []
+
+Custom Config Path
+    Create Gkeep Config File    faculty1    location=/home/faculty1/custom_config
+    Gkeep Check Custom Location Succeeds    faculty1    /home/faculty1/custom_config

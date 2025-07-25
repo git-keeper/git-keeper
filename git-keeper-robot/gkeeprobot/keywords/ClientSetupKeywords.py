@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 
 from gkeeprobot.control.ClientControl import ClientControl
 from gkeeprobot.control.ServerControl import ServerControl
@@ -34,7 +35,7 @@ class ClientSetupKeywords:
                                           name)
 
     def establish_ssh_keys(self, name):
-        temp_dir_name = client_control.vm_control.temp_dir.name
+        temp_dir_name = os.path.basename(client_control.vm_control.temp_dir.name)
         client_control.run_vm_bash_script('keeper',
                                           'make_ssh_keys.sh',
                                           name,
@@ -74,9 +75,13 @@ class ClientSetupKeywords:
     def make_empty_directory(self, username, directory_name):
         client_control.run(username, 'mkdir -p {}'.format(directory_name))
 
-    def create_gkeep_config_file(self, faculty):
-        client_control.run_vm_bash_script(faculty, 'make_gkeep_config.sh',
-                                          faculty)
+    def create_gkeep_config_file(self, faculty, location=None):
+        if location is None:
+            client_control.run_vm_bash_script(faculty, 'make_gkeep_config.sh',
+                                              faculty)
+        else:
+            client_control.run_vm_bash_script(faculty, 'make_gkeep_config.sh',
+                                              faculty, location)
 
     def run_gkeep_command(self, faculty, *command):
         cmd = 'gkeep ' + ' '.join(command)
@@ -100,7 +105,7 @@ class ClientSetupKeywords:
                         solution_folder, expect_failure=False, branch=None):
         assignment_folder = '~/assignments/{}/{}'.format(class_name,
                                                          assignment_name)
-        cp_cmd = ('cp /vagrant/assignments/{}/{}/* {}'
+        cp_cmd = ('cp -r /vagrant/assignments/{}/{}/* {}'
                   .format(assignment_name, solution_folder, assignment_folder))
         client_control.run(student, cp_cmd)
 
@@ -109,7 +114,7 @@ class ClientSetupKeywords:
                               .format(assignment_folder, branch))
             client_control.run(student, new_branch_cmd)
 
-        commit_cmd = 'cd {}; git commit -am "done"'.format(assignment_folder)
+        commit_cmd = 'cd {}; git add .; git commit -m "done"'.format(assignment_folder)
         client_control.run(student, commit_cmd)
 
         if branch is None:
