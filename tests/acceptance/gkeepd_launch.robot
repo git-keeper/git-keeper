@@ -29,6 +29,7 @@ Valid Setup
     User Exists On Server    admin_prof
     User Exists On Server   tester
     Gkeepd Is Running
+    Git Safe Directory Is Configured
 
 Admin Account Already Exists
     [Tags]    happy_path

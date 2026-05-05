@@ -20,11 +20,12 @@ import sys
 
 
 @polling
-def email(to, subject_contains=None, body_contains=None):
+def email(to, subject_contains=None, body_contains=None, expected_count=1):
+    count = 0
     for file in glob.glob('/email/{}_*.txt'.format(to)):
         if check_email_contains(file, subject_contains=subject_contains, body_contains=body_contains):
-            return True
-    return False
+            count += 1
+    return count == expected_count
 
 def check_email_contains(filename, subject_contains=None, body_contains=None):
     with open(filename) as f:
@@ -41,4 +42,5 @@ def check_email_contains(filename, subject_contains=None, body_contains=None):
         return True
 
 
-print(email(sys.argv[1], subject_contains=sys.argv[2], body_contains=sys.argv[3]))
+count = 1 if len(sys.argv) < 5 else int(sys.argv[4])
+print(email(sys.argv[1], subject_contains=sys.argv[2], body_contains=sys.argv[3], expected_count=count))

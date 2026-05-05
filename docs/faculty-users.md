@@ -35,7 +35,8 @@ you do not want to clutter your system's Python packages.
 
 ### Configuration
 
-There must be a configuration file at `~/.config/git-keeper/client.cfg`. The
+There must be a configuration file at `~/.config/git-keeper/client.cfg` (or
+`$XDG_CONFIG_HOME/git-keeper/client.cfg` if `$XDG_CONFIG_HOME` is set). The
 easiest way to create this file is to run `gkeep config`, which will prompt you
 for various values and then create the file.
 
@@ -317,7 +318,7 @@ If a student forgets their password, the faculty member can reset their
 password using
 
 ```no-highlight
-gkeep reset <username> 
+gkeep passwd <username> 
 ```
 
 ### Sample Password Reset Email
