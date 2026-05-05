@@ -99,9 +99,29 @@ class ClientConfiguration:
         self.local_home_dir = os.path.expanduser('~')
         self.local_username = getuser()
 
+        self.config_dir_path = None
         self.config_path = None
 
         self._parsed = False
+
+    def set_config_dir_path(self, config_dir_path):
+        """
+        Set the path to the base config directory. The configuration file will
+        be expected to be in the git-keeper subdirectory within this directory.
+
+        Must be called before parse().
+
+        Raises ClientConfigureError
+
+        :param config_dir_path: path to the config directory
+        """
+
+        if self._parsed:
+            raise ClientConfigurationError('Config dir path cannot be changed ' 
+                                           'after the configuration file is '
+                                           'parsed')
+
+        self.config_dir_path = os.path.join(config_dir_path, 'git-keeper')
 
     def set_config_path(self, config_path):
         """
@@ -115,8 +135,8 @@ class ClientConfiguration:
         """
 
         if self._parsed:
-            raise ClientConfigurationError('Config path must be set '
-                                           'before the configuration file is '
+            raise ClientConfigurationError('Config path cannot be changed '
+                                           'after the configuration file is '
                                            'parsed')
 
         self.config_path = config_path
@@ -141,10 +161,14 @@ class ClientConfiguration:
         if self._parsed:
             raise ClientConfigurationError('parse() may only be called once')
 
+        if self.config_dir_path is None:
+            relative_path = '.config/git-keeper'
+            self.config_dir_path = os.path.join(self.local_home_dir,
+                                                relative_path)
+
         if self.config_path is None:
-            relative_path = '.config/git-keeper/client.cfg'
-            self.config_path = os.path.join(self.local_home_dir,
-                                            relative_path)
+            self.config_path = os.path.join(self.config_dir_path,
+                                            'client.cfg')
 
         if not os.path.isfile(self.config_path):
             error = '{0} does not exist'.format(self.config_path)
@@ -218,7 +242,7 @@ class ClientConfiguration:
     def _set_local_options(self):
         # Initialize all attributes related to the local client machine
         self.submissions_path = None
-        self.templates_path = os.path.expanduser('~/.config/git-keeper/templates')
+        self.templates_path = os.path.join(self.config_dir_path, 'templates')
 
         if 'local' not in self._parser.sections():
             return

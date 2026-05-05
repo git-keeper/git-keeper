@@ -60,6 +60,17 @@ class ClientCheckKeywords:
         except ExitCodeException:
             pass
 
+    def gkeep_check_custom_location_succeeds(self, faculty, location):
+        cmd = 'export XDG_CONFIG_HOME={}; gkeep check'.format(location)
+        output = client_control.run(faculty, cmd)
+
+        expected = location + '/git-keeper/client.cfg'
+
+        if expected not in output:
+            error = 'Expected to see {} in this output:\n{}'.format(expected,
+                                                                    output)
+            raise GkeepRobotException(error)
+
     def gkeep_add_succeeds(self, faculty, class_name):
         cmd = 'gkeep --yes add {} {}.csv'.format(class_name, class_name)
         client_control.run(faculty, cmd)
@@ -315,6 +326,25 @@ class ClientCheckKeywords:
         try:
             client_control.run(faculty, cmd)
             error = 'gkeep trigger should have non-zero return'
+            raise GkeepRobotException(error)
+        except ExitCodeException:
+            pass
+
+    def gkeep_resend_succeeds(self, faculty, course_name, assignment_name, student_name=None):
+        if student_name is None:
+            client_control.run(faculty, 'gkeep -y resend {} {}'.format(course_name, assignment_name))
+        else:
+            client_control.run(faculty, 'gkeep -y resend {} {} {}'.format(course_name, assignment_name, student_name))
+
+    def gkeep_resend_fails(self, faculty, course_name, assignment_name, student_name=None):
+        if student_name is None:
+            cmd = 'gkeep -y resend {} {}'.format(course_name, assignment_name)
+        else:
+            cmd = 'gkeep -y resend {} {} {}'.format(course_name, assignment_name, student_name)
+
+        try:
+            client_control.run(faculty, cmd)
+            error = 'gkeep resend should have non-zero return'
             raise GkeepRobotException(error)
         except ExitCodeException:
             pass

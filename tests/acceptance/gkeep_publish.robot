@@ -26,40 +26,40 @@ Setup Server and Client Accounts
     Add Faculty and Configure Accounts on Client    faculty1
     Establish Course  faculty1    cs1     student1  student2
     Create Accounts On Client   student1    student2
-    Add Assignment to Client  faculty1  good_simple
-    Gkeep Upload Succeeds   faculty1   cs1    good_simple
+    Add Assignment to Client  faculty1  good_simple3
+    Gkeep Upload Succeeds   faculty1   cs1    good_simple3
 
 *** Test Cases ***
 Valid Assignment Publish
     [Tags]  happy_path
-    Gkeep Publish Succeeds  faculty1    cs1     good_simple
-    New Assignment Email Exists    student1    cs1    good_simple
-    New Assignment Email Exists    student2    cs1    good_simple
-    Clone Assignment  student1  faculty1    cs1     good_simple
-    Clone Assignment  student2  faculty1    cs1     good_simple
+    Gkeep Publish Succeeds  faculty1    cs1     good_simple3
+    New Assignment Email Exists    student1    cs1    good_simple3
+    New Assignment Email Exists    student2    cs1    good_simple3
+    Clone Assignment  student1  faculty1    cs1     good_simple3
+    Clone Assignment  student2  faculty1    cs1     good_simple3
 
 Bad Assignment Name In Publish
     [Tags]  error
     Gkeep Publish Fails     faculty1    cs1     unknown_name
 
 Bad Course Name In Publish
-    Gkeep Publish Fails     faculty1    unknown_course      good_simple
+    Gkeep Publish Fails     faculty1    unknown_course      good_simple3
 
 Publish Twice
     [Tags]  error
-    Gkeep Publish Succeeds  faculty1    cs1     good_simple
-    Gkeep Publish Fails     faculty1    cs1     good_simple
+    Gkeep Publish Succeeds  faculty1    cs1     good_simple3
+    Gkeep Publish Fails     faculty1    cs1     good_simple3
 
 Double Upload Then Double Publish
     [Tags]  happy_path
     Add Assignment To Client  faculty1  good_simple2
     Gkeep Upload Succeeds   faculty1   cs1    good_simple2
     # Publish 1st assignment
-    Gkeep Publish Succeeds  faculty1    cs1     good_simple
-    New Assignment Email Exists    student1    cs1    good_simple
-    New Assignment Email Exists    student2    cs1    good_simple
-    Clone Assignment  student1  faculty1    cs1     good_simple
-    Clone Assignment  student2  faculty1    cs1     good_simple
+    Gkeep Publish Succeeds  faculty1    cs1     good_simple3
+    New Assignment Email Exists    student1    cs1    good_simple3
+    New Assignment Email Exists    student2    cs1    good_simple3
+    Clone Assignment  student1  faculty1    cs1     good_simple3
+    Clone Assignment  student2  faculty1    cs1     good_simple3
     # Publish 2nd assignment
     Gkeep Publish Succeeds  faculty1    cs1     good_simple2
     New Assignment Email Exists    student1    cs1    good_simple2
@@ -78,8 +78,8 @@ Interleave Upload and Publish
     Clone Assignment  student1  faculty1    cs1     good_simple2
     Clone Assignment  student2  faculty1    cs1     good_simple2
     # Publish 1st assignment
-    Gkeep Publish Succeeds  faculty1    cs1     good_simple
-    New Assignment Email Exists    student1    cs1    good_simple
-    New Assignment Email Exists    student2    cs1    good_simple
-    Clone Assignment  student1  faculty1    cs1     good_simple
-    Clone Assignment  student2  faculty1    cs1     good_simple
+    Gkeep Publish Succeeds  faculty1    cs1     good_simple3
+    New Assignment Email Exists    student1    cs1    good_simple3
+    New Assignment Email Exists    student2    cs1    good_simple3
+    Clone Assignment  student1  faculty1    cs1     good_simple3
+    Clone Assignment  student2  faculty1    cs1     good_simple3

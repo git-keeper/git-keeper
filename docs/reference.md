@@ -251,7 +251,8 @@ application. For information about installing the client, see
 ### Client Configuration
 
 The default configuration file path for `gkeep` is
-`~/.config/git-keeper/client.cfg`. This file can be created using the
+`~/.config/git-keeper/client.cfg` (or `$XDG_CONFIG_HOME/git-keeper/client.cfg`
+if `$XDG_CONFIG_HOME` is set). This file can be created using the
 `gkeep config` command, or edited manually. An alternate configuration file
 path may be specified using `--config_file <file path>` or `-f <file path>`.
 
@@ -550,6 +551,20 @@ Usage: `gkeep trigger <class name> <assignment name> [<student username> ...]`
   whose name matches the assignment name
 * `<student username>`: Optional username or list of user names to trigger
   tests for. If omitted, tests will be triggered for all students in the class.
+
+#### resend
+
+Resend new assignment emails for a list of specified students or all students
+in the class. The email may be resent for the faculty user that owns the class
+as well.
+
+Usage: `gkeep resend <class name> <assignment name> [<student username> ...]`
+
+* `<class name>`: Name of the class containing the assignment
+* `<assignment name>`: The name of the assignment, or a path to a directory
+  whose name matches the assignment name
+* `<student username>`: Optional username or list of user names to send emails
+  to. If omitted, emails will be sent to all students in the class.
 
 #### passwd
 

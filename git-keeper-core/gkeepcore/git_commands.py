@@ -177,6 +177,25 @@ def git_config(repo_path, config_options):
     run_command(cmd)
 
 
+def git_config_system(config_options):
+    """
+    Run a git config command to query or modify the system configuration.
+    Note that this is run using sudo. The command will be of the following
+    form:
+
+        sudo git config --system <config_options>
+
+    :param config_options: an iterable containing the options to pass to git
+      config
+    :return: the output of the command
+    """
+
+    cmd = ['git', 'config', '--system']
+    cmd.extend(config_options)
+
+    return run_command(cmd, sudo=True)
+
+
 def is_non_bare_repo(repo_path):
     """
     Determine if a directory is a non-bare git repository by checking for the

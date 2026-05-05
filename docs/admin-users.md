@@ -216,3 +216,20 @@ Once the server is running, the admin user can use the
 ```no-highlight
 gkeep add_faculty <last name> <first name> <email address>
 ```
+
+## Additional Notes
+
+Git now has a security measure in place where, by default, a user cannot clone
+a repository that is owned by another user, even with proper read permissions
+in place. In order to function, git-keeper requires the `keeper` user and all
+faculty users to be able to clone repositories owned by other users. Thus
+`gkeepd` adds a system-wide Git configuration to `/etc/gitconfig` which makes
+all Git repositories considered safe:
+
+```no-highlight
+[safe]
+        directory = *
+```
+
+If this setting is changed, `gkeepd` will restore it on startup. Changing this
+setting will break `gkeepd` functionality until it is restarted.

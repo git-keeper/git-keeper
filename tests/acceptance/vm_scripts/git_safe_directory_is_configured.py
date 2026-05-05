@@ -1,6 +1,4 @@
-#!/bin/bash
-
-# Copyright 2018 Nathan Sommer and Ben Coleman
+# Copyright 2024 Nathan Sommer and Ben Coleman
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,19 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# If a location is provided, use that instead of ~/.config
-if [ -z "$2" ]
-then
-  config_dir=".config"
-else
-  config_dir=$2
-fi
 
-mkdir -p $config_dir/git-keeper
-cat > $config_dir/git-keeper/client.cfg <<EOL
-[server]
-host = gkserver
-username = $1
-EOL
+from gkeepcore.shell_command import run_command, CommandExitCodeError
 
-exit 0
+try:
+    output = run_command('git config --system safe.directory').strip()
+    print(output == '*')
+except CommandExitCodeError:
+    print(False)

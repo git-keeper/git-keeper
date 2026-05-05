@@ -57,7 +57,7 @@ class LogEvent:
 
         :param log_line: line from a log file
         """
-        match = re.match('(\d+.\d+) (\w+) (.*)', log_line)
+        match = re.match(r'(\d+.\d+) (\w+) (.*)', log_line)
 
         if match is None:
             error = ('Log line does not look like an event: {0}'
