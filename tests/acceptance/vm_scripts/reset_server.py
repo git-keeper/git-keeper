@@ -16,6 +16,7 @@
 
 from gkeepcore.shell_command import run_command, CommandError
 import os
+import shutil
 
 
 def server_running():
@@ -66,7 +67,10 @@ def remove_users():
             except CommandError:
                 pass
 
-            run_command('sudo userdel -r {}'.format(user))
+            try:
+                run_command('sudo userdel -r {}'.format(user))
+            except CommandError:
+                shutil.rmtree('/home/{}'.format(user))
 
 
 def remove_system_gitconfig():
