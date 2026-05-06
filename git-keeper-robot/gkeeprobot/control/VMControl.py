@@ -14,6 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import shlex
+import os.path
 
 from gkeepcore.system_commands import chmod
 from tempfile import TemporaryDirectory
@@ -77,7 +78,7 @@ class VMControl:
             chmod('ssh_keys/keeper_rsa.pub', '600')
             return 'ssh_keys/keeper_rsa'
         else:
-            return '{}/{}_rsa'.format(self.temp_dir.name, username)
+            return '{}/{}_rsa'.format(os.path.basename(self.temp_dir.name), username)
 
     def close_user_connections(self, port):
         to_delete = []

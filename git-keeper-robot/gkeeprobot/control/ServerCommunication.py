@@ -14,7 +14,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from paramiko import SSHClient, AutoAddPolicy
-import time
 
 class ServerCommunication:
 
@@ -56,5 +55,7 @@ class ServerCommunication:
         self._sftp_client = self._ssh_client.open_sftp()
 
     def close(self):
-        self._sftp_client.close()
-        self._ssh_client.close()
+        if self._sftp_client is not None:
+            self._sftp_client.close()
+        if self._ssh_client is not None:
+            self._ssh_client.close()
