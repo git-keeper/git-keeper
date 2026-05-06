@@ -17,7 +17,7 @@
 
 
 """
-This script writes a new version number to the version.py files in all three
+This script writes a new version number to the version.py files in all four
 of the main packages.
 
 Before running this script, place the new version number in the file named
@@ -28,7 +28,6 @@ Versioning 2.0:  https://semver.org/
 """
 
 
-import argparse
 import os
 
 from distutils.version import StrictVersion
@@ -40,6 +39,7 @@ package_paths = (
     'git-keeper-client/gkeepclient',
     'git-keeper-core/gkeepcore',
     'git-keeper-server/gkeepserver',
+    'git-keeper-robot/gkeeprobot'
 )
 
 

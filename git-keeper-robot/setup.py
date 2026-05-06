@@ -1,5 +1,5 @@
 from setuptools import setup
-from gkeepcore.version import __version__
+from gkeeprobot.version import __version__
 
 setup(
     name='git-keeper-robot',
@@ -19,4 +19,5 @@ setup(
         'Topic :: Education'
     ],
     packages=['gkeeprobot'],
+    install_requires=['git-keeper-core=={}'.format(__version__), 'python-vagrant'],
 )
