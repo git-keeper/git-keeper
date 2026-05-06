@@ -118,7 +118,7 @@ features, and the tests should pass before new changes are merged.
 
 Our acceptance tests use two virtual machines:
 
-* `gkserver` - a server to run `gkeepd`. 
+* `gkserver` - a server to run `gkeepd`.
 * `gkclient` - a machine where faculty and student actions can be executed.
 
 We use Vangrant(https://www.vagrantup.com/) (backed by VirtualBox) to launch the machines and [Robot Framework](https://robotframework.org/) to write the tests.
@@ -133,7 +133,19 @@ The `gkserver` VM contains a mock email server that saves files to `/email` inst
 
 ### Setup
 
-Before you can run the test, you must build the VirtualBox images:
+Before you can run the tests, you must install Vagrant and VirtualBox and then build the VirtualBox images. On Linux, to install Vagrant and VirtualBox:
+* KVM/libvirt did not work as the provider for Vagrant for the tests
+* The versions of VirtualBox and Vagrant had to match, installed the most recent versions from their websites:
+    * [VirtualBox: 7.2](https://www.virtualbox.org/wiki/Linux_Downloads)
+    * [Vagrant: 2.4.9](https://developer.hashicorp.com/vagrant/install)
+* Add the current user to the `vboxusers` group:  
+  `sudo usermod -aG vboxusers $USER`
+* Disable KVM temporarily for VirtualBox to work (on reboot KVM will be re-enabled):  
+  `sudo modprobe -r kvm_intel`
+* Add the following line to `/etc/vbox/networks.conf` to allow VirtualBox to use the host-only network for the VMs:  
+  `* 20.0.1.0/8`
+
+Then build the VirtualBox images:
 
 * Goto `tests/acceptance/gkserver_base` and run `make_box.sh`.  This will create an image with the basic setup steps complete.  See the `Vagrantfile` in this directory for the steps.
 * Run `vagrant box add --name gkserver gkserver.box`.  This will allow Vagrant to launch the `gkserver` image.  See `tests/acceptance/Vagrantfile`.
@@ -154,7 +166,7 @@ Once you have built `gkserver` and `gkclient`, you can run the tests.  Run `robo
 When you run tests, Robot Framework has two behaviors:
 
 * If `gkserver` and `gkclient` are already up, it will use these machines for testing - and then leave them running when done.  This saves time when you have to run tests multiple times.
-* If `gkserver` and `gkclient` are not running, it will lauch both machines for testing - and then destroy them when done.
+* If `gkserver` and `gkclient` are not running, it will launch both machines for testing - and then destroy them when done.
 
 In order to avoid side effects, Robot Framework will reset `gkserver` and `gkclient` before each test.  See `vmscripts/reset_server.py` and `vmscripts/reset_client.py` to see what is reset.
 
