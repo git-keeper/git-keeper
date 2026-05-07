@@ -33,6 +33,7 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from enum import IntEnum
+import re
 from smtplib import SMTP
 
 from gkeepcore.gkeep_exception import GkeepException
@@ -54,7 +55,7 @@ class EmailPriority(IntEnum):
     HIGH = 0
 
 
-def _use_rn_lines(text) -> str:
+def _use_rn_lines(text: str|list[str]) -> str:
     """
     Takes a string or list of strings and returns a list of strings with
     trailing whitespace removed from each line and \r\n newlines.
@@ -70,7 +71,7 @@ def _use_rn_lines(text) -> str:
     return '\r\n'.join(lines)
 
 
-def _create_alternative(contents: dict) -> MIMEMultipart:
+def _create_alternative(contents: dict[str, str]) -> MIMEMultipart:
     """
     Create a multipart/alternative email message with the given contents. The
     keys of the MIME text subtypes and the values are the contents.
@@ -164,8 +165,8 @@ def _html_to_text(html_body: str) -> str:
     return parser.text.strip()
 
 
-def create_text_email_body(body, max_character_count=1000000,
-                           html_pre_body=False) -> MIMEBase:
+def create_text_email_message(body: str|list[str], max_character_count:int=1000000,
+                              html_body:bool=False, html_pre:bool=False) -> MIMEMultipart:
     """
     Construct a plain text email message. The body may be a single string or a
     list of strings. If the body is a list of strings, the final email message
@@ -177,27 +178,42 @@ def create_text_email_body(body, max_character_count=1000000,
     :param body: the body of the email
     :param max_character_count: if the email is longer than this number of
         characters it will be truncated
-    :param html_pre_body: if True, the body of the email will be sent both
-        as plain text and HTML, and for the latter the code will be escaped
-        and wrapped in <pre></pre> tags
+    :param html_body: if True, the body of the email will be sent both
+        as plain text and HTML
+    :param html_pre: if True, the HTML version of the email will be wrapped in
+        <pre> tags to preserve whitespace and use a monospace font
 
-    :return: the email message, either a MIMEText or MIMEMultipart object
+    :return: the email message, a MIMEMultipart object
     """
     body = _use_rn_lines(body)
 
     # truncate the email with a message if need be
     body = _truncate_email_body(body, max_character_count)
 
-    # create the body
-    if html_pre_body:
-        template = '<html><head></head><body><pre>{}</pre></body></html>'
-        html_body = template.format(html.escape(body))
-        return _create_alternative({'plain': body, 'html': html_body})
+    # create the message
+    if html_body:
+        template = '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body>{}</body></html>'
+        encoded = html.escape(body).replace('\n', '<br>')
+        html_content = template.format(f'<pre>{encoded}</pre>' if html_pre else encoded)
+        # De-linkify the clone URL in the HTML version of the email since it should not be
+        # clickable and email clients may automatically linkify it if it looks like a URL, which
+        # causes confusion for students.
+        # We replace '@', '.', and ':' with HTML so that it still looks and copies the same but
+        # won't be automatically linkified by some email clients.
+        def replacement(match):
+            return match.group(0).replace('@', '&#x40;').replace('.', '<span>.</span>').replace(':', '<span>:</span>')
+        html_content = re.sub(r'ssh://\S+/\S+\.git', replacement, html_content)
+        return _create_alternative({'plain': body, 'html': html_content})
     else:
-        return MIMEText(body, _charset='utf-8')
+        message = MIMEMultipart()
+        message.attach(MIMEText(body, _charset='utf-8'))
+        return message
 
 
-def create_html_email_body(html_body, plain=None, max_character_count=1000000):
+def create_html_email_message(html_body: str|list[str],
+                              plain: str|list[str]|None=None,
+                              max_character_count:int=1000000
+                              ) -> MIMEMultipart:
     """
     Construct an email object with HTML and plain text content.
 
@@ -205,16 +221,13 @@ def create_html_email_body(html_body, plain=None, max_character_count=1000000):
     strings. If the body is a list of strings, the final email message
     body will be each of those strings joined together by newlines.
 
-    :param to_address: the email address to send the email to
-    :param subject: the subject of the email
     :param html_body: the HTML body of the email as a string or list of strings
     :param plain: the plain text body of the email as a string or list of
         strings, defaults to generating it based on the text
-    :param files_to_attach: a list of file paths to attach to the email
     :param max_character_count: if the email is longer than this number of
         characters it will be truncated
-    :param priority: an EmailPriority representing the email's priority
-        in the send queue
+
+    :return: the email message, a MIMEMultipart object
     """
     html_body = _use_rn_lines(html_body)
     html_body = _truncate_email_body(html_body, max_character_count,
@@ -228,23 +241,6 @@ def create_html_email_body(html_body, plain=None, max_character_count=1000000):
     return _create_alternative({'text': plain, 'html': html_body})
 
 
-def create_email_body_from_markdown(md: str, max_character_count=1000000):
-    """
-    Construct an email object with HTML and plain text content from a markdown
-    string. The plain text body will be the literal markdown text.
-
-    This requires the optional markdown library to be installed.
-
-    :param markdown: the markdown string to convert to HTML and plain text
-    :param max_character_count: if the email is longer than this number of
-        characters it will be truncated
-    """
-    import markdown
-    md = _truncate_email_body(_use_rn_lines(md), max_character_count)
-    html_body = markdown.markdown(md)
-    return create_html_email_body(html_body, md, max_character_count)
-
-
 class Email:
     """
     An email that can be sent using smtplib and provides a method to send the
@@ -252,7 +248,7 @@ class Email:
     """
     def __init__(self, to_address, subject, body, files_to_attach=None,
                  max_character_count=1000000, priority=EmailPriority.NORMAL,
-                 html_pre_body=False):
+                 html_body=False):
         """
         Construct an email object.
 
@@ -266,7 +262,7 @@ class Email:
 
         If the body is a MIMEBase object, it will be used as the email body
         directly without modification. In this case, the max_character_count
-        and html_pre_body parameters are ignored.
+        and html_body parameters are ignored.
 
         :param to_address: the email address to send the email to
         :param subject: the subject of the email
@@ -276,9 +272,8 @@ class Email:
          characters it will be truncated
         :param priority: an EmailPriority representing the email's priority
          in the send queue
-        :param html_pre_body: if True, the body of the email will be sent both
-         as plain text and HTML, and for the latter the code will be escaped
-         and wrapped in <pre></pre> tags
+        :param html_body: if True, the body of the email will be sent both
+         as plain text and HTML
         """
 
         self._send_attempts = 0
@@ -301,18 +296,22 @@ class Email:
         subject_header = Header('{0}'.format(subject), 'utf-8')
         reply_to_header = Header('{0}'.format(config.from_address), 'utf-8')
 
+        # create the body
+        if isinstance(body, MIMEMultipart):
+            message = body
+        elif isinstance(body, MIMEBase):
+            # assume it is something that can be attached to a MIMEMultipart (e.g. MIMEText)
+            message = MIMEMultipart()
+            message.attach(body)
+        else:
+            message = create_text_email_message(body, max_character_count,
+                                                html_body)
+
         # put the headers in the message
-        message = MIMEMultipart()
         message['Subject'] = subject_header
         message['From'] = from_header
         message['To'] = to_header
         message['reply-to'] = reply_to_header
-
-        # attach the body
-        if not isinstance(body, MIMEBase):
-            body = create_text_email_body(body, max_character_count,
-                                          html_pre_body)
-        message.attach(body)
 
         # attach any files
         for file_path in files_to_attach or []:

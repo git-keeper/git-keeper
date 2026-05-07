@@ -40,8 +40,7 @@ from gkeepserver.email_sender_thread import email_sender
 from gkeepserver.info_update_thread import info_updater
 from gkeepserver.reports import reports_clone
 from gkeepserver.server_configuration import config
-from gkeepserver.server_email import Email, create_html_email_body, \
-    create_email_body_from_markdown, create_text_email_body
+from gkeepserver.server_email import Email, create_text_email_message, create_html_email_message
 from gkeepcore.path_utils import user_home_dir
 
 
@@ -194,21 +193,17 @@ class Submission:
             os.makedirs(student_report_dir_path, exist_ok=True)
 
             timestamp = strftime('%Y-%m-%d_%H-%M-%S-%Z')
-            file_exts = {
-                'text': 'txt',
-                'html': 'html',
-                'markdown': 'md',
-            }
-            ext = file_exts.get(assignment_cfg.test_output_format, 'txt')
-
-            report_filename = 'report-{0}.{1}'.format(timestamp, ext)
+            output_format = self._get_output_format(body, assignment_cfg)
+            file_extension = 'html' if output_format == 'html' else 'txt'
+            report_filename = 'report-{0}.{1}'.format(timestamp, file_extension)
             report_file_path = os.path.join(student_report_dir_path,
                                             report_filename)
 
             counter = 1
             while os.path.exists(report_file_path):
-                report_filename = 'report-{0}-{1}.{2}'.format(
-                    timestamp, counter, ext)
+                report_filename = 'report-{0}-{1}.{2}'.format(timestamp,
+                                                              counter,
+                                                              file_extension)
                 report_file_path = os.path.join(student_report_dir_path,
                                                 report_filename)
                 counter += 1
@@ -230,25 +225,37 @@ class Submission:
 
     def _email_results(self, body, assignment_cfg: AssignmentConfig):
         # send the student the results via email
-        if assignment_cfg.test_output_format == 'text':
+
+        output_format = self._get_output_format(body, assignment_cfg)
+
+        if output_format == 'text':
             if assignment_cfg.use_html is not None:
                 html_pre_body = assignment_cfg.use_html
             else:
                 html_pre_body = config.use_html
-            message = create_text_email_body(body, html_pre_body=html_pre_body)
-        elif assignment_cfg.test_output_format == 'html':
-            message = create_html_email_body(body)
-        elif assignment_cfg.test_output_format == 'markdown':
-            message = create_email_body_from_markdown(body)
-        else:
-            raise GkeepException('Unknown test output format {}'
-                                 .format(assignment_cfg.test_output_format))
-        
+            message = create_text_email_message(body, html_body=html_pre_body, html_pre=html_pre_body)
+        else:  # if output_format == 'html':
+            message = create_html_email_message(body)
+
         subject = (assignment_cfg.results_subject
                 .format(class_name=self.class_name,
                         assignment_name=self.assignment_name))
         email_sender.enqueue(Email(self.student.email_address, subject,
                                    message))
+
+    def _get_output_format(self, body: str, assignment_cfg: AssignmentConfig):
+        output_format = assignment_cfg.test_output_format
+        if output_format == 'auto':
+            body_lower = body[:15].lower()
+            if body_lower.startswith('<html') or body_lower.startswith('<!doctype html'):
+                output_format = 'html'
+            else:
+                output_format = 'text'
+        elif output_format not in ('text', 'html'):
+            raise GkeepException('Unknown test output format: {}'
+                                 .format(output_format))
+        return output_format
+
 
     def _make_action_command(self, paths: TempPaths,
                              assignment_cfg: AssignmentConfig):
