@@ -192,9 +192,23 @@ the memory limit defined in the [Server Configuration](#server-configuration).
 
 ##### Email Configuration
 
-The `use_html` option specifies whether or not to use HTML in test results
-emails to display the text in a monospace font. This overrides the value set in
-the [Server Configuration](#server-configuration).
+Test result emails can be sent in three different formats:
+* plain text
+* plain text wrapped HTML pre tags (monospace font)
+* HTML
+
+The `test_output_format` and `use_html` fields are used to specify which format
+to use. The `test_output_format` field can be set to `text`, `html`, or `auto`
+to specify the format to use. If `auto` is set (which is the default), then
+HTML will be used if the test output starts with `<!DOCTYPE html` or `<html`
+and plain text will be used otherwise. Otherwise, setting `test_output_format`
+to `text` or `html` will force the use of that format regardless of the
+content of the test output.
+
+The `use_html` option specifies whether or not to wrap plain text in HTML pre
+tags in test results emails to display the text in a monospace font. This
+overrides the value set in the [Server Configuration](#server-configuration)
+and defaults to `true` if not set in either place.
 
 The `announcement_subject` option can be used to specify a custom subject line
 for new assignment announcement emails. The strings `{class_name}` and
