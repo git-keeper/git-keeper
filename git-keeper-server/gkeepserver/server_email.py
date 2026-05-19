@@ -3,7 +3,7 @@
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
+# the Free Software Foundation, either version 3 of the License, orhttps://github.com/coderforlife/git-keeper/edit/html-email/git-keeper-server/gkeepserver/server_email.py
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -193,8 +193,12 @@ def create_text_email_message(body: str|list[str], max_character_count:int=10000
     # create the message
     if html_body:
         template = '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body>{}</body></html>'
-        encoded = html.escape(body).replace('\n', '<br>')
-        html_content = template.format(f'<pre>{encoded}</pre>' if html_pre else encoded)
+        encoded = html.escape(body)
+        if html_pre:
+            encoded = f'<pre>{encoded}</pre>'
+        else:
+            encoded = encoded.replace('\n', '<br>')
+        html_content = template.format(encoded)
         # De-linkify the clone URL in the HTML version of the email since it should not be
         # clickable and email clients may automatically linkify it if it looks like a URL, which
         # causes confusion for students.
