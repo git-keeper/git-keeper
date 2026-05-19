@@ -478,7 +478,7 @@ def send_assignment_email(assignment_dir: AssignmentDirectory, student,
     # build the email
     try:
         email = Email(student.email_address, email_subject, email_body,
-                      priority=priority)
+                      priority=priority, html_body=config.use_html)  # sent as HTML to avoid auto-linkification of the clone URL
     except EmailException as e:
         raise StudentAssignmentError(e)
 

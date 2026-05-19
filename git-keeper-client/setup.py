@@ -33,5 +33,5 @@ setup(
     entry_points={
         'console_scripts': ['gkeep=gkeepclient.gkeep:main'],
     },
-    install_requires=['git-keeper-core', 'paramiko', 'argcomplete'],
+    install_requires=['git-keeper-core', 'paramiko'],
 )

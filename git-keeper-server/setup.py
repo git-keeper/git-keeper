@@ -37,4 +37,7 @@ setup(
         'gkeepserver': ['data/*']
     },
     install_requires=['git-keeper-core', 'peewee'],
+    extras_require={
+        'markdown': ['markdown']
+    }
 )
