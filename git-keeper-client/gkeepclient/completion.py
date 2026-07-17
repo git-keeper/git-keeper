@@ -565,16 +565,16 @@ def __has_bash_completion() -> bool:
         return False
 
 
-def __write_to_end_of_file(path: str, shell: str, script: str = '') -> bool:
+def __write_to_end_of_file(path: str, shell: str) -> bool:
     if not confirmation(f"Write {shell} completion script to the end of {path}?", 'y'):
         return False
     with open(path, 'a') as file:
-        file.write(script if script else generate_bash_completion())
+        file.write(SHELLS[shell][2]())
     print(f"Installed {shell} completion in {path}")
     return True
 
 
-def __write_to_file(path: str, shell: str, script: str = '') -> bool:
+def __write_to_file(path: str, shell: str) -> bool:
     directory = os.path.dirname(path)
     try:
         os.makedirs(directory, exist_ok=True)
@@ -586,12 +586,7 @@ def __write_to_file(path: str, shell: str, script: str = '') -> bool:
         return False
     try:
         with open(path, 'w') as file:
-            if not script:
-                if shell == 'bash':
-                    script = generate_bash_completion()
-                elif shell == 'zsh':
-                    script = generate_zsh_completion()
-            file.write(script)
+            file.write(SHELLS[shell][2]())
     except OSError:
         print(f"Failed to write {shell} completion script to {path}")
         return False
@@ -667,11 +662,7 @@ def install_zsh():
     directories = ("~/.oh-my-zsh", "~/.zsh")
     for directory in directories:
         directory = os.path.expanduser(directory)
-        if os.path.isdir(directory):
-            os.makedirs(os.path.join(directory, 'completions'), exist_ok=True)
-            with open(os.path.join(directory, 'completions', '__gkeep'), 'w') as file:
-                file.write(generate_zsh_completion())
-            print(f"Installed zsh completion in {directory}/completions/__gkeep")
+        if os.path.isdir(directory) and __write_to_file(os.path.join(directory, 'completions', '_gkeep'), 'zsh'):
             return
     
     # Fallback to ~/.zshrc - if they don't have autoload -U compinit && compinit it will fail
@@ -686,8 +677,7 @@ def install_zshrc():
 
     The install_zsh() function is preferred to this function.
     """
-    with open(os.path.expanduser('~/.zshrc'), 'a') as file:
-        file.write(generate_zsh_completion())
+    __write_to_end_of_file(os.path.expanduser('~/.zshrc'), 'zsh')
 
 
 SHELLS = {
