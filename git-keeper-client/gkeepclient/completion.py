@@ -17,6 +17,24 @@
 Provides bash and zsh completion for gkeep client.
 """
 
+# How to add completion for a new sub-command:
+#  * Add a new entry to the __SUBCOMMANDS dictionary with the sub-command name as the key and a
+#    function as the value. If the sub-command takes no arguments (or has no completable
+#    arguments) then the value in the dictionary should be None. This will complete the
+#    sub-command name but not any arguments.
+#  * Add a new function that takes a list of the command line arguments (not including the
+#    sub-command name) and returns a list of the possible completions for the next argument. The
+#    function should return an empty list if there are no possible completions.
+#  * There are several helper functions that can be used to complete partial arguments:
+#      __complete_file(path) - completes a file path (directories end with /)
+#      __complete_csv(path) - completes a CSV file path (directories end with /)
+#      __complete_directory(path, assignment_dir=True) - completes a directory path
+#      __complete_word(word, possibilities) - completes a word from a list of possibilities
+#      __complete_class_name(class_name) - completes a class name from the server
+#      __complete_assignment(class_name, assignment, unpublished=False, published=False, disabled=False)
+#    Unless otherwise noted, these append the space to the end of the completed word to indicate
+#    that it is complete.
+
 import os
 import shlex
 import shutil
