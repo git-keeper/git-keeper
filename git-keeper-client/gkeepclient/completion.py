@@ -523,9 +523,9 @@ def generate_zsh_completion():
 # gkeep zsh completion start
 #compdef gkeep
 __gkeep() {
-    compadd -Q "${(@ps:\v:)"$( COMP_WORDS="$( echo -n ${(pj:\v:)words} )" \
-                               COMP_CWORD=$((CURRENT-1)) \
-                               GKEEP_COMPLETION=1 $words[1] )"}"  #2>/dev/null
+    compadd -Q "${(@ps:\\v:)"$( COMP_WORDS="$( echo -n ${(pj:\\v:)words} )" \
+                                COMP_CWORD=$((CURRENT-1)) \
+                                GKEEP_COMPLETION=1 $words[1] )"}"  #2>/dev/null
 }
 if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
     # autoload from fpath, call function directly
