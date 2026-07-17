@@ -19,13 +19,16 @@ Provides bash and zsh completion for gkeep client.
 
 import os
 import shlex
+import shutil
 import string
+import sys
 import tempfile
 import getpass
 import pickle
 import subprocess
 from datetime import datetime
 
+from gkeepclient.text_ui import confirmation
 from gkeepclient.client_configuration import config
 from gkeepclient.server_interface import server_interface
 from gkeepcore.gkeep_exception import GkeepException
@@ -127,7 +130,7 @@ def __config_parsed():
     if not config.is_parsed():
         try:
             config.parse()
-        except GkeepException as e:
+        except GkeepException:
             return False
     return True
 
@@ -140,7 +143,7 @@ def __server_interface_connected():
         if __config_parsed():
             try:
                 server_interface.connect()
-            except GkeepException as e:
+            except GkeepException:
                 return False
     return True
 
@@ -538,28 +541,90 @@ fi
 """
 
 
+def __run_safe(*command: str) -> subprocess.CompletedProcess:
+    """
+    Run a command in a subprocess and return the result. If the command fails or times out then
+    return a CompletedProcess with a non-zero returncode and empty stdout/stderr.
+    """
+    try:
+        return subprocess.run(command, capture_output=True, text=True, timeout=1)
+    except (subprocess.SubprocessError, subprocess.TimeoutExpired):
+        return subprocess.CompletedProcess(command, 1, '', '')
+
+
+def __has_bash_completion() -> bool:
+    """
+    Returns True if bash-completion is installed and active, False otherwise. This is done by
+    running a bash command to see if the _init_completion function is defined and if the complete
+    command has any rules defined.
+    """
+    try:
+        result = __run_safe("bash", "-i", "-c", "type _init_completion >/dev/null 2>&1 && complete -p")
+        return result.returncode == 0 and len(result.stdout.strip()) > 0
+    except (subprocess.SubprocessError, subprocess.TimeoutExpired):
+        return False
+
+
+def __write_to_end_of_file(path: str, shell: str, script: str = '') -> bool:
+    if not confirmation(f"Write {shell} completion script to the end of {path}?", 'y'):
+        return False
+    with open(path, 'a') as file:
+        file.write(script if script else generate_bash_completion())
+    print(f"Installed {shell} completion in {path}")
+    return True
+
+
+def __write_to_file(path: str, shell: str, script: str = '') -> bool:
+    directory = os.path.dirname(path)
+    try:
+        os.makedirs(directory, exist_ok=True)
+    except OSError:
+        return False
+    if not os.access(directory, os.W_OK, effective_ids=os.access in os.supports_effective_ids):
+        return False
+    if not confirmation(f"Write {shell} completion script to {path}?", 'y'):
+        return False
+    try:
+        with open(path, 'w') as file:
+            if not script:
+                if shell == 'bash':
+                    script = generate_bash_completion()
+                elif shell == 'zsh':
+                    script = generate_zsh_completion()
+            file.write(script)
+    except OSError:
+        print(f"Failed to write {shell} completion script to {path}")
+        return False
+    print(f"Installed {shell} completion in {path}")
+    return True
+
+
 def install_bash():
     """
-    Installs the code completion handler with bash-completions. The bash-completions package is
-    required to be installed for this to be useful. If bash-completions is not installed then this
-    will have no effect (well, it will write some very small files). If you want to use this
-    without bash-completions run install_rc(), however this is the recommended way to have it
-    installed.
+    Installs the code completion handler with bash-completions. If bash-completions package is
+    not installed, this produces a warning and then falls back to installing the RC version.
 
     This follows the guidelines from https://github.com/scop/bash-completion/blob/master/README.md.
     """
+    if not shutil.which("bash"):
+        print("bash is not installed, cannot install bash completion")
+        sys.exit(1)
+    
+    if not __has_bash_completion():
+        print("bash-completion is not installed or not active, using bashrc instead")
+        install_bashrc()
+        return
+
     # First get the possible bash-completions directories
     directories = []
 
     # bash-completions global package setting
-    pkc_config = subprocess.run(['pkg-config', '--variable=completionsdir', 'bash-completion'],
-                                capture_output=True, text=True)
+    pkc_config = __run_safe('pkg-config', '--variable=completionsdir', 'bash-completion')
     if pkc_config.returncode == 0:
         directories.append(pkc_config.stdout.strip())
 
     # bash-completions global package setting (compat)
-    pkc_config = subprocess.run(['pkg-config', '--variable=compatdir', 'bash-completion'],
-                                capture_output=True, text=True)
+    pkc_config = __run_safe('pkg-config', '--variable=compatdir', 'bash-completion')
     if pkc_config.returncode == 0:
         directories.append(pkc_config.stdout.strip())
 
@@ -577,25 +642,12 @@ def install_bash():
         'bash-completion', 'completions'))
 
     # Add the bash script to the first directory we can
-    script_code = generate_bash_completion()
     for directory in directories:
-        try:
-            os.makedirs(directory, exist_ok=True)
-            with open(os.path.join(directory, 'gkeep'), 'w') as file:
-                file.write(script_code)
-        except OSError:
-            pass # failed, try another directory
-        else: # success
-            print(f"Installed bash completion in {directory}/gkeep")
+        if __write_to_file(os.path.join(directory, 'gkeep'), 'bash'):
             return
 
     # Final choice is the ~/.bash_completion file (very unlikely to get here)
-    # TODO: this is the only choice if the user does not have bash-completion installed, but that
-    # cannot be fully detected and missing directories above will be created and thus never get
-    # here. How to improve?
-    with open(os.path.expanduser('~/.bash_completion'), 'a') as file:
-        file.write(script_code)
-    print("Installed bash completion in ~/.bash_completion")
+    __write_to_end_of_file(os.path.expanduser('~/.bash_completion'), 'bash')
 
 
 def install_bashrc():
@@ -603,9 +655,8 @@ def install_bashrc():
     Installs this completion handler in either ~/.bashrc or /etc/bashrc depending on if the current
     user is a regular user or root. The install_bash() function is preferred to this function.
     """
-    file = '/etc/bashrc' if os.geteuid() == 0 else os.path.expanduser('~/.bashrc')
-    with open(file, 'a') as file:
-        file.write(generate_bash_completion())
+    path = '/etc/bashrc' if os.geteuid() == 0 else os.path.expanduser('~/.bashrc')
+    __write_to_end_of_file(path, 'bash')
 
 
 def install_zsh():
